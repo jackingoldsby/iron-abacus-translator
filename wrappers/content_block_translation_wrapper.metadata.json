@@ -1,0 +1,296 @@
+{
+  "node_id": "content_block_translation_node",
+  "name": "Content Block Translation",
+  "description": "Translate individual content blocks from Classical Chinese to English with cultural footnotes, including footnote marker validation and quality threshold enforcement",
+  "version": "2.0.0",
+  "author": "Translation Pipeline Team",
+  "created_at": "2025-11-16",
+  "updated_at": "2025-11-16",
+  "changelog": "Added external YAML configuration support with work-specific overrides",
+
+  "inputs": {
+    "required": {
+      "content_text_id": {
+        "type": "integer",
+        "description": "Unique identifier for this content block"
+      },
+      "content_source_text": {
+        "type": "string",
+        "description": "Classical Chinese source text to translate",
+        "min_length": 5
+      }
+    },
+    "optional": {
+      "work_id": {
+        "type": "string",
+        "description": "Work identifier for tracking and logging purposes"
+      }
+    }
+  },
+
+  "outputs": {
+    "success": {
+      "type": "boolean",
+      "description": "Whether translation completed successfully"
+    },
+    "translated_data": {
+      "type": "object",
+      "description": "Complete translation response with annotated content and footnotes",
+      "schema": {
+        "content_text_id": "integer",
+        "content_source_text": "string",
+        "translated_annotated_content": {
+          "annotated_content_text": "string - English translation with inline markers [1], [2], etc.",
+          "content_footnotes": "array - Footnote definitions with ideogram, pinyin, explanation",
+          "content_type": "string - One of: narrative, dialogue, verse, document, descriptive, thought"
+        }
+      }
+    },
+    "validation_report": {
+      "type": "object",
+      "description": "Validation results including footnote marker checks and quality score",
+      "schema": {
+        "is_valid": "boolean",
+        "quality_score": "float - 0-10 scale",
+        "errors": "array[string]",
+        "warnings": "array[string]",
+        "footnote_marker_count": "integer - Unique markers in text",
+        "footnote_array_count": "integer - Footnotes in array"
+      }
+    },
+    "manifest": {
+      "type": "object",
+      "description": "Processing manifest with metadata, timing, quality metrics"
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Detailed metrics including character counts, length ratios, quality scores"
+    },
+    "error_details": {
+      "type": "object",
+      "nullable": true,
+      "description": "Error details if translation failed"
+    },
+    "attempts_used": {
+      "type": "integer",
+      "description": "Number of translation attempts before success or final failure"
+    }
+  },
+
+  "configuration": {
+    "config_path": {
+      "type": "string",
+      "nullable": true,
+      "description": "Explicit path to YAML configuration file"
+    },
+    "config_name": {
+      "type": "string",
+      "nullable": true,
+      "description": "Named configuration (e.g., 'strict', 'fast')",
+      "examples": ["strict", "fast", "default"]
+    },
+    "work_id": {
+      "type": "string",
+      "nullable": true,
+      "description": "Work ID for work-specific configuration overrides"
+    },
+    "model": {
+      "type": "string",
+      "default": "gpt-4.1-nano",
+      "description": "OpenAI model to use for translation (legacy parameter)"
+    },
+    "temperature": {
+      "type": "float",
+      "default": 0.3,
+      "range": [0.0, 1.0],
+      "description": "Sampling temperature for translation (legacy parameter)"
+    },
+    "max_retries": {
+      "type": "integer",
+      "default": 5,
+      "range": [1, 20],
+      "description": "Maximum number of translation attempts before failing (legacy parameter)"
+    },
+    "quality_threshold": {
+      "type": "float",
+      "default": 9.5,
+      "range": [0.0, 10.0],
+      "description": "Minimum quality score required (legacy parameter)"
+    },
+    "timeout": {
+      "type": "integer",
+      "default": 120,
+      "description": "Request timeout in seconds (legacy parameter)"
+    },
+    "glossary_path": {
+      "type": "string",
+      "nullable": true,
+      "description": "Optional path to wuxia glossary database (legacy parameter)"
+    },
+    "configuration_files": {
+      "default_config": "config/translation_rules.yaml",
+      "named_configs": [
+        "config/translation_rules.strict.yaml",
+        "config/translation_rules.fast.yaml"
+      ],
+      "work_overrides": "config/work_overrides/{work_id}_rules.yaml",
+      "priority": "direct_params > work_overrides > named_config > default_config > hardcoded_defaults"
+    }
+  },
+
+  "dependencies": {
+    "processors": [
+      "processors.translator.TranslationService"
+    ],
+    "wrappers": [
+      "wrappers.translation_config.TranslationConfig"
+    ],
+    "utilities": [
+      "utils.wuxia_glossary.WuxiaGlossary"
+    ],
+    "external": [
+      "openai>=1.0.0",
+      "pyyaml>=6.0.0",
+      "pydantic>=2.0.0"
+    ]
+  },
+
+  "validation": {
+    "input_validation": {
+      "enabled": true,
+      "checks": [
+        "content_text_id is not null",
+        "content_source_text is not empty",
+        "content_source_text length >= 5 characters"
+      ]
+    },
+    "footnote_marker_validation": {
+      "enabled": true,
+      "critical": true,
+      "description": "Validates footnote markers in translated text match footnotes array",
+      "checks": [
+        "Count unique [N] markers in translated text",
+        "Count footnotes in footnotes array",
+        "Marker count MUST equal footnote count",
+        "Markers should be sequential (1, 2, 3, ...)"
+      ],
+      "validation_order": "before_quality_check"
+    },
+    "quality_validation": {
+      "enabled": true,
+      "threshold": 9.5,
+      "checks": [
+        "Translation not empty",
+        "Translation different from source",
+        "Length ratio between 0.5 and 3.0",
+        "Valid content type",
+        "Quality score >= threshold"
+      ]
+    }
+  },
+
+  "retry_policy": {
+    "enabled": true,
+    "max_attempts": 5,
+    "retry_conditions": [
+      "footnote_marker_mismatch - Marker count != footnote count",
+      "quality_threshold_not_met - Quality score < 9.5",
+      "translation_exception - API or processing error"
+    ],
+    "backoff_strategy": "none - immediate retry",
+    "validation_on_each_attempt": true
+  },
+
+  "error_handling": {
+    "on_input_validation_failure": "return_error_immediately",
+    "on_footnote_validation_failure": "retry_up_to_max_attempts",
+    "on_quality_validation_failure": "retry_up_to_max_attempts",
+    "on_all_retries_exhausted": "return_error_with_details"
+  },
+
+  "logging": {
+    "level": "INFO",
+    "structured": true,
+    "log_events": [
+      "wrapper_initialized",
+      "translation_started",
+      "attempt_started",
+      "footnote_validation_completed",
+      "quality_validation_completed",
+      "translation_successful",
+      "translation_failed"
+    ]
+  },
+
+  "performance": {
+    "typical_duration_seconds": {
+      "small_block": 2,
+      "medium_block": 5,
+      "large_block": 10
+    },
+    "api_dependent": true,
+    "supports_parallel_execution": true,
+    "checkpoint_support": false,
+    "stateless": true
+  },
+
+  "integration": {
+    "pipeline_stage": "stage_4_body_translation",
+    "workflow_position": "content_block_processor",
+    "can_run_standalone": true,
+    "requires_previous_stages": [
+      "stage_1_metadata",
+      "stage_2_toc",
+      "stage_3_headings"
+    ],
+    "produces_for_next_stages": [
+      "translated_content_blocks with validated footnotes"
+    ]
+  },
+
+  "business_rules": {
+    "footnote_marker_consistency": {
+      "description": "Every footnote in the array must have a corresponding [N] marker in the text",
+      "severity": "critical",
+      "enforcement": "automatic_validation_and_retry"
+    },
+    "quality_threshold": {
+      "description": "Translation quality must meet minimum threshold of 9.5/10",
+      "severity": "critical",
+      "enforcement": "automatic_validation_and_retry"
+    },
+    "content_type_classification": {
+      "description": "Content must be classified into one of 6 types",
+      "severity": "major",
+      "valid_types": [
+        "narrative",
+        "dialogue",
+        "verse",
+        "document",
+        "descriptive",
+        "thought"
+      ]
+    }
+  },
+
+  "usage_example": {
+    "code": "from wrappers.content_block_translation_wrapper import ContentBlockTranslationWrapper\n\nwrapper = ContentBlockTranslationWrapper(\n    max_retries=5,\n    quality_threshold=9.5\n)\n\nresult = wrapper.execute(\n    content_text_id=42,\n    content_source_text=\"且言紂王只因進香之後，看見女媧美貌。\",\n    work_id=\"D1379\"\n)\n\nif result.success:\n    print(f\"Quality: {result.validation_report.quality_score:.1f}/10\")\n    print(f\"Footnotes: {result.validation_report.footnote_marker_count}\")\n    translated = result.translated_data\nelse:\n    print(f\"Error: {result.error_details}\")",
+    "description": "Translate a single content block with automatic validation and retry"
+  },
+
+  "testing": {
+    "unit_tests": "tests/wrappers/test_content_block_translation_wrapper.py",
+    "integration_tests": "tests/integration/test_translation_pipeline.py",
+    "test_coverage_target": 80,
+    "mock_api_calls": true
+  },
+
+  "notes": [
+    "Footnote validation happens BEFORE quality check (critical ordering)",
+    "Each retry attempt performs both footnote and quality validation",
+    "Wrapper handles retries internally; TranslationService configured for single attempt",
+    "Quality threshold is configurable but defaults to 9.5/10 per requirements",
+    "Validation failures are logged with detailed error context",
+    "Manifest includes full processing metadata for audit trail"
+  ]
+}

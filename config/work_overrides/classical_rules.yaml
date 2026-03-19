@@ -1,0 +1,26 @@
+# Work-Specific Override: Classical Wuxia Novels
+# Generic overrides for classical wuxia works with complex cultural references
+
+validation:
+  quality:
+    threshold: 9.6  # Higher quality for classical works
+
+  input:
+    max_text_length: 8000  # Classical works may have longer passages
+
+retry:
+  max_attempts: 6
+  backoff_strategy: "exponential"
+
+translation:
+  temperature: 0.3
+  timeout: 150  # Longer timeout for complex passages
+
+glossary:
+  enabled: true
+  path: "/Users/jacki/project_files/glossaries/wuxia_glossary.db"
+
+logging:
+  level: "INFO"
+  include_metrics: true
+  log_validation_details: true

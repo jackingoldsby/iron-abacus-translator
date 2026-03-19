@@ -29,22 +29,7 @@ from tenacity import (
     retry_if_exception_type,
 )
 from tqdm import tqdm
-from openai import OpenAI
-
-# Import credential loader
-try:
-    from utils.load_env_creds import load_env_credentials
-    # Load credentials at module import time
-    load_env_credentials()
-except ImportError:
-    # If running as standalone script, try alternative import
-    try:
-        sys.path.insert(0, str(Path(__file__).parent.parent))
-        from utils.load_env_creds import load_env_credentials
-        load_env_credentials()
-    except Exception as e:
-        logging.warning(f"Could not load env_creds.yml: {e}. Using environment variables directly.")
-
+from utils.clients import get_llm_client, LLMRequest
 
 # Configure logging
 logging.basicConfig(
@@ -54,15 +39,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def get_openai_client() -> OpenAI:
-    """Get OpenAI client with API key from environment."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError(
-            "OPENAI_API_KEY environment variable is not set. "
-            "Please set it in environment or env_creds.yml file."
-        )
-    return OpenAI(api_key=api_key)
+def get_openai_client():
+    """Get LLM client from environment config."""
+    return get_llm_client(component="cleanup")
 
 
 @dataclass
@@ -254,18 +233,17 @@ Return as JSON array with one object per footnote."""
             user_content += f"   Explanation: {fn['explanation']}\n\n"
 
         try:
-            response = self.client.chat.completions.create(
-                model=self.config.model,
-                temperature=self.config.temperature,
-                response_format={"type": "json_object"},
+            response = self.client.chat(LLMRequest(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_content}
-                ]
-            )
+                ],
+                model=self.config.model,
+                temperature=self.config.temperature,
+                json_mode=True,
+            ))
 
-            result_text = response.choices[0].message.content
-            result_data = json.loads(result_text)
+            result_data = response.parsed
 
             # Debug: Log the raw response structure
             logger.info(f"OpenAI response keys: {list(result_data.keys())}")

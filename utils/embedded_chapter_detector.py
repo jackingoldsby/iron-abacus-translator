@@ -190,35 +190,46 @@ class EmbeddedChapterDetector:
 
     def _find_intro_section(self, data: Dict[str, Any]) -> Tuple[Optional[Dict], Optional[str]]:
         """
-        Find introduction section in data structure.
+        Find front matter section containing an embedded chapter.
 
-        Checks multiple possible locations:
-        - structure.front_matter.introduction
-        - structure.front_matter.sections (type='introduction')
-        - structure.front_matter.toc (type='introduction')
+        Checks multiple possible locations, prioritizing 'introduction' type
+        but falling back to any section (e.g. 'title_page') that contains
+        a chapter marker in its content blocks.
 
         Returns:
             (intro_section, location_key) or (None, None)
         """
-        # Try front_matter.introduction
+        # Try front_matter.introduction first (explicit introduction)
         intro_sections = data.get('structure', {}).get('front_matter', {}).get('introduction', [])
         if intro_sections:
             intro = intro_sections[0] if isinstance(intro_sections, list) else intro_sections
             return (intro, 'introduction')
 
-        # Try front_matter.sections array
+        # Try front_matter.sections array — first pass: prefer 'introduction' type
         sections_array = data.get('structure', {}).get('front_matter', {}).get('sections', [])
         if isinstance(sections_array, list):
             for section in sections_array:
                 if section.get('type') == 'introduction':
                     return (section, 'sections')
 
-        # Try front_matter.toc array
+        # Try front_matter.toc array — prefer 'introduction' type
         toc_array = data.get('structure', {}).get('front_matter', {}).get('toc', [])
         if isinstance(toc_array, list):
             for item in toc_array:
                 if item.get('type') == 'introduction':
                     return (item, 'toc')
+
+        # Second pass: check ANY front_matter section with content_blocks
+        # for an embedded chapter (handles title_page, preface, etc.)
+        if isinstance(sections_array, list):
+            for section in sections_array:
+                if section.get('content_blocks'):
+                    chapter_idx = self.find_embedded_chapter(section)
+                    if chapter_idx is not None:
+                        logger.info(
+                            f"Found embedded chapter in section type='{section.get('type', '?')}'"
+                        )
+                        return (section, 'sections')
 
         return (None, None)
 

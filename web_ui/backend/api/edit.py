@@ -16,15 +16,13 @@ from models import (
 
 router = APIRouter()
 
-# Get paths from environment or use defaults
-CLEANED_JSON_DIR = os.getenv(
-    "CLEANED_JSON_DIR",
-    "/Users/jacki/project_files/translation_project/01_clean_json"
-)
-REVIEWED_JSON_DIR = os.getenv(
-    "REVIEWED_JSON_DIR",
-    "/Users/jacki/project_files/translation_project/02_reviewed_json"
-)
+# Get paths from environment config
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+from utils.environment_config import get_or_create_config
+_edit_env = get_or_create_config()
+CLEANED_JSON_DIR = str(_edit_env.source_dir)
+REVIEWED_JSON_DIR = str(_edit_env.output_dir)
 
 
 def add_edit_history_entry(book: Book, action: str, details: Dict[str, Any]) -> None:

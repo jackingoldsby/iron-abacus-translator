@@ -1,0 +1,28 @@
+# Default Volume Translation Rules Configuration
+# This is the baseline configuration for volume-level translation with parallel processing
+
+parallel:
+  max_workers: 5  # Concurrent block translations
+  timeout_per_block: 300  # 5 minutes per block (seconds)
+
+validation:
+  aggregate_quality_threshold: 9.5  # Average across all blocks
+  allow_footnote_mismatches: false  # Zero tolerance (strict)
+  block_quality_threshold: 9.5  # Individual block threshold
+
+# Configuration for ContentBlockTranslationWrapper
+# These settings delegate to block-level translation
+block_config:
+  config_name: null  # Use default block config (or set to "strict", "fast", etc.)
+  quality_threshold: null  # Override block quality threshold (or null to use block config default)
+  max_retries: null  # Override block retries (or null to use block config default)
+
+reporting:
+  include_per_block_stats: true  # Include per-block breakdown in manifest
+  include_body_vs_nonbody_breakdown: true  # Separate body/non-body statistics
+  save_detailed_manifest: true  # Generate comprehensive manifest JSON
+
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_progress: true  # Show progress bar during translation
+  log_statistics: true  # Log statistics after completion

@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 
 
-from utils.wuxia_glossary import WuxiaGlossary
+from utils.glossary import TranslationGlossary
 
 # Setup logging
 logging.basicConfig(
@@ -48,22 +48,23 @@ SAMPLE_TEXTS = [
 def main():
     """Demonstrate glossary matching on sample texts"""
 
-    # Load glossary
-    glossary_path = Path(__file__).parent.parent / "wuxia_glossary.db"
+    # Load glossary from environment config
+    from utils.environment_config import get_or_create_config
+    glossary_path = get_or_create_config().glossary_path
 
     if not glossary_path.exists():
         logger.error(f"Glossary database not found: {glossary_path}")
         return 1
 
     try:
-        glossary = WuxiaGlossary(glossary_path)
-        logger.info(f"✓ Loaded wuxia glossary from {glossary_path}")
+        glossary = TranslationGlossary(glossary_path)
+        logger.info(f"✓ Loaded glossary from {glossary_path}")
     except Exception as e:
         logger.error(f"Failed to load glossary: {e}")
         return 1
 
     print(f"\n{'='*80}")
-    print(f"WUXIA GLOSSARY MATCHING DEMONSTRATION")
+    print(f"GLOSSARY MATCHING DEMONSTRATION")
     print(f"{'='*80}\n")
 
     # Process each sample text

@@ -9,7 +9,8 @@ This preserves the original CSV translations while providing community-accepted 
 """
 
 import sys
-import sqlite3
+import os
+from utils.db import connect_catalog
 import json
 from pathlib import Path
 from typing import Optional, Dict, List
@@ -17,17 +18,12 @@ import time
 
 # Add project root to path
 
-from utils.load_env_creds import get_openai_api_key
-from openai import OpenAI
-
-# Load API key
-api_key = get_openai_api_key()
-client = OpenAI(api_key=api_key)
+from utils.clients import llm_chat_json
 
 
 def create_consensus_table(db_path: str):
     """Create table for consensus translations if it doesn't exist."""
-    conn = sqlite3.connect(db_path)
+    conn = connect_catalog(db_path)
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -94,17 +90,15 @@ Respond ONLY with valid JSON in this exact format:
 }}"""
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4.1-nano",
+        result = llm_chat_json(
             messages=[
                 {"role": "system", "content": "You are an expert on wuxia literature translations. Always respond with valid JSON only."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.1,  # Low temperature for consistency
-            response_format={"type": "json_object"}
+            model="gpt-4.1-nano",
+            temperature=0.1,
+            component="consensus",
         )
-
-        result = json.loads(response.choices[0].message.content)
         return result
 
     except Exception as e:
@@ -126,7 +120,7 @@ def process_works(db_path: str, limit: Optional[int] = None, skip_existing: bool
         limit: Optional limit on number of works to process
         skip_existing: Skip works that already have consensus translations
     """
-    conn = sqlite3.connect(db_path)
+    conn = connect_catalog(db_path)
     cursor = conn.cursor()
 
     # Get works that need consensus translations
@@ -175,10 +169,16 @@ def process_works(db_path: str, limit: Optional[int] = None, skip_existing: bool
 
         # Store in database
         cursor.execute("""
-            INSERT OR REPLACE INTO works_consensus_translations
+            INSERT INTO works_consensus_translations
             (work_id, consensus_title_english, consensus_author_english,
              title_rationale, author_rationale, searched_at)
             VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT (work_id) DO UPDATE SET
+                consensus_title_english = EXCLUDED.consensus_title_english,
+                consensus_author_english = EXCLUDED.consensus_author_english,
+                title_rationale = EXCLUDED.title_rationale,
+                author_rationale = EXCLUDED.author_rationale,
+                searched_at = EXCLUDED.searched_at
         """, (
             work_id,
             consensus['consensus_title_english'],
@@ -211,7 +211,7 @@ def process_works(db_path: str, limit: Optional[int] = None, skip_existing: bool
 
 def show_comparison(db_path: str, limit: int = 10):
     """Show comparison between original and consensus translations."""
-    conn = sqlite3.connect(db_path)
+    conn = connect_catalog(db_path)
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -281,10 +281,12 @@ Examples:
         """
     )
 
+    from utils.environment_config import get_or_create_config
+    _default_db = str(get_or_create_config().catalog_path)
     parser.add_argument(
         '--db-path',
-        default='/Users/jacki/project_files/translation_project/wuxia_catalog.db',
-        help='Path to catalog database (default: /Users/jacki/project_files/translation_project/wuxia_catalog.db)'
+        default=_default_db,
+        help=f'Path to catalog database (default: {_default_db})'
     )
     parser.add_argument(
         '--limit',

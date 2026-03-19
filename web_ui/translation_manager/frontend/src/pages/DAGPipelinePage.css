@@ -1,0 +1,383 @@
+.dag-pipeline-page {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  grid-template-rows: 1fr auto;
+  gap: 16px;
+  height: calc(100vh - 140px);
+  min-height: 600px;
+}
+
+/* Left Panel - Work Selector */
+.dag-work-selector {
+  grid-row: 1 / 3;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dag-work-selector-header {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.dag-work-selector-header h3 {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  color: #333;
+}
+
+.dag-search-bar {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.dag-search-bar:focus {
+  border-color: #2196f3;
+}
+
+.dag-filters {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.dag-filter-select {
+  flex: 1;
+  min-width: 100px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background: #fff;
+}
+
+.dag-filter-toggle {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  background: #fff;
+  transition: all 0.2s;
+}
+
+.dag-filter-toggle.active {
+  background: #e3f2fd;
+  border-color: #2196f3;
+  color: #1565c0;
+}
+
+.dag-work-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.dag-work-item {
+  padding: 10px 12px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.dag-work-item:hover {
+  background: #f5f5f5;
+  border-color: #ddd;
+}
+
+.dag-work-item.selected {
+  background: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.dag-work-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.dag-work-subtitle {
+  font-size: 11px;
+  color: #888;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.dag-work-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.dag-work-badge.volumes {
+  background: #e8eaf6;
+  color: #3f51b5;
+}
+
+.dag-work-badge.status-not_started { background: #f5f5f5; color: #999; }
+.dag-work-badge.status-in_progress { background: #fff3e0; color: #e65100; }
+.dag-work-badge.status-completed { background: #e8f5e9; color: #2e7d32; }
+.dag-work-badge.status-failed { background: #ffebee; color: #c62828; }
+
+/* Volume selection within expanded work */
+.dag-volume-selector {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+}
+
+.dag-volume-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: #555;
+}
+
+.dag-volume-checkbox input {
+  accent-color: #2196f3;
+}
+
+.dag-volume-status {
+  font-size: 10px;
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.dag-start-button {
+  margin: 12px 16px 16px;
+  padding: 10px;
+  background: #2196f3;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dag-start-button:hover {
+  background: #1976d2;
+}
+
+.dag-start-button:disabled {
+  background: #bdbdbd;
+  cursor: not-allowed;
+}
+
+/* Center Panel - DAG + Detail */
+.dag-center-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.dag-graph-container {
+  flex: 1;
+  min-height: 350px;
+}
+
+.dag-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 350px;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  color: #999;
+  font-size: 14px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* Detail Panel (slide-in from right) */
+.dag-detail-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 100vh;
+  background: #fff;
+  border-left: 1px solid #ddd;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  overflow-y: auto;
+  padding: 20px;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+
+.dag-detail-panel.open {
+  transform: translateX(0);
+}
+
+.dag-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.dag-detail-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.dag-detail-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+  padding: 4px 8px;
+}
+
+.dag-detail-section {
+  margin-bottom: 16px;
+}
+
+.dag-detail-section h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dag-detail-info {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: 13px;
+}
+
+.dag-detail-label {
+  color: #888;
+}
+
+.dag-detail-value {
+  color: #333;
+  font-weight: 500;
+}
+
+.dag-detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.dag-detail-actions button {
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  background: #fff;
+  transition: all 0.15s;
+}
+
+.dag-detail-actions button:hover {
+  background: #f5f5f5;
+}
+
+.dag-detail-actions button.primary {
+  background: #2196f3;
+  color: #fff;
+  border-color: #2196f3;
+}
+
+.dag-detail-actions button.danger {
+  color: #e53935;
+  border-color: #e53935;
+}
+
+/* Bottom Bar */
+.dag-bottom-bar {
+  grid-column: 2;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dag-bottom-progress {
+  flex: 1;
+}
+
+.dag-bottom-progress-bar {
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dag-bottom-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.dag-bottom-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #666;
+}
+
+.dag-bottom-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dag-bottom-stat strong {
+  color: #333;
+}
+
+.dag-bottom-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.dag-bottom-controls button {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  background: #fff;
+}
+
+.dag-bottom-controls button:hover {
+  background: #f5f5f5;
+}
+
+.dag-bottom-controls button.cancel {
+  color: #e53935;
+  border-color: #e53935;
+}

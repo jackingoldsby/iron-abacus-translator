@@ -420,11 +420,11 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 ### What NOT to Commit
 
 Defined in `.gitignore`:
-- Credentials (`env_creds.yml`, `.env`)
+- Credentials (`.env`, environment variables)
 - Generated data (`translation_data/`, `output/`, `logs/`)
 - Test scripts (`test_*.py`, `run_*.py` in scripts/)
 - Build artifacts (`node_modules/`, `venv/`, `__pycache__/`)
-- Database files (`*.db`, `*.sqlite`)
+- Database files (`*.db`, `*.sqlite`, `*.duckdb`)
 - Large CSV files (`works.csv`, `*_catalog.csv`)
 
 ---
@@ -555,7 +555,7 @@ from openai import OpenAI
 import sqlite3
 
 from processors.json_cleaner import clean_book_json
-from utils.load_env_creds import get_openai_api_key
+import os
 ```
 
 **Never** use relative imports or `sys.path` hacks:
@@ -698,14 +698,14 @@ if char == '廿':
 ### Database Files
 
 - **Location**: Not in git (too large, contains data)
-- **Catalog**: `/Users/jacki/project_files/translation_project/wuxia_catalog.db`
+- **Catalog**: `/Users/jacki/project_files/translation_project/db/works_translator.duckdb`
 - **Schema**: See `utils/catalog_metadata.py` for structure
 - **Access**: Use provided helper classes, don't write raw SQL
 
 ```python
 from utils.catalog_metadata import CatalogMetadataExtractor
 
-extractor = CatalogMetadataExtractor('wuxia_catalog.db')
+extractor = CatalogMetadataExtractor('works_translator.duckdb')
 metadata = extractor.get_metadata_by_directory('wuxia_0117')
 ```
 
@@ -810,14 +810,14 @@ translation_data/outputs/D58/translated_001_20250114.json          # Archived ol
 ### Credentials Management
 
 **NEVER commit credentials to git**. Use:
+- `~/.zshrc` environment exports
 - `.env` files (gitignored)
-- `env_creds.yml` (gitignored)
 - Environment variables
 
 ```python
-# Good: Use helper function
-from utils.load_env_creds import get_openai_api_key
-api_key = get_openai_api_key()
+# Good: Use environment variable
+import os
+api_key = os.getenv('OPENAI_API_KEY')
 
 # Bad: Hardcoded key
 api_key = "sk-proj-abc123..."  # NEVER DO THIS
@@ -825,7 +825,7 @@ api_key = "sk-proj-abc123..."  # NEVER DO THIS
 
 ### API Keys
 
-- Store in `env_creds.yml` or `.env`
+- Set in `~/.zshrc`: `export VAR='...'`
 - Load at runtime, never at import time
 - Use environment variables in production
 - Rotate keys regularly
@@ -1002,7 +1002,7 @@ nano .env  # or use your favorite editor
 ```bash
 # Source data paths
 WUXIA_SOURCE_DIR=/path/to/your/cleaned/source/files
-WUXIA_CATALOG_PATH=/path/to/your/wuxia_catalog.db
+WUXIA_CATALOG_PATH=/path/to/your/works_translator.duckdb
 WUXIA_GLOSSARY_DB_PATH=./wuxia_glossary.db
 
 # Output paths (project-relative is recommended)
@@ -1024,13 +1024,13 @@ OPENAI_API_KEY=your-openai-api-key-here
 - Used by: Translation pipeline, batch processors
 
 **WUXIA_CATALOG_PATH**
-- Purpose: Path to wuxia catalog SQLite database
-- Default: `/Users/jacki/project_files/translation_project/wuxia_catalog.db`
-- Example: `/path/to/your/wuxia_catalog.db`
+- Purpose: Path to wuxia catalog DuckDB database
+- Default: `/Users/jacki/project_files/translation_project/db/works_translator.duckdb`
+- Example: `/path/to/your/works_translator.duckdb`
 - Used by: Metadata extraction, catalog queries
 
 **WUXIA_GLOSSARY_DB_PATH**
-- Purpose: Path to wuxia glossary SQLite database
+- Purpose: Path to wuxia glossary database
 - Default: `./wuxia_glossary.db` (project root)
 - Example: `./wuxia_glossary.db` or `/path/to/glossary.db`
 - Used by: Translation glossary lookup, term matching
@@ -1185,7 +1185,7 @@ WUXIA_LOG_DIR=/Users/jacki/logs
 **Good** (explicit, clear):
 ```bash
 WUXIA_SOURCE_DIR=/path/to/external/data/source
-WUXIA_CATALOG_PATH=/path/to/external/data/wuxia_catalog.db
+WUXIA_CATALOG_PATH=/path/to/external/data/works_translator.duckdb
 ```
 
 **Why**: External data locations vary by environment and shouldn't be inside the project.
@@ -1210,7 +1210,7 @@ Python's `Path` handles forward slashes correctly on all platforms.
 ```bash
 # .gitignore
 .env
-env_creds.yml
+.env
 ```
 
 **Why**: .env files contain machine-specific paths and API keys. Use `.env.example` as template.
@@ -1222,7 +1222,7 @@ env_creds.yml
 ```bash
 # .env
 WUXIA_SOURCE_DIR=/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS
-WUXIA_CATALOG_PATH=/Users/jacki/project_files/translation_project/wuxia_catalog.db
+WUXIA_CATALOG_PATH=/Users/jacki/project_files/translation_project/db/works_translator.duckdb
 WUXIA_GLOSSARY_DB_PATH=./wuxia_glossary.db
 WUXIA_OUTPUT_DIR=./translation_data/outputs
 WUXIA_LOG_DIR=./logs/translation
@@ -1234,7 +1234,7 @@ OPENAI_API_KEY=sk-proj-your-key-here
 ```bash
 # Set as environment variables in CI system
 export WUXIA_SOURCE_DIR=/ci/workspace/data/source
-export WUXIA_CATALOG_PATH=/ci/workspace/data/catalog.db
+export WUXIA_CATALOG_PATH=/ci/workspace/data/works_translator.duckdb
 export WUXIA_GLOSSARY_DB_PATH=/ci/workspace/data/glossary.db
 export WUXIA_OUTPUT_DIR=/ci/workspace/outputs
 export WUXIA_LOG_DIR=/ci/workspace/logs
@@ -1246,7 +1246,7 @@ export OPENAI_API_KEY=${CI_SECRET_OPENAI_KEY}
 ```bash
 # /etc/environment or systemd service file
 WUXIA_SOURCE_DIR=/var/lib/wuxia/source
-WUXIA_CATALOG_PATH=/var/lib/wuxia/catalog.db
+WUXIA_CATALOG_PATH=/var/lib/wuxia/works_translator.duckdb
 WUXIA_GLOSSARY_DB_PATH=/var/lib/wuxia/glossary.db
 WUXIA_OUTPUT_DIR=/var/lib/wuxia/outputs
 WUXIA_LOG_DIR=/var/log/wuxia/translation
@@ -1273,7 +1273,7 @@ cp .env.example .env
 
 **Before** (hardcoded):
 ```python
-catalog_path = "/Users/jacki/project_files/translation_project/wuxia_catalog.db"
+catalog_path = "/Users/jacki/project_files/translation_project/db/works_translator.duckdb"
 ```
 
 **After** (environment-based):
@@ -1298,7 +1298,7 @@ python utils/environment_config.py
 # Project Root: /Users/jacki/PycharmProjects/agentic_test_project
 # Source Paths:
 #   Source Dir: /Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS
-#   Catalog DB: /Users/jacki/project_files/translation_project/wuxia_catalog.db
+#   Catalog DB: /Users/jacki/project_files/translation_project/db/works_translator.duckdb
 #   Glossary DB: /Users/jacki/PycharmProjects/agentic_test_project/wuxia_glossary.db
 # Output Paths:
 #   Output Dir: /Users/jacki/PycharmProjects/agentic_test_project/translation_data/outputs
@@ -1364,7 +1364,7 @@ ls -la "$WUXIA_CATALOG_PATH"
 # .github/workflows/test.yml
 env:
   WUXIA_SOURCE_DIR: /ci/workspace/data
-  WUXIA_CATALOG_PATH: /ci/workspace/catalog.db
+  WUXIA_CATALOG_PATH: /ci/workspace/works_translator.duckdb
 ```
 
 ### Dependencies

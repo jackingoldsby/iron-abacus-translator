@@ -10,61 +10,48 @@ import sys
 import os
 
 
-from utils.load_env_creds import load_env_credentials, get_openai_api_key, verify_openai_key
-
-
 def main():
     print("=" * 60)
     print("OpenAI API Key Verification")
     print("=" * 60)
     print()
 
+    # Step 1: Check environment variable
+    print("Step 1: Checking OPENAI_API_KEY environment variable...")
+    api_key = os.getenv('OPENAI_API_KEY')
+    if not api_key:
+        print("  x OPENAI_API_KEY is not set.")
+        print()
+        print("Set in ~/.zshrc: export OPENAI_API_KEY='...'")
+        print("Then run: source ~/.zshrc")
+        return 1
+
+    print(f"  OK Key found: {api_key[:20]}...{api_key[-10:]}")
+    print(f"  OK Key length: {len(api_key)} characters")
+    print()
+
+    # Step 2: Verify API key with test call
+    print("Step 2: Verifying API key with test call...")
     try:
-        # Step 1: Load credentials from env_creds.yml
-        print("Step 1: Loading credentials from env_creds.yml...")
-        creds = load_env_credentials(override=True)  # Force override to use file version
-        print(f"  ✓ Loaded {len(creds)} credentials")
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        client.models.list()
+        print("  OK API key verified successfully!")
         print()
-
-        # Step 2: Get OpenAI API key
-        print("Step 2: Getting OpenAI API key...")
-        api_key = get_openai_api_key()
-        print(f"  ✓ Key found: {api_key[:20]}...{api_key[-10:]}")
-        print(f"  ✓ Key length: {len(api_key)} characters")
+        print("=" * 60)
+        print("ALL CHECKS PASSED")
+        print("=" * 60)
         print()
-
-        # Step 3: Verify API key with test call
-        print("Step 3: Verifying API key with test call...")
-        if verify_openai_key(api_key):
-            print("  ✓ API key verified successfully!")
-            print()
-            print("=" * 60)
-            print("✓ ALL CHECKS PASSED")
-            print("=" * 60)
-            print()
-            print("You can now run the batch processing pipeline.")
-            return 0
-        else:
-            print("  ✗ API key verification failed!")
-            print()
-            print("=" * 60)
-            print("✗ VERIFICATION FAILED")
-            print("=" * 60)
-            print()
-            print("Please check your API key in env_creds.yml")
-            return 1
-
+        print("You can now run the batch processing pipeline.")
+        return 0
     except Exception as e:
-        print(f"  ✗ Error: {e}")
+        print(f"  x API key verification failed: {e}")
         print()
         print("=" * 60)
-        print("✗ VERIFICATION FAILED")
+        print("VERIFICATION FAILED")
         print("=" * 60)
         print()
-        print("Please check:")
-        print("  1. env_creds.yml exists in project root")
-        print("  2. OPENAI_API_KEY is set in env_creds.yml")
-        print("  3. API key is valid and has correct permissions")
+        print("Please check that your API key is valid and has correct permissions.")
         return 1
 
 

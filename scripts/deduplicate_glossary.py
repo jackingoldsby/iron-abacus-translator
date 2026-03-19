@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 """
-Wuxia Glossary Deduplication Script
+Glossary Deduplication Script
 
-Merges wuxia_translation_glossary.csv and candidate_wuxia_terms.csv,
+Merges translation glossary CSV and candidate terms CSV,
 resolving duplicates and conflicts, then exports to SQLite database.
 
 Usage:
-    python scripts/deduplicate_wuxia_glossary.py \\
-        --glossary wuxia_translation_glossary.csv \\
-        --candidates candidate_wuxia_terms.csv \\
-        --output wuxia_glossary_merged.csv \\
-        --db wuxia_glossary.db \\
+    python scripts/deduplicate_glossary.py \\
+        --glossary translation_glossary.csv \\
+        --candidates candidate_terms.csv \\
+        --output glossary_merged.csv \\
+        --db glossary.db \\
         --report deduplication_report.json
 """
 
 import argparse
 import csv
 import json
-import sqlite3
+from utils.db import connect_glossary
 import logging
 from pathlib import Path
 from typing import Dict, List, Set, Tuple, Optional
@@ -76,9 +76,9 @@ class DeduplicationReport:
 # DEDUPLICATION ENGINE
 # =============================================================================
 
-class WuxiaGlossaryDeduplicator:
+class GlossaryDeduplicator:
     """
-    Deduplicates and merges wuxia glossary entries.
+    Deduplicates and merges glossary entries.
 
     Strategy:
     1. Load both CSV files
@@ -371,67 +371,59 @@ class WuxiaGlossaryDeduplicator:
 
         logger.info(f"Exported {len(self.merged_entries)} entries to {output_path}")
 
-    def export_to_sqlite(self, db_path: Path) -> None:
+    def export_to_db(self, db_path: Path) -> None:
         """
-        Export merged entries to SQLite database.
+        Export merged entries to DuckDB database.
 
         Schema:
-        CREATE TABLE wuxia_glossary (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            chinese TEXT UNIQUE NOT NULL,
-            pinyin TEXT NOT NULL,
-            translation_strategy TEXT NOT NULL,
-            recommended_form TEXT NOT NULL,
-            footnote_template TEXT NOT NULL,
-            category TEXT NOT NULL,
-            rationale TEXT,
-            deduplication_strategy TEXT NOT NULL,
-            expected_frequency TEXT NOT NULL,
-            source TEXT NOT NULL
+        CREATE TABLE glossary (
+            id INTEGER PRIMARY KEY,
+            chinese VARCHAR UNIQUE NOT NULL,
+            pinyin VARCHAR NOT NULL,
+            translation_strategy VARCHAR NOT NULL,
+            recommended_form VARCHAR NOT NULL,
+            footnote_template VARCHAR NOT NULL,
+            category VARCHAR NOT NULL,
+            rationale VARCHAR,
+            deduplication_strategy VARCHAR NOT NULL,
+            expected_frequency VARCHAR NOT NULL,
+            source VARCHAR NOT NULL
         );
-        CREATE INDEX idx_chinese ON wuxia_glossary(chinese);
-        CREATE INDEX idx_category ON wuxia_glossary(category);
-        CREATE INDEX idx_frequency ON wuxia_glossary(expected_frequency);
         """
-        logger.info(f"Exporting to SQLite: {db_path}")
+        import duckdb
+        logger.info(f"Exporting to DuckDB: {db_path}")
 
-        # Create database
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        conn = duckdb.connect(str(db_path))
 
         # Drop existing table if present
-        cursor.execute("DROP TABLE IF EXISTS wuxia_glossary")
+        conn.execute("DROP TABLE IF EXISTS glossary")
 
         # Create table
-        cursor.execute("""
-            CREATE TABLE wuxia_glossary (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                chinese TEXT UNIQUE NOT NULL,
-                pinyin TEXT NOT NULL,
-                translation_strategy TEXT NOT NULL,
-                recommended_form TEXT NOT NULL,
-                footnote_template TEXT NOT NULL,
-                category TEXT NOT NULL,
-                rationale TEXT,
-                deduplication_strategy TEXT NOT NULL,
-                expected_frequency TEXT NOT NULL,
-                source TEXT NOT NULL
+        conn.execute("""
+            CREATE TABLE glossary (
+                id INTEGER PRIMARY KEY,
+                chinese VARCHAR UNIQUE NOT NULL,
+                pinyin VARCHAR NOT NULL,
+                translation_strategy VARCHAR NOT NULL,
+                recommended_form VARCHAR NOT NULL,
+                footnote_template VARCHAR NOT NULL,
+                category VARCHAR NOT NULL,
+                rationale VARCHAR,
+                deduplication_strategy VARCHAR NOT NULL,
+                expected_frequency VARCHAR NOT NULL,
+                source VARCHAR NOT NULL
             )
         """)
 
-        # Create indices
-        cursor.execute("CREATE INDEX idx_chinese ON wuxia_glossary(chinese)")
-        cursor.execute("CREATE INDEX idx_category ON wuxia_glossary(category)")
-        cursor.execute("CREATE INDEX idx_frequency ON wuxia_glossary(expected_frequency)")
-
-        # Insert entries
+        # Insert entries using sequence for id
+        conn.execute("CREATE SEQUENCE IF NOT EXISTS glossary_id_seq START 1")
         for entry in self.merged_entries.values():
-            cursor.execute("""
-                INSERT INTO wuxia_glossary
-                (chinese, pinyin, translation_strategy, recommended_form,
+            conn.execute("""
+                INSERT INTO glossary
+                (id, chinese, pinyin, translation_strategy, recommended_form,
                  footnote_template, category, rationale, deduplication_strategy,
                  expected_frequency, source)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (nextval('glossary_id_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 entry.chinese,
                 entry.pinyin,
@@ -442,13 +434,12 @@ class WuxiaGlossaryDeduplicator:
                 entry.rationale,
                 entry.deduplication_strategy,
                 entry.expected_frequency,
-                entry.source
+                entry.source,
             ))
 
-        conn.commit()
         conn.close()
 
-        logger.info(f"Exported {len(self.merged_entries)} entries to SQLite database")
+        logger.info(f"Exported {len(self.merged_entries)} entries to DuckDB")
 
     def save_report(self, report_path: Path) -> None:
         """Save deduplication report as JSON"""
@@ -467,7 +458,7 @@ class WuxiaGlossaryDeduplicator:
 def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(
-        description="Deduplicate and merge wuxia glossary entries"
+        description="Deduplicate and merge glossary entries"
     )
     parser.add_argument(
         '--glossary',
@@ -484,14 +475,14 @@ def main():
     parser.add_argument(
         '--output',
         type=Path,
-        default=Path('data/glossaries/wuxia_glossary_merged.csv'),
+        default=Path('data/glossaries/glossary_merged.csv'),
         help='Output path for merged CSV'
     )
     parser.add_argument(
         '--db',
         type=Path,
-        default=Path('wuxia_glossary.db'),
-        help='Output path for SQLite database'
+        default=None,
+        help='Output path for glossary DuckDB (default: from environment config)'
     )
     parser.add_argument(
         '--report',
@@ -504,7 +495,7 @@ def main():
 
     try:
         # Initialize deduplicator
-        deduplicator = WuxiaGlossaryDeduplicator()
+        deduplicator = GlossaryDeduplicator()
 
         # Load data
         deduplicator.load_glossary_csv(args.glossary)
@@ -513,9 +504,15 @@ def main():
         # Merge
         deduplicator.merge_entries()
 
+        # Resolve DB path
+        db_path = args.db
+        if db_path is None:
+            from utils.environment_config import get_or_create_config
+            db_path = get_or_create_config().glossary_path
+
         # Export
         deduplicator.export_to_csv(args.output)
-        deduplicator.export_to_sqlite(args.db)
+        deduplicator.export_to_db(db_path)
         deduplicator.save_report(args.report)
 
         logger.info("Deduplication complete!")
@@ -529,7 +526,7 @@ def main():
         print(f"Conflicts detected: {deduplicator.report.conflicts_resolved}")
         print(f"\nOutputs:")
         print(f"  - Merged CSV: {args.output}")
-        print(f"  - SQLite DB: {args.db}")
+        print(f"  - DuckDB: {db_path}")
         print(f"  - Report: {args.report}")
 
         if deduplicator.conflicts:

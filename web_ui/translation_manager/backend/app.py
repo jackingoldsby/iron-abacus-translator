@@ -14,7 +14,8 @@ import os
 import sys
 import json
 import asyncio
-import sqlite3
+from utils.db import connect_catalog
+import logging
 from pathlib import Path
 from datetime import datetime
 from typing import List, Optional, Dict, Any
@@ -25,42 +26,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
 from processors.translation_config import TranslationConfig
 from processors.volume_manager import VolumeManager
 from scripts.translate_work import WorkTranslationOrchestrator
 
-# Configuration - Load from environment or use EnvironmentConfig defaults
-try:
-    from utils.environment_config import get_or_create_env_config
-    env_config = get_or_create_env_config()
-
-    # Use WUXIA_* environment variables (consistent with project standards)
-    # Fall back to EnvironmentConfig defaults
-    CATALOG_DB_PATH = os.getenv('WUXIA_CATALOG_PATH', str(env_config.catalog_path))
-    SOURCE_DIR = os.getenv('WUXIA_SOURCE_DIR', str(env_config.source_dir))
-    OUTPUT_DIR = os.getenv('WUXIA_OUTPUT_DIR', str(env_config.output_dir))
-    LOG_DIR = os.getenv('WUXIA_LOG_DIR', str(env_config.log_dir))
-except ImportError:
-    # Fallback if environment_config not available
-    CATALOG_DB_PATH = os.getenv(
-        'WUXIA_CATALOG_PATH',
-        '/Users/jacki/project_files/translation_project/wuxia_catalog.db'
-    )
-    SOURCE_DIR = os.getenv(
-        'WUXIA_SOURCE_DIR',
-        '/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS'
-    )
-    OUTPUT_DIR = os.getenv(
-        'WUXIA_OUTPUT_DIR',
-        './translation_data/outputs'
-    )
-    LOG_DIR = os.getenv(
-        'WUXIA_LOG_DIR',
-        './logs/translation'
-    )
+# Configuration - Load from environment config
+from utils.environment_config import get_or_create_config
+_env = get_or_create_config()
+CATALOG_DB_PATH = str(_env.catalog_path)
+SOURCE_DIR = str(_env.source_dir)
+OUTPUT_DIR = str(_env.output_dir)
+LOG_DIR = str(_env.log_dir)
 
 
 # Pydantic Models
@@ -223,7 +207,13 @@ try:
     app.include_router(workflow_router)
 except ImportError as e:
     logger.warning(f"Could not load workflow router: {e}")
-    # Continue without workflow endpoints for now
+
+# Include DAG router
+try:
+    from web_ui.translation_manager.backend.api.dag import router as dag_router
+    app.include_router(dag_router)
+except ImportError as e:
+    logger.warning(f"Could not load DAG router: {e}")
 
 
 # Database helpers
@@ -231,7 +221,7 @@ def get_db_connection():
     """Get SQLite database connection"""
     if not Path(CATALOG_DB_PATH).exists():
         raise HTTPException(status_code=500, detail=f"Catalog database not found: {CATALOG_DB_PATH}")
-    return sqlite3.connect(CATALOG_DB_PATH)
+    return connect_catalog(CATALOG_DB_PATH)
 
 
 def estimate_work_tokens(directory_name: str) -> Optional[int]:
@@ -262,8 +252,14 @@ def estimate_work_tokens(directory_name: str) -> Optional[int]:
     return int(total_chars / 2)
 
 
-def get_works_from_db(search: Optional[str] = None, limit: int = 100) -> List[WorkSummary]:
-    """Get works from catalog database"""
+def get_works_from_db(
+    search: Optional[str] = None,
+    limit: int = 100,
+    author: Optional[str] = None,
+    min_volumes: Optional[int] = None,
+    status_filter: Optional[str] = None,
+) -> List[WorkSummary]:
+    """Get works from catalog database with filtering."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -297,7 +293,21 @@ def get_works_from_db(search: Optional[str] = None, limit: int = 100) -> List[Wo
         search_param = f"%{search}%"
         params.extend([search_param, search_param, search_param, search_param, search_param])
 
+    if author:
+        query += """ AND (
+            w.author_chinese LIKE ? OR
+            w.author_english LIKE ? OR
+            COALESCE(wc.consensus_author_english, '') LIKE ?
+        )"""
+        author_param = f"%{author}%"
+        params.extend([author_param, author_param, author_param])
+
     query += " GROUP BY w.work_number"
+
+    if min_volumes:
+        query += f" HAVING volume_count >= ?"
+        params.append(min_volumes)
+
     query += " ORDER BY MIN(wf.directory_name)"
     query += f" LIMIT {limit}"
 
@@ -656,10 +666,17 @@ async def root():
 
 
 @app.get("/api/works", response_model=List[WorkSummary])
-async def list_works(search: Optional[str] = None, limit: int = 100):
-    """List all works from catalog"""
+async def list_works(
+    search: Optional[str] = None,
+    author: Optional[str] = None,
+    min_volumes: Optional[int] = None,
+    status: Optional[str] = None,
+    limit: int = 100,
+):
+    """List all works from catalog with optional filtering."""
     try:
-        return get_works_from_db(search, limit)
+        return get_works_from_db(search, limit, author=author,
+                                  min_volumes=min_volumes, status_filter=status)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -668,6 +685,61 @@ async def list_works(search: Optional[str] = None, limit: int = 100):
 async def get_work(work_number: str):
     """Get detailed work information"""
     return get_work_detail(work_number)
+
+
+@app.get("/api/works/{work_number}/volumes")
+async def get_work_volumes(work_number: str):
+    """Get volume details for a work, including file paths and translation status."""
+    detail = get_work_detail(work_number)
+    volumes = []
+    for vol in detail.volumes:
+        vol_id = vol.get("volume", "single")
+        dir_name = vol.get("directory_name", "")
+        source_path = Path(SOURCE_DIR) / dir_name / vol.get("filename", "") if dir_name else None
+        has_source = source_path.exists() if source_path else False
+
+        output_path = Path(OUTPUT_DIR) / f"translated_{work_number}_{vol_id}.json"
+        has_translation = output_path.exists()
+
+        volumes.append({
+            "volume": vol_id,
+            "directory_name": dir_name,
+            "filename": vol.get("filename"),
+            "has_source": has_source,
+            "has_translation": has_translation,
+            "status": "completed" if has_translation else ("available" if has_source else "missing"),
+        })
+    return {
+        "work_number": work_number,
+        "title": detail.title_chinese,
+        "author": detail.author_chinese,
+        "volumes": volumes,
+        "total_volumes": len(volumes),
+    }
+
+
+@app.get("/api/authors")
+async def list_authors():
+    """List all unique authors from catalog."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT DISTINCT
+            w.author_chinese,
+            COALESCE(wc.consensus_author_english, w.author_english) as author_english,
+            COUNT(DISTINCT w.work_number) as work_count
+        FROM works w
+        LEFT JOIN works_consensus_translations wc ON w.work_id = wc.work_id
+        WHERE w.author_chinese IS NOT NULL AND w.author_chinese != ''
+        GROUP BY w.author_chinese
+        ORDER BY work_count DESC
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    return [
+        {"author_chinese": row[0], "author_english": row[1], "work_count": row[2]}
+        for row in rows
+    ]
 
 
 @app.post("/api/jobs", response_model=TranslationJobStatus)
@@ -715,17 +787,46 @@ async def get_job(job_id: str):
 
 
 @app.delete("/api/jobs/{job_id}")
-async def cancel_job(job_id: str):
-    """Cancel a running job"""
+async def cancel_job(job_id: str, permanent: bool = False):
+    """
+    Cancel or delete a job.
+
+    Args:
+        job_id: The job ID to cancel/delete
+        permanent: If True, permanently removes job from memory.
+                  If False (default), just pauses the job.
+
+    Returns:
+        Message indicating action taken
+    """
     if job_id not in translation_jobs:
         raise HTTPException(status_code=404, detail="Job not found")
 
     job = translation_jobs[job_id]
-    if job.status == "running":
-        job.status = "paused"
-        return {"message": "Job paused (will stop after current work)"}
 
-    return {"message": "Job not running"}
+    if permanent:
+        # Permanently delete the job from memory
+        del translation_jobs[job_id]
+        return {
+            "message": "Job permanently deleted",
+            "job_id": job_id,
+            "deleted": True
+        }
+    else:
+        # Just pause the job (existing behavior)
+        if job.status == "running":
+            job.status = "paused"
+            return {
+                "message": "Job paused (will stop after current work)",
+                "job_id": job_id,
+                "paused": True
+            }
+
+        return {
+            "message": "Job not running",
+            "job_id": job_id,
+            "paused": False
+        }
 
 
 @app.get("/api/progress/{work_number}", response_model=DetailedProgress)

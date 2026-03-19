@@ -57,8 +57,8 @@ translation_manager/
 
 - Python 3.8+
 - Node.js 16+
-- SQLite database with work catalog
-- OpenAI API key (loaded from project root `env_creds.yml`)
+- DuckDB database with work catalog
+- OpenAI API key (loaded from environment variables via `~/.zshrc`)
 
 ### 1. Backend Setup
 
@@ -183,7 +183,7 @@ Create `backend/.env`:
 
 ```bash
 # Required
-CATALOG_DB_PATH=/path/to/wuxia_catalog.db
+CATALOG_DB_PATH=/path/to/works_translator.duckdb
 SOURCE_DIR=/path/to/wuxia_individual_files
 OUTPUT_DIR=/path/to/translations
 
@@ -273,7 +273,7 @@ cat .env     # Check paths are correct
 
 **Check 4: Database access**
 ```bash
-ls -la /path/to/wuxia_catalog.db  # File should exist
+ls -la /path/to/works_translator.duckdb  # File should exist
 ```
 
 ### Frontend won't start
@@ -314,7 +314,7 @@ curl http://localhost:8001/
 ### Jobs not running
 
 **Check 1: API key**
-- OpenAI API key loaded from project root `env_creds.yml`
+- OpenAI API key loaded from environment variables (`~/.zshrc`)
 - Verify key is valid and has credits
 
 **Check 2: Source files**
@@ -366,7 +366,7 @@ tail -f logs/backend.log
 
 This interface integrates seamlessly with the existing Book Processing Toolkit:
 
-1. **Catalog Database**: Uses same `wuxia_catalog.db` as other scripts
+1. **Catalog Database**: Uses same `works_translator.duckdb` as other scripts
 2. **Source Files**: Reads from same `wuxia_individual_files` directory
 3. **Translation Scripts**: Calls `scripts/translate_work.py` orchestrator
 4. **Volume Management**: Uses `processors/volume_manager.py`

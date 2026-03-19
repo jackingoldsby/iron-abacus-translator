@@ -26,39 +26,20 @@ The current key is invalid:
 Error code: 401 - Incorrect API key provided: sk-90vP7***************************************FwLZ
 ```
 
-**Options:**
-
-**Option A: Update env_creds.yml**
+**Set in `~/.zshrc`:**
 ```bash
-# Edit the file
-nano ~/Dev/pycharm/env.yml
-# or wherever your env_creds.yml is located
-
-# Update the OPENAI_API_KEY line with a valid key
-OPENAI_API_KEY: sk-proj-XXXXXXXXXXXXX
-```
-
-**Option B: Set environment variable**
-```bash
+# Add to ~/.zshrc
 export OPENAI_API_KEY="sk-proj-XXXXXXXXXXXXX"
-```
 
-**Option C: Create project-local env_creds.yml**
-```bash
-cd /Users/jacki/PycharmProjects/agentic_test_project
-
-cat > env_creds.yml << 'EOF'
-OPENAI_API_KEY: sk-proj-XXXXXXXXXXXXX
-EOF
+# Reload shell
+source ~/.zshrc
 ```
 
 ### 2. Verify API Key Works
 
 ```bash
-python utils/load_env_creds.py
-# Should output:
-# ✓ Loaded N credentials
-# ✓ OpenAI API key verified successfully
+echo $OPENAI_API_KEY
+# Should output your key (starting with sk-proj-...)
 ```
 
 ## Testing the Fix

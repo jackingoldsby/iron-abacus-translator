@@ -1,0 +1,78 @@
+.tooltip-wrapper {
+  display: inline-block;
+  position: relative;
+}
+
+.tooltip-content {
+  background: #2c3e50;
+  color: #ecf0f1;
+  padding: 12px 16px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-size: 13px;
+  line-height: 1.5;
+  z-index: 10000;
+  pointer-events: none;
+  min-width: 250px;
+  max-width: 400px;
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.tooltip-content::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid #2c3e50;
+}
+
+/* Tooltip content styling */
+.tooltip-content h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3498db;
+}
+
+.tooltip-content p {
+  margin: 4px 0;
+  font-size: 12px;
+}
+
+.tooltip-content .label {
+  color: #95a5a6;
+  margin-right: 6px;
+}
+
+.tooltip-content .value {
+  color: #ecf0f1;
+  font-weight: 500;
+}
+
+.tooltip-content hr {
+  border: none;
+  border-top: 1px solid #34495e;
+  margin: 8px 0;
+}
+
+.tooltip-content code {
+  background: #34495e;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+}

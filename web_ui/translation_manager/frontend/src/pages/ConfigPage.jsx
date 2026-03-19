@@ -136,7 +136,7 @@ function ConfigPage() {
               <strong>OUTPUT_DIR</strong>: Output directory
             </div>
             <div className="mb-1">
-              <strong>OPENAI_API_KEY</strong>: OpenAI API key (loaded from env_creds.yml)
+              <strong>OPENAI_API_KEY</strong>: OpenAI API key (loaded from environment variables)
             </div>
           </div>
         </div>

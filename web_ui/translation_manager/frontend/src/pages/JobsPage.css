@@ -1,0 +1,470 @@
+/* Jobs Page Header */
+.jobs-header {
+  margin-bottom: 16px;
+}
+
+.jobs-header-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.jobs-header-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Action Buttons Group */
+.jobs-actions-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* View Mode Toggle */
+.view-mode-toggle {
+  display: flex;
+  gap: 4px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  padding: 4px;
+}
+
+/* Work Filter Container */
+.work-filter-container {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.work-filter-label {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.work-filter-select {
+  width: 180px;
+  font-size: 14px;
+  padding: 4px 8px;
+}
+
+/* Workflow Visualization Toggle */
+.workflow-viz-toggle {
+  display: flex;
+  gap: 4px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  padding: 4px;
+}
+
+/* Workflow Grid Layout */
+.workflow-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 250px 1fr 300px;
+}
+
+/* Workflow List Sidebar */
+.workflow-list-sidebar {
+  overflow-y: auto;
+  max-height: calc(100vh - 150px);
+}
+
+.workflow-list-header {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.workflow-list-count {
+  margin-left: 8px;
+  font-size: 13px;
+  color: #999;
+}
+
+/* Workflow Card */
+.workflow-card {
+  cursor: pointer;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid #ddd;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.workflow-card:hover {
+  border-color: #999;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.workflow-card-active {
+  border: 2px solid #3498db;
+  background: #e8f4f8;
+}
+
+.workflow-card-header {
+  margin-bottom: 8px;
+}
+
+.workflow-card-title {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.workflow-card-volume {
+  font-size: 12px;
+  color: #666;
+  margin-left: 4px;
+}
+
+.workflow-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+}
+
+.workflow-card-status {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
+}
+
+/* Legacy Jobs List */
+.legacy-jobs-container {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.legacy-job-card {
+  cursor: pointer;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.legacy-job-card:hover {
+  background-color: #f8f9fa;
+}
+
+.legacy-job-card-active {
+  background-color: #e8f4f8;
+  border-left: 3px solid #3498db;
+}
+
+.legacy-job-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.legacy-job-works {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.legacy-job-work-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+}
+
+.legacy-job-progress {
+  margin-top: 12px;
+}
+
+.legacy-job-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+}
+
+/* Detail View Container */
+.job-detail-container {
+  padding: 16px;
+}
+
+.job-detail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #999;
+  text-align: center;
+}
+
+.job-detail-empty h3 {
+  margin: 12px 0 8px 0;
+  color: #666;
+}
+
+/* Controls Panel */
+.controls-panel {
+  padding: 16px;
+}
+
+/* Empty State */
+.jobs-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #999;
+  text-align: center;
+}
+
+.jobs-empty-state h3 {
+  margin: 0 0 8px 0;
+  color: #666;
+}
+
+.jobs-empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .workflow-grid {
+    grid-template-columns: 220px 1fr 280px;
+  }
+}
+
+@media (max-width: 992px) {
+  .workflow-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-list-sidebar,
+  .controls-panel {
+    max-height: 300px;
+  }
+
+  .jobs-header-controls {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .jobs-header-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .jobs-header-controls {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .jobs-actions-group {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .jobs-actions-group .btn {
+    width: 100%;
+  }
+
+  .work-filter-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .work-filter-select {
+    width: 100%;
+  }
+
+  .view-mode-toggle,
+  .workflow-viz-toggle {
+    width: 100%;
+  }
+
+  .view-mode-toggle .btn,
+  .workflow-viz-toggle .btn {
+    flex: 1;
+  }
+}
+
+/* New 3-Column Workflow Detail Grid */
+.workflow-detail-grid {
+  display: grid;
+  grid-template-columns: 250px 1fr 400px;
+  gap: 16px;
+  height: calc(100vh - 180px);
+}
+
+/* Left Column: Workflow List */
+.workflow-list-column {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.workflow-list-filter {
+  margin-bottom: 8px;
+}
+
+.workflow-list-filter select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+}
+
+.workflow-count-badge {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.workflow-list-column .workflow-card {
+  border-radius: 6px;
+  margin-bottom: 0;
+}
+
+.workflow-list-column .workflow-card.active {
+  border: 2px solid #3498db;
+  background: #e8f4f8;
+}
+
+/* Center Column: Stage Progress + Controls */
+.workflow-center-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.workflow-controls-container {
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Right Column: Live Terminal */
+.workflow-terminal-column {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Column Headers */
+.column-header {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+.workflow-count {
+  margin-left: 8px;
+  font-size: 13px;
+  color: #999;
+  font-weight: 400;
+}
+
+/* Workflow Card Details */
+.workflow-header {
+  margin-bottom: 8px;
+}
+
+.workflow-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.workflow-timestamp {
+  font-size: 12px;
+  color: #666;
+}
+
+.workflow-status {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+/* Responsive adjustments for new layout */
+@media (max-width: 1400px) {
+  .workflow-detail-grid {
+    grid-template-columns: 220px 1fr 350px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .workflow-detail-grid {
+    grid-template-columns: 200px 1fr 300px;
+  }
+}
+
+@media (max-width: 992px) {
+  .workflow-detail-grid {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .workflow-list-column,
+  .workflow-center-column,
+  .workflow-terminal-column {
+    max-height: 400px;
+  }
+}
+
+/* ETA Color Coding */
+.eta-green {
+  color: #27ae60;
+  font-weight: 600;
+}
+
+.eta-yellow {
+  color: #f39c12;
+  font-weight: 600;
+}
+
+.eta-red {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+.eta-unknown {
+  color: #95a5a6;
+}
+
+/* Text Size Helpers */
+.text-xs {
+  font-size: 11px;
+}
+
+.text-sm {
+  font-size: 13px;
+}
+
+.text-muted {
+  color: #666;
+}

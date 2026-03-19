@@ -1,0 +1,21 @@
+# Work-Specific Override: D1379 (偷拳 by 白羽)
+# This work requires extra attention to martial arts terminology
+
+validation:
+  quality:
+    threshold: 9.7  # Higher threshold for this important work
+
+retry:
+  max_attempts: 7  # More retries for complex martial arts terms
+
+translation:
+  temperature: 0.25  # Lower temperature for consistency in technical terms
+
+glossary:
+  enabled: true
+  path: "/Users/jacki/project_files/glossaries/wuxia_martial_arts_glossary.db"
+
+logging:
+  level: "DEBUG"  # Detailed logging for this work
+  include_metrics: true
+  log_validation_details: true

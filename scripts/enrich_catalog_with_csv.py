@@ -10,13 +10,13 @@ Reads works.csv and adds English metadata to the database:
 """
 
 import csv
-import sqlite3
+from utils.db import connect_catalog
 import argparse
 import os
 from pathlib import Path
 
 # Default configuration - Use symlink relative to script location
-# The project root has a symlink: translation_data -> /Users/jacki/project_files/translation_project
+# Uses TRANSLATOR_DATA_ROOT env var for data directory
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 DEFAULT_PROJECT_BASE = os.getenv(
@@ -27,12 +27,13 @@ DEFAULT_PROJECT_BASE = os.getenv(
 
 def add_columns_to_database(db_path: str):
     """Add new columns to works table if they don't exist."""
-    conn = sqlite3.connect(db_path)
+    conn = connect_catalog(db_path)
     cursor = conn.cursor()
 
     # Get existing columns
-    cursor.execute("PRAGMA table_info(works)")
-    existing_columns = {row[1] for row in cursor.fetchall()}
+    # For DuckDB compatibility, use information_schema instead of PRAGMA
+    cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name = ?", ('works',))
+    existing_columns = {row[0] for row in cursor.fetchall()}
 
     # Add new columns if they don't exist
     new_columns = {
@@ -80,7 +81,7 @@ def load_csv_data(csv_path: str):
 
 def enrich_database(csv_data, db_path: str):
     """Update database with CSV data based on directory_number."""
-    conn = sqlite3.connect(db_path)
+    conn = connect_catalog(db_path)
     cursor = conn.cursor()
 
     # Get all works
@@ -127,7 +128,7 @@ def enrich_database(csv_data, db_path: str):
 
 def verify_enrichment(db_path: str):
     """Show sample enriched data."""
-    conn = sqlite3.connect(db_path)
+    conn = connect_catalog(db_path)
     cursor = conn.cursor()
 
     print("\n📊 Sample enriched works:")
@@ -158,7 +159,7 @@ def parse_args():
         epilog='''
 Environment Variables:
   TRANSLATION_PROJECT_DIR    Base directory for translation project
-                             (default: /Users/jacki/project_files/translation_project)
+                             (default: $TRANSLATOR_DATA_ROOT)
 
 Examples:
   # Use default paths

@@ -17,7 +17,7 @@ Complete step-by-step setup guide for the Translation Management Interface.
 - **Python**: 3.8 or higher
 - **Node.js**: 16.x or higher
 - **npm**: 8.x or higher
-- **SQLite**: 3.x (usually pre-installed)
+- **DuckDB**: via pip (included in backend requirements)
 
 ### Hardware
 - **RAM**: 4GB minimum, 8GB recommended
@@ -117,7 +117,7 @@ nano .env  # or use your preferred editor
 
 ```bash
 # Path to catalog database (REQUIRED)
-CATALOG_DB_PATH=/Users/jacki/project_files/translation_project/wuxia_catalog.db
+CATALOG_DB_PATH=/Users/jacki/project_files/translation_project/db/works_translator.duckdb
 
 # Source directory with wuxia_* folders (REQUIRED)
 SOURCE_DIR=/Users/jacki/project_files/translation_project/wuxia_individual_files
@@ -136,7 +136,7 @@ BACKEND_PORT=8001
 
 ```bash
 # Check catalog database exists
-ls -la /Users/jacki/project_files/translation_project/wuxia_catalog.db
+ls -la /Users/jacki/project_files/translation_project/db/works_translator.duckdb
 
 # Check source directory exists
 ls -la /Users/jacki/project_files/translation_project/wuxia_individual_files/ | head
@@ -147,24 +147,23 @@ mkdir -p /Users/jacki/project_files/translation_project/translations
 
 ### Step 2: OpenAI API Key
 
-The backend loads the OpenAI API key from the project root's `env_creds.yml` file.
+The backend loads the OpenAI API key from environment variables (set in `~/.zshrc`).
 
 **Verify API key is configured:**
 
 ```bash
-# Check env_creds.yml exists in project root
-cd /Users/jacki/PycharmProjects/agentic_test_project
-ls -la env_creds.yml
-
-# Verify it contains OPENAI_API_KEY
-grep OPENAI_API_KEY env_creds.yml
+# Check environment variable is set
+echo $OPENAI_API_KEY
 ```
 
-If `env_creds.yml` doesn't exist, create it:
+If not set, add to `~/.zshrc`:
 
-```yaml
-# env_creds.yml
-OPENAI_API_KEY: "sk-your-api-key-here"
+```bash
+# Add to ~/.zshrc
+export OPENAI_API_KEY="sk-your-api-key-here"
+
+# Reload shell
+source ~/.zshrc
 ```
 
 ### Step 3: Frontend Configuration (Optional)
@@ -296,7 +295,7 @@ open http://localhost:5174
 cat backend/.env | grep CATALOG_DB_PATH
 
 # Verify file exists
-ls -la /path/to/wuxia_catalog.db
+ls -la /path/to/works_translator.duckdb
 
 # Fix: Update path in .env to correct location
 ```
@@ -385,7 +384,7 @@ tail -f logs/backend.log
 ```bash
 # Verify key is loaded
 cd /Users/jacki/PycharmProjects/agentic_test_project
-python -c "from utils.load_env_creds import load_env_credentials; load_env_credentials(); import os; print('API key:', os.getenv('OPENAI_API_KEY')[:10] + '...')"
+python -c "import os; print('API key:', os.getenv('OPENAI_API_KEY', 'NOT SET')[:10] + '...')"
 ```
 
 **Check 3: Source files exist**
@@ -399,7 +398,7 @@ ls -la /path/to/wuxia_individual_files/wuxia_*/
 
 **Check 1: Database has data**
 ```bash
-sqlite3 /path/to/wuxia_catalog.db "SELECT COUNT(*) FROM works;"
+python -c "import duckdb; print(duckdb.connect('/path/to/works_translator.duckdb', read_only=True).execute('SELECT COUNT(*) FROM works').fetchone()[0])"
 # Should show number > 0
 ```
 

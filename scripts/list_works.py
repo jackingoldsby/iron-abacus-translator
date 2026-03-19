@@ -24,7 +24,7 @@ Usage:
 
 import sys
 import argparse
-import sqlite3
+from utils.db import connect_catalog
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
@@ -43,7 +43,7 @@ class WorkDiscovery:
 
     def get_all_works(self) -> List[Dict[str, Any]]:
         """Get all works from catalog"""
-        conn = sqlite3.connect(self.catalog_path)
+        conn = connect_catalog(self.catalog_path)
         cursor = conn.cursor()
 
         query = """

@@ -2,9 +2,9 @@
 
 ## Prerequisites
 
-1. **API Key**: Ensure `OPENAI_API_KEY` is set in `env_creds.yml`
+1. **API Key**: Ensure `OPENAI_API_KEY` is exported in `~/.zshrc`
 2. **Cleaned JSON**: Books processed through restructuring pipeline
-3. **Catalog Database**: `wuxia_catalog.db` with work metadata
+3. **Catalog Database**: `works_translator.duckdb` with work metadata
 
 ## 5-Minute Quick Start
 
@@ -149,8 +149,8 @@ python scripts/translate_work.py D55 --resume
 ### "OPENAI_API_KEY environment variable not set"
 
 ```bash
-# Check env_creds.yml
-cat env_creds.yml | grep OPENAI_API_KEY
+# Check environment variable
+echo $OPENAI_API_KEY
 
 # Verify key works
 python scripts/verify_api_key.py

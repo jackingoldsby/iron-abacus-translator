@@ -11,7 +11,7 @@ Enhanced validation for multi-volume works that:
 Addresses Priority 2: Multi-Volume Continuation Handling
 """
 
-import sqlite3
+from utils.db import connect_catalog
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -82,7 +82,7 @@ class VolumeAwareValidator:
             List of VolumeInfo objects sorted by volume number
         """
         try:
-            conn = sqlite3.connect(self.catalog_path)
+            conn = connect_catalog(self.catalog_path)
             cursor = conn.cursor()
 
             query = """

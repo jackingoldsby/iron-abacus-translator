@@ -32,7 +32,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from processors.translator import TranslationService
 from processors.book_translator import BookTranslator
 from processors.volume_manager import VolumeManager
-from utils.cleanup_character_footnotes import CharacterFootnoteCleanup
+from utils.cleanup_character_footnotes import CharacterFootnoteCleanup, CleanupConfig
 from processors.structure_validator import StructureValidator
 from utils.validation.footnote_integrity_validator import FootnoteIntegrityValidator
 
@@ -41,7 +41,14 @@ from scripts.orchestrate_translation_pipeline import (
     OrchestrationConfig,
     PipelineStage,
     WIPManager,
+    MetadataTranslationProcessor,
+    TOCTranslationProcessor,
+    HeadingTranslationProcessor,
+    SpecialSectionProcessor,
 )
+
+# Import workflow wrappers
+from wrappers.volume_translation_wrapper import VolumeTranslationWrapper
 
 
 # =============================================================================
@@ -133,36 +140,78 @@ def validate_footnotes(
 
 
 @task(name="Translate Body Content", retries=2, tags=["translation", "parallel"])
-def translate_body_chapter(
-    chapter: Dict[str, Any],
-    config: Dict[str, Any],
-    work_id: str
+def translate_body(
+    data: Dict[str, Any],
+    config: OrchestrationConfig,
+    work_id: str,
+    volume_id: Optional[str],
+    wip_manager: WIPManager
 ) -> Dict[str, Any]:
     """
-    Translate a single chapter (for parallel execution).
+    Translate body content using VolumeTranslationWrapper (parallel processing).
 
     Args:
-        chapter: Chapter data
+        data: Book data
         config: Translation configuration
         work_id: Work identifier
+        volume_id: Optional volume identifier
+        wip_manager: WIP manager for checkpoints
 
     Returns:
-        Translated chapter
+        Data with translated body content
     """
     logger = get_run_logger()
-    chapter_id = chapter.get('id', 'unknown')
-    logger.info(f"Translating chapter {chapter_id}...")
+    logger.info(f"📚 Translating body content for {work_id} (parallel: {config.max_workers} workers)...")
 
-    # TODO: Implement actual translation logic using BookTranslator
-    # For now, return unchanged (placeholder)
-    return chapter
+    # Initialize VolumeTranslationWrapper
+    wrapper = VolumeTranslationWrapper(
+        work_id=work_id,
+        max_workers=config.max_workers,
+        config_name=config.volume_config_name,
+        quality_threshold=config.quality_threshold,
+        max_retries=config.max_retries
+    )
+
+    # Execute volume translation
+    result = wrapper.execute(
+        volume_data=data,
+        work_id=work_id,
+        volume_id=volume_id
+    )
+
+    # Log statistics
+    if result.translated_volume:
+        data = result.translated_volume
+        stats = result.statistics
+
+        logger.info(f"✓ Body translation complete:")
+        logger.info(f"  - Body blocks: {stats.body_blocks_count} (avg quality: {stats.body_avg_quality:.1f}/10)")
+        logger.info(f"  - Non-body blocks: {stats.non_body_blocks_count} (avg quality: {stats.non_body_avg_quality:.1f}/10)")
+        logger.info(f"  - Overall quality: {stats.average_quality:.1f}/10")
+        logger.info(f"  - Total footnotes: {stats.total_footnotes}")
+        logger.info(f"  - Footnote mismatches: {stats.total_footnote_mismatches}")
+        logger.info(f"  - Time: {stats.total_translation_time:.1f}s")
+
+        # Check validation
+        validation = result.validation_report
+        if not validation.is_valid:
+            logger.warning(f"⚠ Validation warnings (translations saved):")
+            for error in validation.validation_errors[:5]:
+                logger.warning(f"  - {error}")
+    else:
+        error_msg = f"Body translation failed: {result.error_details}"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
+
+    return data
 
 
 @task(name="Translate Metadata", retries=2, tags=["translation"])
 def translate_metadata(
     data: Dict[str, Any],
     config: OrchestrationConfig,
-    work_id: str
+    work_id: str,
+    wip_manager: WIPManager
 ) -> Dict[str, Any]:
     """
     Translate metadata (title, author) - NO footnotes.
@@ -171,6 +220,7 @@ def translate_metadata(
         data: Book data
         config: Configuration
         work_id: Work identifier
+        wip_manager: WIP manager for checkpoints
 
     Returns:
         Data with translated metadata
@@ -178,8 +228,9 @@ def translate_metadata(
     logger = get_run_logger()
     logger.info(f"📝 Translating metadata for {work_id}...")
 
-    # TODO: Implement using existing MetadataTranslationProcessor
-    # For now, return unchanged
+    processor = MetadataTranslationProcessor(config, wip_manager)
+    data = processor.process(data, work_id)
+
     logger.info("✓ Metadata translation complete")
     return data
 
@@ -188,7 +239,8 @@ def translate_metadata(
 def translate_toc(
     data: Dict[str, Any],
     config: OrchestrationConfig,
-    work_id: str
+    work_id: str,
+    wip_manager: WIPManager
 ) -> Dict[str, Any]:
     """
     Translate table of contents - NO footnotes.
@@ -197,6 +249,7 @@ def translate_toc(
         data: Book data
         config: Configuration
         work_id: Work identifier
+        wip_manager: WIP manager for checkpoints
 
     Returns:
         Data with translated TOC
@@ -204,7 +257,9 @@ def translate_toc(
     logger = get_run_logger()
     logger.info(f"📑 Translating TOC for {work_id}...")
 
-    # TODO: Implement using existing TOCTranslationProcessor
+    processor = TOCTranslationProcessor(config, wip_manager)
+    data = processor.process(data, work_id)
+
     logger.info("✓ TOC translation complete")
     return data
 
@@ -213,7 +268,8 @@ def translate_toc(
 def translate_headings(
     data: Dict[str, Any],
     config: OrchestrationConfig,
-    work_id: str
+    work_id: str,
+    wip_manager: WIPManager
 ) -> Dict[str, Any]:
     """
     Translate chapter headings - NO footnotes.
@@ -222,6 +278,7 @@ def translate_headings(
         data: Book data
         config: Configuration
         work_id: Work identifier
+        wip_manager: WIP manager for checkpoints
 
     Returns:
         Data with translated headings
@@ -229,7 +286,9 @@ def translate_headings(
     logger = get_run_logger()
     logger.info(f"📰 Translating headings for {work_id}...")
 
-    # TODO: Implement using existing HeadingTranslationProcessor
+    processor = HeadingTranslationProcessor(config, wip_manager)
+    data = processor.process(data, work_id)
+
     logger.info("✓ Heading translation complete")
     return data
 
@@ -258,8 +317,41 @@ def cleanup_character_footnotes(
         logger.info("Footnote cleanup disabled - skipping")
         return data
 
-    # TODO: Implement using existing CharacterFootnoteCleanup
-    logger.info("✓ Character footnote cleanup complete")
+    # Use CharacterFootnoteCleanup
+    cleanup_config = CleanupConfig(
+        model=config.model,
+        temperature=0.1,
+        batch_size=config.footnote_batch_size,
+        preserve_historical=config.preserve_historical,
+        preserve_legendary=config.preserve_legendary,
+        preserve_cultural=config.preserve_cultural,
+        dry_run=False
+    )
+
+    footnote_processor = CharacterFootnoteCleanup(cleanup_config)
+
+    # Process in-memory
+    import tempfile
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as tmp:
+        json.dump(data, tmp, ensure_ascii=False, indent=2)
+        tmp_path = Path(tmp.name)
+
+    try:
+        cleanup_result = footnote_processor.process_file(
+            input_path=tmp_path,
+            output_path=tmp_path,
+            dry_run=False
+        )
+
+        # Load cleaned data
+        with open(tmp_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        logger.info(f"✓ Removed {cleanup_result.removed_count} redundant character footnotes")
+        logger.info(f"✓ Preserved {cleanup_result.preserved_count} cultural/historical footnotes")
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
     return data
 
 
@@ -283,7 +375,22 @@ def final_validation(
     logger = get_run_logger()
     logger.info(f"🔍 Running final validation for {work_id}...")
 
-    # TODO: Implement using existing StructureValidator
+    # Use StructureValidator
+    validator = StructureValidator(
+        model=config.model,
+        temperature=0.3
+    )
+
+    validation_result = validator.validate(data)
+
+    logger.info(f"Structure quality: {validation_result.structure_quality:.1f}/100")
+    logger.info(f"TOC coverage: {validation_result.toc_coverage:.1f}%")
+
+    if validation_result.issues:
+        logger.warning(f"Found {len(validation_result.issues)} validation issues:")
+        for issue in validation_result.issues[:10]:
+            logger.warning(f"  [{issue.severity}] {issue.message}")
+
     logger.info("✓ Final validation complete")
     return data
 
@@ -302,7 +409,9 @@ def translation_workflow(
     work_id: str,
     volume: Optional[str] = None,
     config: Optional[OrchestrationConfig] = None,
-    resume: bool = False
+    resume: bool = False,
+    workflow_id: str = "unknown",
+    workflow_name: str = "Unknown Workflow"
 ) -> Dict[str, Any]:
     """
     Complete translation workflow with DAG-based execution.
@@ -339,39 +448,49 @@ def translation_workflow(
         logger.info(f"Volume: {volume}")
     logger.info(f"{'='*60}")
 
-    # Load source data
-    # TODO: Implement proper source loading from cleaned files
-    data = {"work_id": work_id, "volume": volume}  # Placeholder
+    # Load source data from cleaned files
+    logger.info(f"\n📂 Loading source data...")
+    volume_manager = VolumeManager(
+        catalog_path=config.catalog_path,
+        source_dir=config.source_dir,
+        output_dir=config.output_dir
+    )
+
+    volumes = volume_manager.get_volumes_for_work(work_id)
+    if not volumes:
+        raise ValueError(f"No volumes found for work {work_id}")
+
+    # Filter to specific volume if requested
+    if volume:
+        volumes = [v for v in volumes if v.volume == volume]
+        if not volumes:
+            raise ValueError(f"Volume {volume} not found for work {work_id}")
+
+    vol_info = volumes[0]  # Process first volume
+    if not vol_info.cleaned_json_path or not vol_info.cleaned_json_path.exists():
+        raise FileNotFoundError(f"Cleaned JSON not found: {vol_info.cleaned_json_path}")
+
+    # Load the cleaned JSON
+    with open(vol_info.cleaned_json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    logger.info(f"✓ Loaded: {vol_info.cleaned_json_path.name}")
 
     # Stage 1: Metadata Translation
     logger.info("\n🏁 Stage 1: Metadata Translation")
-    data = translate_metadata(data, config, work_id)
-    wip_manager.save_wip(data, work_id, PipelineStage.METADATA)
+    data = translate_metadata(data, config, work_id, wip_manager)
 
     # Stage 2: TOC Translation
     logger.info("\n🏁 Stage 2: TOC Translation")
-    data = translate_toc(data, config, work_id)
-    wip_manager.save_wip(data, work_id, PipelineStage.TOC)
+    data = translate_toc(data, config, work_id, wip_manager)
 
     # Stage 3: Headings Translation
     logger.info("\n🏁 Stage 3: Headings Translation")
-    data = translate_headings(data, config, work_id)
-    wip_manager.save_wip(data, work_id, PipelineStage.HEADINGS)
+    data = translate_headings(data, config, work_id, wip_manager)
 
-    # Stage 4: Body Translation (PARALLEL)
+    # Stage 4: Body Translation (PARALLEL via VolumeTranslationWrapper)
     logger.info("\n🏁 Stage 4: Body Translation (Parallel)")
-    chapters = data.get('structure', {}).get('body', {}).get('chapters', [])
-
-    if chapters:
-        # Fan-out: Process chapters in parallel
-        translated_chapters = translate_body_chapter.map(
-            [chapters],  # All chapters
-            config=[config] * len(chapters),
-            work_id=[work_id] * len(chapters)
-        )
-        # Merge results back
-        data['structure']['body']['chapters'] = translated_chapters
-
+    data = translate_body(data, config, work_id, vol_info.volume, wip_manager)
     wip_manager.save_wip(data, work_id, PipelineStage.BODY)
 
     # QUALITY GATE: Validate footnotes after body translation
@@ -397,8 +516,16 @@ def translation_workflow(
     data = final_validation(data, config, work_id)
     wip_manager.save_wip(data, work_id, PipelineStage.VALIDATION)
 
+    # Save final output
+    output_filename = f"translated_{work_id}_{vol_info.title}.json"
+    output_path = config.output_dir / output_filename
+
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
     logger.info(f"\n{'='*60}")
     logger.info(f"✓ Translation Workflow Complete: {work_id}")
+    logger.info(f"✓ Output saved: {output_path}")
     logger.info(f"{'='*60}\n")
 
     return data
@@ -423,7 +550,7 @@ if __name__ == '__main__':
 
     # Create config
     config = OrchestrationConfig()
-    config.max_concurrent_chapters = args.workers
+    config.max_workers = args.workers  # For VolumeTranslationWrapper
 
     # Run flow
     result = translation_workflow(

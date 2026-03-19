@@ -42,9 +42,11 @@ class Colors:
 # ============================================================================
 
 # PROTECTED PATHS: These paths must NEVER be deleted
+from utils.environment_config import get_or_create_config
+_cleanup_env = get_or_create_config()
 PROTECTED_PATHS = [
-    "/Users/jacki/project_files/translation_project/wuxia_individual_files",
-    "/Users/jacki/project_files/translation_project/wuxia_individual_files/",
+    str(_cleanup_env.raw_dir),
+    str(_cleanup_env.source_dir),
 ]
 
 # Additional safety keywords - if a path contains any of these, ABORT
@@ -71,16 +73,16 @@ SOURCE_INDICATORS = [
 
 # Test output directories to clean
 TEST_OUTPUT_DIRS = [
-    "/Users/jacki/project_files/translation_project/test_cleaned_json_v2",
+    str(_cleanup_env.data_root / "test_cleaned_json"),
 ]
 
 # Log directories to clean
 LOG_DIRS = [
-    "/Users/jacki/PycharmProjects/agentic_test_project/logs",
+    str(_cleanup_env.log_dir),
 ]
 
 # Project root for temporary test files
-PROJECT_ROOT = "/Users/jacki/PycharmProjects/agentic_test_project"
+PROJECT_ROOT = str(_cleanup_env.project_root)
 
 # Patterns for temporary test files in project root
 TEMP_FILE_PATTERNS = [

@@ -140,7 +140,7 @@ def main():
     parser.add_argument(
         '--source-dir',
         type=Path,
-        default=Path('/Users/jacki/project_files/translation_project/wuxia_individual_files'),
+        default=None,
         help='Source directory containing book subdirectories'
     )
     parser.add_argument(

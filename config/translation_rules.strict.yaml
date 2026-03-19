@@ -1,0 +1,44 @@
+# Strict Mode Configuration
+# Higher quality requirements, fewer retries, stricter validation
+
+validation:
+  quality:
+    threshold: 9.8  # Very high quality requirement
+    enabled: true
+
+  footnote_markers:
+    enabled: true
+    fail_on_mismatch: true
+    allowed_patterns:
+      - '\[\d+\]'
+
+  input:
+    min_text_length: 10  # Stricter minimum
+    max_text_length: 5000
+
+retry:
+  max_attempts: 3  # Fewer retries in strict mode
+  backoff_strategy: "linear"
+  initial_delay: 2.0
+  max_delay: 10.0
+
+formatting:
+  preserve_whitespace: true
+  normalize_quotes: false
+  trim_output: true
+
+translation:
+  model: "gpt-4.1-nano"
+  temperature: 0.2  # Lower temperature for more deterministic output
+  timeout: 90
+  max_tokens: null
+
+logging:
+  level: "DEBUG"  # More verbose logging in strict mode
+  include_metrics: true
+  log_validation_details: true
+  log_retry_attempts: true
+
+glossary:
+  enabled: false
+  path: null

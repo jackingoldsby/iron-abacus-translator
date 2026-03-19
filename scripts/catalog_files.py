@@ -20,7 +20,7 @@ Path pattern:
     {BASE_DIR}/wuxia_{directory_number}/{filename}
 
 Example:
-    /Users/jacki/project_files/translation_project/wuxia_individual_files/wuxia_0001/D55a_射鵰英雄傳一_金庸.json
+    $TRANSLATOR_DATA_ROOT/wuxia_individual_files/wuxia_0001/D55a_射鵰英雄傳一_金庸.json
     └─────────────────── BASE_DIR ────────────────────┘└─ dir ──┘└──────────── filename ──────────────┘
 
 See README_WUXIA_CATALOG.md for detailed usage examples.
@@ -28,13 +28,13 @@ See README_WUXIA_CATALOG.md for detailed usage examples.
 
 import os
 import re
-import sqlite3
+from utils.db import connect_catalog
 import argparse
 from pathlib import Path
 from typing import List, Dict, Tuple
 
 # Default configuration - Use symlink relative to script location
-# The project root has a symlink: translation_data -> /Users/jacki/project_files/translation_project
+# The project root has a symlink: translation_data -> $TRANSLATOR_DATA_ROOT
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 DEFAULT_PROJECT_BASE = os.getenv(
@@ -153,13 +153,13 @@ def create_database_table(files_info: List[Dict], db_path: str):
         files_info: List of file information dictionaries
         db_path: Path to SQLite database file
     """
-    conn = sqlite3.connect(db_path)
+    conn = connect_catalog(db_path)
     cursor = conn.cursor()
 
     # Create works table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS works (
-            work_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            work_id INTEGER PRIMARY KEY,
             work_number TEXT NOT NULL,
             title_author TEXT,
             directory_number TEXT,
@@ -170,7 +170,7 @@ def create_database_table(files_info: List[Dict], db_path: str):
     # Create work_files table (one-to-many relationship for volumes)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS work_files (
-            file_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_id INTEGER PRIMARY KEY,
             work_id INTEGER,
             volume TEXT,
             filename TEXT NOT NULL,
@@ -255,7 +255,7 @@ def parse_args():
         epilog='''
 Environment Variables:
   TRANSLATION_PROJECT_DIR    Base directory for translation project
-                             (default: /Users/jacki/project_files/translation_project)
+                             (default: $TRANSLATOR_DATA_ROOT)
 
 Examples:
   # Use default paths

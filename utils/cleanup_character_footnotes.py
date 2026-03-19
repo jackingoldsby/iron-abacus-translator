@@ -30,41 +30,12 @@ from tenacity import (
 )
 from tqdm import tqdm
 
-# Workaround for Python 3.13.0 http.client bug
-import sys as _sys
-if _sys.version_info[:2] == (3, 13):
-    try:
-        import http.client
-    except ModuleNotFoundError:
-        # Create a minimal http.client module to satisfy imports
-        import types
-        _http_client = types.ModuleType('http.client')
-        _sys.modules['http.client'] = _http_client
-        # Now try importing http which should work
-        import http
-        http.client = _http_client
-
-# Direct import to avoid __init__.py issues
-try:
-    from openai import OpenAI
-except ImportError as e:
-    print(f"Error: openai package not installed. Run: pip install openai")
-    print(f"Details: {e}")
-    sys.exit(1)
-except Exception as e:
-    print(f"Error importing openai: {type(e).__name__}: {e}")
-    sys.exit(1)
+from utils.clients import get_llm_client, LLMRequest
 
 
-def get_openai_client() -> OpenAI:
-    """Get OpenAI client with API key from environment."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError(
-            "OPENAI_API_KEY environment variable is not set. "
-            "Please set it before running this script."
-        )
-    return OpenAI(api_key=api_key)
+def get_openai_client():
+    """Get LLM client from environment config."""
+    return get_llm_client(component="cleanup")
 
 
 # Configure logging
@@ -244,42 +215,62 @@ class CharacterFootnoteCleanup:
             List of FootnoteClassification objects
         """
         # Build the prompt
-        system_prompt = """You are an expert in Chinese literature and history. Classify footnotes into these categories:
+        system_prompt = """You are an expert in Chinese literature and history. Classify each footnote INDIVIDUALLY into one of these categories:
 
 1. FICTIONAL_CHARACTER - Fictional story characters, protagonists, antagonists, side characters in the narrative
 2. HISTORICAL_FIGURE - Real historical persons (e.g., Emperor Kangxi 康熙帝, Confucius 孔子, historical officials)
 3. LEGENDARY_PERSONAGE - Mythological or legendary figures (e.g., Guan Yu 關羽, Buddha 佛陀, deities, mythical heroes)
 4. CULTURAL - Cultural concepts, places, events, terminology, weapons, items, idioms, literary devices, historical periods/dynasties
 
-For each footnote, return:
-- type: One of the four categories above
-- confidence: 0.0 to 1.0
-- reasoning: Brief explanation of classification
+Return a JSON object with a "classifications" key containing an array with EXACTLY one object per footnote, in the same order as the input. Each object must have:
+- "type": One of FICTIONAL_CHARACTER, HISTORICAL_FIGURE, LEGENDARY_PERSONAGE, CULTURAL
+- "confidence": 0.0 to 1.0
+- "reasoning": Brief explanation
 
-Return as JSON array with one object per footnote."""
+Example for 2 footnotes: {"classifications": [{"type": "CULTURAL", "confidence": 0.9, "reasoning": "..."}, {"type": "FICTIONAL_CHARACTER", "confidence": 0.8, "reasoning": "..."}]}"""
 
-        user_content = "Classify these footnotes:\n\n"
+        user_content = f"Classify these {len(footnotes)} footnotes (return exactly {len(footnotes)} classifications):\n\n"
         for idx, fn in enumerate(footnotes):
             user_content += f"{idx + 1}. Ideogram: {fn['ideogram']}\n"
             user_content += f"   Explanation: {fn['explanation']}\n\n"
 
         try:
-            response = self.client.chat.completions.create(
-                model=self.config.model,
-                temperature=self.config.temperature,
-                response_format={"type": "json_object"},
+            response = self.client.chat(LLMRequest(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_content}
-                ]
-            )
+                ],
+                model=self.config.model,
+                temperature=self.config.temperature,
+                json_mode=True,
+            ))
 
-            result_text = response.choices[0].message.content
-            result_data = json.loads(result_text)
+            result_data = response.parsed
 
             # Parse classifications with Pydantic validation
             classifications = []
-            results_list = result_data.get('classifications', result_data.get('results', []))
+            # Model may wrap results under various keys
+            results_list = None
+            if isinstance(result_data, dict):
+                for key in ('classifications', 'results', 'footnotes', 'items', 'data'):
+                    if key in result_data and isinstance(result_data[key], list):
+                        results_list = result_data[key]
+                        logger.info(f"Found {len(results_list)} results under key '{key}'")
+                        break
+                if results_list is None:
+                    # Try any list-valued key
+                    for k, v in result_data.items():
+                        if isinstance(v, list) and len(v) > 0:
+                            results_list = v
+                            logger.info(f"Found {len(results_list)} results under unexpected key '{k}'")
+                            break
+            elif isinstance(result_data, list):
+                results_list = result_data
+                logger.info(f"Response is direct array with {len(results_list)} items")
+
+            if results_list is None:
+                logger.error(f"Could not find results in API response: {str(result_data)[:500]}")
+                results_list = []
 
             for idx, fn in enumerate(footnotes):
                 try:
@@ -491,32 +482,40 @@ Return as JSON array with one object per footnote."""
                         filtered_footnotes.append(footnote)
                         self.result.preserved_count += 1
 
-                # Update footnotes list
-                block['footnotes'] = filtered_footnotes
+                # Build old_key → new_key mapping before renumbering
+                original_keys = [fn.get('key') for fn in block.get('footnotes', [])]
+                kept_keys = set()
+                for fn in filtered_footnotes:
+                    kept_keys.add(fn.get('key'))
 
-                # Renumber footnotes sequentially within this block
+                old_to_new = {}
+                new_idx = 1
+                for old_key in original_keys:
+                    if old_key in kept_keys:
+                        old_to_new[old_key] = new_idx
+                        new_idx += 1
+                    # Removed keys are not in old_to_new → markers will be stripped
+
+                # Update footnotes list and renumber
+                block['footnotes'] = filtered_footnotes
                 for idx, footnote in enumerate(filtered_footnotes, start=1):
                     footnote['key'] = idx
 
-                # Remove duplicate markers from translated_content
-                # Keep only the first occurrence of each marker
+                # Remap/remove inline markers in translated content
                 translated_content = block.get('translated_content', '')
                 if translated_content:
-                    # Track which markers we've seen
                     seen_markers = set()
 
                     def replace_marker(match):
-                        """Replace duplicate markers with empty string, keep first occurrence."""
-                        marker = match.group(1)
-                        if marker in seen_markers:
-                            # This is a duplicate - remove it
-                            return ''
-                        else:
-                            # This is the first occurrence - keep it
-                            seen_markers.add(marker)
-                            return match.group(0)  # Return original [N]
+                        old_key = int(match.group(1))
+                        new_key = old_to_new.get(old_key)
+                        if new_key is None:
+                            return ''  # Removed footnote — strip marker
+                        if new_key in seen_markers:
+                            return ''  # Duplicate marker — strip
+                        seen_markers.add(new_key)
+                        return f'[{new_key}]'
 
-                    # Replace all markers, removing duplicates
                     block['translated_content'] = re.sub(r'\[(\d+)\]', replace_marker, translated_content)
 
         return data
