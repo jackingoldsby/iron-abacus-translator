@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 """
-Wuxia Glossary Lookup Utility
+Translation Glossary Lookup Utility
 
-Provides fast lookup and matching for wuxia terminology in translations.
-Uses SQLite database created by deduplicate_wuxia_glossary.py.
+Provides fast lookup and matching for translation terminology.
+Uses DuckDB database created by deduplicate_glossary.py.
 
 Usage:
-    from utils.wuxia_glossary import WuxiaGlossary
+    from utils.glossary import TranslationGlossary
 
-    glossary = WuxiaGlossary('wuxia_glossary.db')
+    glossary = TranslationGlossary('glossary.duckdb')
     entry = glossary.lookup('內功')
     matches = glossary.find_in_text('他修煉內功多年')
 """
 
-import sqlite3
 import re
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
@@ -25,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class GlossaryEntry:
-    """Wuxia glossary term"""
+    """Translation glossary term"""
     chinese: str
     pinyin: str
     translation_strategy: str
@@ -87,9 +86,9 @@ class GlossaryEntry:
             return f"{self.chinese} *{self.pinyin}*"
 
 
-class WuxiaGlossary:
+class TranslationGlossary:
     """
-    Fast lookup and matching for wuxia terminology.
+    Fast lookup and matching for translation terminology.
 
     Thread-safe implementation that loads all data into memory on initialization,
     avoiding SQLite thread-safety issues in parallel translation.
@@ -100,58 +99,68 @@ class WuxiaGlossary:
     - Intelligent footnoting based on deduplication strategy
     """
 
-    def __init__(self, db_path: Path = Path('wuxia_glossary.db')):
+    def __init__(self, db_path: Optional[Path] = None):
         """
-        Initialize glossary by loading all data from SQLite into memory.
+        Initialize glossary by loading all data from DuckDB into memory.
 
         This ensures thread-safety for parallel translation by avoiding
-        SQLite connection sharing across threads.
+        connection sharing across threads.
 
         Args:
-            db_path: Path to wuxia_glossary.db
+            db_path: Path to glossary.duckdb. If None, uses environment config.
         """
+        if db_path is None:
+            from utils.environment_config import get_or_create_config
+            db_path = get_or_create_config().glossary_path
         self.db_path = Path(db_path)
         if not self.db_path.exists():
             raise FileNotFoundError(f"Glossary database not found: {db_path}")
 
-        # Load all data into memory from SQLite (thread-safe)
+        # Load all data into memory (thread-safe)
         self._load_all_data_into_memory()
 
         # No persistent connection needed - all data is in memory
-        logger.info(f"Loaded wuxia glossary with {len(self._all_terms)} terms into memory (thread-safe)")
+        logger.info(f"Loaded glossary with {len(self._all_terms)} terms into memory (thread-safe)")
 
     def _load_all_data_into_memory(self):
         """
-        Load all glossary data from SQLite into memory.
+        Load all glossary data from DuckDB into memory.
 
-        Creates in-memory dictionaries for fast lookup without SQLite connection.
+        Creates in-memory dictionaries for fast lookup without persistent connection.
         This ensures thread-safety for parallel translation.
         """
-        # Create temporary connection just for loading data
-        conn = sqlite3.connect(str(self.db_path))
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        import duckdb
+        conn = duckdb.connect(str(self.db_path), read_only=True)
 
-        # Load all entries into memory
-        cursor.execute("SELECT * FROM wuxia_glossary")
-        rows = cursor.fetchall()
+        rows = conn.execute(
+            "SELECT chinese, pinyin, translation_strategy, recommended_form, "
+            "footnote_template, category, rationale, deduplication_strategy, "
+            "expected_frequency, source FROM glossary"
+        ).fetchall()
+
+        col_names = [
+            'chinese', 'pinyin', 'translation_strategy', 'recommended_form',
+            'footnote_template', 'category', 'rationale', 'deduplication_strategy',
+            'expected_frequency', 'source',
+        ]
 
         # Build in-memory cache (chinese -> GlossaryEntry)
         self._cache: Dict[str, GlossaryEntry] = {}
         for row in rows:
+            row_dict = dict(zip(col_names, row))
             entry = GlossaryEntry(
-                chinese=row['chinese'],
-                pinyin=row['pinyin'],
-                translation_strategy=row['translation_strategy'],
-                recommended_form=row['recommended_form'],
-                footnote_template=row['footnote_template'],
-                category=row['category'],
-                rationale=row['rationale'],
-                deduplication_strategy=row['deduplication_strategy'],
-                expected_frequency=row['expected_frequency'],
-                source=row['source']
+                chinese=row_dict['chinese'],
+                pinyin=row_dict['pinyin'],
+                translation_strategy=row_dict['translation_strategy'],
+                recommended_form=row_dict['recommended_form'],
+                footnote_template=row_dict['footnote_template'],
+                category=row_dict['category'],
+                rationale=row_dict['rationale'],
+                deduplication_strategy=row_dict['deduplication_strategy'],
+                expected_frequency=row_dict['expected_frequency'],
+                source=row_dict['source'],
             )
-            self._cache[row['chinese']] = entry
+            self._cache[row_dict['chinese']] = entry
 
         # Build list of all terms sorted by length (longest first)
         # This ensures we match longer terms before shorter substrings
@@ -161,9 +170,7 @@ class WuxiaGlossary:
             reverse=True
         )
 
-        # Close the temporary connection - we don't need it anymore
         conn.close()
-
         logger.info(f"Loaded {len(self._cache)} glossary entries into memory")
 
     def lookup(self, chinese: str) -> Optional[GlossaryEntry]:
@@ -375,17 +382,17 @@ def main():
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage: python utils/wuxia_glossary.py <chinese_term_or_text>")
+        print("Usage: python utils/glossary.py <chinese_term_or_text>")
         print("\nExample:")
-        print("  python utils/wuxia_glossary.py 內功")
-        print("  python utils/wuxia_glossary.py '他修煉內功多年，內力深厚'")
+        print("  python utils/glossary.py 內功")
+        print("  python utils/glossary.py '他修煉內功多年，內力深厚'")
         return 1
 
     query = sys.argv[1]
 
     try:
-        with WuxiaGlossary() as glossary:
-            print(f"\n=== WUXIA GLOSSARY LOOKUP ===\n")
+        with TranslationGlossary() as glossary:
+            print(f"\n=== GLOSSARY LOOKUP ===\n")
 
             # Try direct lookup first
             entry = glossary.lookup(query)

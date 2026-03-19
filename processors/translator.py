@@ -14,11 +14,12 @@ from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
-from openai import OpenAI
+from utils.clients import get_llm_client, LLMRequest
 
 # Add import for wuxia glossary
 import sys
-from utils.wuxia_glossary import WuxiaGlossary, GlossaryEntry
+from utils.glossary import TranslationGlossary, GlossaryEntry
+from processors.translation_prompts import GENRE_PROMPTS, build_system_prompt
 
 # Setup logging
 logging.basicConfig(
@@ -28,141 +29,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# =============================================================================
-# SYSTEM PROMPTS
-# =============================================================================
-
-TRANSLATION_SYSTEM_PROMPT = """You are an elite translator of Classical Chinese and Wuxia literature, specializing in producing natural, fluent English prose that reads smoothly while preserving the spirit and cultural richness of the original.
-
-**CRITICAL TRANSLATION PRINCIPLES:**
-
-1. **Natural, Flowing English**:
-   - Write in smooth, readable prose that native English speakers would naturally use
-   - Avoid awkward constructions like "One saw..." - use clear subjects and active voice
-   - Maintain consistent narrative past tense throughout (avoid mixing "would be," "had been," etc.)
-   - Sentences should flow together naturally, not feel disjointed or blocky
-   - WRONG: "One saw the teacher sitting cross-legged on the chair, a faint smile on her face"
-   - RIGHT: "The teacher sat cross-legged on her chair with a faint smile on her face"
-
-2. **Tense Consistency**:
-   - Use simple past tense as the default narrative tense
-   - "hopped" not "was hopping" (unless progressive aspect is specifically needed)
-   - "finished" not "had finished" (unless pluperfect is essential for sequence)
-   - "feared" not "was fearing"
-   - Keep it simple and direct
-
-3. **Sentence Construction**:
-   - Break up overly long sentences that would sound unnatural in English
-   - Each sentence should have a clear subject performing a clear action
-   - Use transitional phrases sparingly and naturally
-   - Prefer active voice over passive voice where appropriate
-
-4. **Word Choice**:
-   - Use natural, conversational English (while maintaining literary quality)
-   - WRONG: "this thing more entertaining" - RIGHT: "this skill more entertaining" or "this trick more fascinating"
-   - WRONG: "feared that the teacher might still be napping and that entering would be troublesome"
-   - RIGHT: "worried the teacher might still be napping, so she didn't want to disturb him"
-
-5. **Pinyin with Tone Marks in English Text**: **CRITICAL** - Use pinyin WITH TONE MARKS for Chinese names and terms in the English translation:
-   - Character names: Use pinyin with tones (e.g., "Yáng Lùchán[1]" NOT "Yang Luchan[1]")
-   - Place names: Use pinyin with tones (e.g., "Hénán" NOT "Henan")
-   - Technical terms: Use pinyin with tones (e.g., "tàijíquán[2]" NOT "taijiquan[2]")
-   - WRONG: "Yang Luchan[1] traveled to Henan and learned taijiquan from Chen Qingping[2]"
-   - RIGHT: "Yáng Lùchán[1] traveled to Hénán and learned tàijíquán from Chén Qīngpíng[2]"
-   - Exception: Well-known English terms are acceptable (e.g., "Tai Chi" for casual reference)
-
-6. **Scholarly Annotation**: Create detailed footnotes that explain:
-   - Cultural and historical references
-   - Proper names (characters, places, titles) with pinyin
-   - Specialized martial arts or classical terminology
-   - Historical context and allusions
-   - Keep footnotes focused on cultural/historical facts, not narrative interpretation
-
-7. **Inline Footnote Markers**: **IMPORTANT** - Insert inline footnote markers [1], [2], [3], etc. immediately after each term that has a corresponding footnote.
-   - Example: "King Zhou[1] visited the temple of Nüwa[2], the great goddess[3]..."
-   - Place marker [n] directly after the term it annotates (no space between term and marker)
-   - Every footnote in content_footnotes should have a corresponding [n] marker in annotated_content_text
-   - Markers should be sequential starting from [1]
-   - If a term appears multiple times, mark it on first occurrence only
-
-**Output Requirements:**
-
-Return ONLY valid JSON in this exact format (no markdown, no explanation):
-
-{
-  "content_text_id": <original_id>,
-  "content_source_text": "<original_chinese_text>",
-  "translated_annotated_content": {
-    "annotated_content_text": "<full_english_translation_with_inline_markers_like_this[1]_and_this[2]>",
-    "content_footnotes": [
-      {
-        "footnote_key": 1,
-        "footnote_details": {
-          "footnote_ideogram": "<chinese_characters>",
-          "footnote_pinyin": "<romanized_pronunciation>",
-          "footnote_explanation": "<cultural_historical_explanation>"
-        }
-      }
-    ],
-    "content_type": "<narrative|dialogue|verse|document|descriptive|thought>"
-  }
-}
-
-**CRITICAL: The annotated_content_text MUST contain inline markers [1], [2], [3] immediately after each annotated term.**
-Example: "King Zhou[1] gazed upon the beauty of Nüwa[2], sovereign of ten thousand chariots[3]..."
-
-**Translation Methodology:**
-
-1. Read the entire passage to understand narrative flow, character voices, and cultural context
-2. Translate into natural, fluent English - imagine you're retelling the story to a friend
-3. Use simple past tense consistently - avoid complex tense constructions
-4. Each sentence should have a clear subject and flow smoothly into the next
-5. Identify terms needing cultural explanation (proper names, historical references, specialized terms)
-6. **Insert inline markers [1], [2], [3]... immediately after each term that will be footnoted**
-7. Create footnotes with pinyin and cultural/historical context (factual, not interpretive)
-8. **Verify every footnote has a corresponding [n] marker in the translated text**
-9. Classify content type (narrative, dialogue, verse, document, descriptive, thought)
-
-**EXAMPLES OF GOOD vs BAD TRANSLATION:**
-
-BAD (awkward, unnatural):
-"One saw the teacher sitting cross-legged on the chair, a faint smile on her face, her right hand raised slightly toward the air, and with a soft sound, as if something brushed against the paneled wall."
-
-GOOD (natural, clear):
-"The teacher sat cross-legged on her chair with a faint smile on her face. She raised her right hand slightly, and there was a soft sound, as if something had struck the wooden wall."
-
-BAD (unclear subject, passive):
-"The girl, outside the study door, feared that the teacher might still be napping and that entering would be troublesome, so she moved quietly around to the window."
-
-GOOD (clear subject, active):
-"Outside the study door, the girl worried the teacher might still be napping. Not wanting to disturb him, she crept quietly around to the window instead."
-
-**Footnote Principles:**
-
-- Annotate terms that enhance understanding, not obvious translations
-- Write explanations for general readers, avoiding academic jargon
-- Help readers appreciate cultural context without overwhelming them
-- Use consistent terminology across all footnotes
-- Balance detail with brevity—enough to illuminate, not to distract
-- Include pinyin for all Chinese terms using standard Hanyu Pinyin
-- Focus on factual cultural/historical context, NOT character analysis
-
-**Content Type Classification:**
-
-- `narrative`: Descriptive storytelling, scene-setting, action sequences
-- `dialogue`: Character speech and conversation
-- `verse`: Poetry, songs, or verse passages
-- `document`: Letters, proclamations, written texts within the story
-- `descriptive`: Pure description of settings, characters, or objects
-- `thought`: Internal monologue or character reflection
-
-**Quality Standards:**
-
-- PhD-level scholarly quality suitable for academic or commercial publication
-- Footnotes demonstrate deep cultural knowledge while remaining accessible
-- Every annotation adds genuine value
-- Deterministic, consistent output format
-"""
+# Legacy TRANSLATION_SYSTEM_PROMPT kept for backward compatibility.
+# New code should use GENRE_PROMPTS from processors.translation_prompts.
+from processors.translation_prompts import TRANSLATION_SYSTEM_PROMPT  # noqa: F811
 
 VALIDATION_SYSTEM_PROMPT = """You are a validation specialist for Classical Chinese translations. Your role is to verify translation quality and footnote accuracy.
 
@@ -289,6 +158,124 @@ class ValidationResult:
 
 
 # =============================================================================
+# POST-PROCESSING: Trivial Footnote Removal
+# =============================================================================
+
+import re as _re
+
+# Words that signal a footnote is just defining a common English concept
+_TRIVIAL_DEFINITION_WORDS = {
+    "villager", "village", "moss", "firewood", "mountain path", "mountain trail",
+    "young woman", "married woman", "fruit", "sigh", "color", "colour",
+    "pine tree", "maple", "wildflower", "hunter", "path", "trail",
+    "cloth", "skirt", "clothing", "congratulations", "new year",
+    "orange", "green", "blue", "red", "hairpin", "jade hairpin",
+    "tangerine", "ripe",
+}
+
+# Ideograms that are ALWAYS trivial (common words with direct English equivalents)
+_TRIVIAL_IDEOGRAMS = {
+    "鄉人", "山路", "蒼苔", "苔", "果品", "裙布", "少婦", "柴草",
+    "喟然微歎", "嘆息", "荒山僻徑", "雪青", "桔紅的", "桔紅", "蒼松",
+    "野花楓葉", "恭喜", "甘淡泊", "玉釵",
+}
+
+# Terms that indicate REAL cultural content — never strip these
+_CULTURAL_KEYWORDS = {
+    "dynasty", "emperor", "reign", "era", "martial", "qi", "qì",
+    "neigong", "nèigōng", "wuxia", "jianghu", "jiānghú",
+    "confuci", "daois", "buddhis", "taois", "ritual", "ceremony",
+    "calligraph", "poet", "scholar", "historical",
+    "ming", "tang", "song", "yuan", "qing", "han", "jin",
+    "technique", "palm strike", "sword art", "fist",
+    "capital", "ancient capital", "painter", "renowned",
+}
+
+
+def _is_trivial_footnote(ideogram: str, explanation: str) -> bool:
+    """Check if a footnote is trivial based on its ideogram and explanation text."""
+    # Known trivial ideograms
+    if ideogram in _TRIVIAL_IDEOGRAMS:
+        return True
+
+    expl_lower = explanation.lower()
+
+    # If explanation contains cultural keywords, it's NOT trivial
+    for kw in _CULTURAL_KEYWORDS:
+        if kw in expl_lower:
+            return False
+
+    # Short explanations that just define common English words are trivial
+    if len(explanation) < 100:
+        for word in _TRIVIAL_DEFINITION_WORDS:
+            if word in expl_lower:
+                return True
+
+    return False
+
+
+def strip_trivial_footnotes(response: 'TranslationResponse') -> 'TranslationResponse':
+    """
+    Remove trivial footnotes from a translation response and renumber remaining ones.
+    Fast, deterministic — no API call needed.
+    """
+    tac = response.translated_annotated_content
+    footnotes = tac.content_footnotes
+    text = tac.annotated_content_text
+
+    if not footnotes:
+        return response
+
+    keep = []
+    remove_keys = set()
+
+    for fn in footnotes:
+        if _is_trivial_footnote(fn.footnote_details.footnote_ideogram,
+                                fn.footnote_details.footnote_explanation):
+            remove_keys.add(fn.footnote_key)
+        else:
+            keep.append(fn)
+
+    if not remove_keys:
+        return response
+
+    logger.info(f"Stripping {len(remove_keys)} trivial footnotes, keeping {len(keep)}")
+
+    # Remove markers from text
+    for key in remove_keys:
+        text = _re.sub(rf'\[{key}\]', '', text)
+
+    # Renumber remaining footnotes 1..N
+    old_to_new = {}
+    for new_idx, fn in enumerate(keep, 1):
+        old_to_new[fn.footnote_key] = new_idx
+
+    # Replace old markers with new (use placeholders to avoid collision)
+    for old_key, new_key in sorted(old_to_new.items(), key=lambda x: -x[0]):
+        text = text.replace(f'[{old_key}]', f'[__TMP_{new_key}__]')
+    for new_key in old_to_new.values():
+        text = text.replace(f'[__TMP_{new_key}__]', f'[{new_key}]')
+
+    new_footnotes = [
+        ContentFootnote(
+            footnote_key=old_to_new[fn.footnote_key],
+            footnote_details=fn.footnote_details
+        )
+        for fn in keep
+    ]
+
+    return TranslationResponse(
+        content_text_id=response.content_text_id,
+        content_source_text=response.content_source_text,
+        translated_annotated_content=TranslatedAnnotatedContent(
+            annotated_content_text=text,
+            content_footnotes=new_footnotes,
+            content_type=tac.content_type,
+        )
+    )
+
+
+# =============================================================================
 # TRANSLATION SERVICE
 # =============================================================================
 
@@ -302,44 +289,48 @@ class TranslationService:
 
     def __init__(
         self,
-        model: str = "gpt-4.1-nano",
+        model: Optional[str] = None,
         temperature: float = 0.3,
         max_retries: int = 2,
         timeout: int = 120,
-        glossary_path: Optional[Path] = None
+        glossary_path: Optional[Path] = None,
+        llm_client=None,
+        genre: str = "wuxia",
+        author: str = None,
     ):
         """
         Initialize translation service.
 
         Args:
-            model: OpenAI model to use (default: gpt-4.1-nano)
+            model: Model override (default: resolved by factory — gpt-4.1-mini for translator)
             temperature: Sampling temperature (0.0-1.0, default: 0.3)
             max_retries: Maximum retry attempts (default: 2)
             timeout: Request timeout in seconds (default: 120)
-            glossary_path: Path to wuxia_glossary.db (default: wuxia_glossary.db in project root)
+            glossary_path: Path to glossary.duckdb (default: from environment config)
+            llm_client: Pre-configured LLMClient (overrides provider lookup)
+            genre: Genre key for prompt selection ("wuxia" or "classical")
+            author: Author key (author_chinese) for style overlay
         """
-        self.model = model
         self.temperature = temperature
         self.max_retries = max_retries
         self.timeout = timeout
+        self.genre = genre
+        self.author = author
 
-        # Initialize OpenAI client
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise RuntimeError("OPENAI_API_KEY environment variable not set")
+        # Build genre + author system prompt
+        self._system_prompt = build_system_prompt(genre=genre, author=author)
 
-        self.client = OpenAI(api_key=api_key)
-        logger.info(f"Initialized TranslationService with model={model}, temperature={temperature}")
+        # Initialize LLM client — model resolved by factory if not explicit
+        self.llm = llm_client or get_llm_client(component="translator", model=model)
+        self.model = self.llm.model
+        logger.info(f"Initialized TranslationService with model={self.model}, genre={genre}, author={author or 'default'}, temperature={temperature}")
 
         # Initialize wuxia glossary
-        if glossary_path is None:
-            glossary_path = Path(__file__).parent.parent / "wuxia_glossary.db"
-
         try:
-            self.glossary = WuxiaGlossary(glossary_path)
-            logger.info(f"Loaded wuxia glossary from {glossary_path}")
+            self.glossary = TranslationGlossary(glossary_path)
+            logger.info(f"Loaded wuxia glossary from {self.glossary.db_path}")
         except FileNotFoundError:
-            logger.warning(f"Wuxia glossary not found at {glossary_path}, proceeding without glossary")
+            logger.warning(f"Glossary not found, proceeding without glossary")
             self.glossary = None
 
     def _scan_glossary_terms(self, source_text: str) -> List[Tuple[str, GlossaryEntry, int]]:
@@ -428,7 +419,7 @@ class TranslationService:
 
                 if validation.is_valid:
                     logger.info(f"Translation validated successfully (quality={validation.quality_score}/100)")
-                    return translation_response
+                    return strip_trivial_footnotes(translation_response)
 
                 # Check if issues are critical
                 critical_issues = [i for i in validation.issues if i.severity == "critical"]
@@ -457,7 +448,7 @@ class TranslationService:
                         logger.warning(f"Translation has {len(validation.issues)} issues but is acceptable")
                         for issue in validation.issues:
                             logger.warning(f"  - [{issue.severity}] {issue.type}: {issue.description}")
-                    return translation_response
+                    return strip_trivial_footnotes(translation_response)
 
             except Exception as e:
                 logger.error(f"Translation attempt {attempt} failed: {e}")
@@ -496,27 +487,20 @@ class TranslationService:
         else:
             user_message = message_content
 
-        # Call Chat Completions API
+        # Call LLM
         try:
-            # GPT-5-nano only supports temperature=1 (default)
-            api_params = {
-                "model": self.model,
-                "messages": [
-                    {"role": "system", "content": TRANSLATION_SYSTEM_PROMPT},
+            response = self.llm.chat(LLMRequest(
+                messages=[
+                    {"role": "system", "content": self._system_prompt},
                     {"role": "user", "content": user_message}
                 ],
-                "response_format": {"type": "json_object"},
-                "timeout": self.timeout
-            }
+                model=self.model,
+                temperature=self.temperature,
+                json_mode=True,
+                timeout=self.timeout,
+            ))
 
-            # Only set temperature if not using GPT-4.1-nano
-            if "gpt-4.1-nano" not in self.model.lower():
-                api_params["temperature"] = self.temperature
-
-            response = self.client.chat.completions.create(**api_params)
-
-            response_text = response.choices[0].message.content
-            return self._parse_translation_response(response_text)
+            return self._parse_translation_response(response.text)
 
         except Exception as e:
             raise RuntimeError(f"Translation failed: {e}")
@@ -534,27 +518,20 @@ class TranslationService:
         # Prepare validation message
         validation_message = json.dumps(self._response_to_dict(response), ensure_ascii=False)
 
-        # Call Chat Completions API
+        # Call LLM
         try:
-            # GPT-5-nano only supports temperature=1 (default)
-            api_params = {
-                "model": self.model,
-                "messages": [
+            response = self.llm.chat(LLMRequest(
+                messages=[
                     {"role": "system", "content": VALIDATION_SYSTEM_PROMPT},
                     {"role": "user", "content": validation_message}
                 ],
-                "response_format": {"type": "json_object"},
-                "timeout": self.timeout
-            }
+                model=self.model,
+                temperature=0.1,  # Lower temperature for consistent validation
+                json_mode=True,
+                timeout=self.timeout,
+            ))
 
-            # Only set temperature if not using GPT-4.1-nano
-            if "gpt-4.1-nano" not in self.model.lower():
-                api_params["temperature"] = 0.1  # Lower temperature for consistent validation
-
-            api_response = self.client.chat.completions.create(**api_params)
-
-            response_text = api_response.choices[0].message.content
-            return self._parse_validation_response(response_text)
+            return self._parse_validation_response(response.text)
 
         except Exception as e:
             raise RuntimeError(f"Validation failed: {e}")
@@ -609,9 +586,22 @@ class TranslationService:
             # Parse footnotes
             footnotes = []
             for fn in data["translated_annotated_content"]["content_footnotes"]:
+                # Handle both nested {"footnote_details": {...}} and flat structure
+                if "footnote_details" in fn:
+                    details = fn["footnote_details"]
+                elif "footnote_ideogram" in fn:
+                    # Model flattened the structure — reconstruct
+                    details = {
+                        "footnote_ideogram": fn.get("footnote_ideogram", ""),
+                        "footnote_pinyin": fn.get("footnote_pinyin", ""),
+                        "footnote_explanation": fn.get("footnote_explanation", ""),
+                    }
+                else:
+                    logger.warning(f"Skipping malformed footnote: {fn}")
+                    continue
                 footnote = ContentFootnote(
                     footnote_key=fn["footnote_key"],
-                    footnote_details=FootnoteDetails(**fn["footnote_details"])
+                    footnote_details=FootnoteDetails(**details)
                 )
                 footnotes.append(footnote)
 

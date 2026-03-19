@@ -5,8 +5,10 @@ import React from 'react';
  *
  * Displays a single workflow stage with visual status indicators
  * States: pending (⊙), running (● + progress), completed (✓), failed (✗)
+ *
+ * Memoized to prevent unnecessary re-renders when props haven't changed
  */
-const StageNode = ({ stage, onClick, isSelected }) => {
+const StageNode = React.memo(({ stage, onClick, isSelected }) => {
   const {
     stage_name,
     stage_number,
@@ -76,6 +78,11 @@ const StageNode = ({ stage, onClick, isSelected }) => {
       .join(' ');
   };
 
+  // Format stage number with leading zeros: 1 -> "001"
+  const formatStageNumber = (num) => {
+    return String(num).padStart(3, '0');
+  };
+
   // Format duration
   const formatDuration = (seconds) => {
     if (!seconds) return null;
@@ -94,19 +101,16 @@ const StageNode = ({ stage, onClick, isSelected }) => {
         cursor: 'pointer'
       }}
     >
-      {/* Stage Number Badge */}
-      <div className="stage-number" style={{ backgroundColor: statusDisplay.color }}>
-        {stage_number}
-      </div>
-
       {/* Status Icon */}
       <div className="stage-icon" style={{ color: statusDisplay.color }}>
         {statusDisplay.icon}
       </div>
 
-      {/* Stage Name */}
+      {/* Stage Name with Number */}
       <div className="stage-name">
-        {formatStageName(stage_name)}
+        <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '2px' }}>
+          {formatStageNumber(stage_number)} - {formatStageName(stage_name)}
+        </div>
       </div>
 
       {/* Progress Bar (for running stages) */}
@@ -158,6 +162,13 @@ const StageNode = ({ stage, onClick, isSelected }) => {
       )}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison: only re-render if these props actually changed
+  const stageEqual = JSON.stringify(prevProps.stage) === JSON.stringify(nextProps.stage);
+  const isSelectedEqual = prevProps.isSelected === nextProps.isSelected;
+
+  // Return true to SKIP re-render, false to re-render
+  return stageEqual && isSelectedEqual;
+});
 
 export default StageNode;

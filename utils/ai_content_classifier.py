@@ -13,13 +13,7 @@ from typing import Dict, List, Any
 from collections import Counter
 import time
 
-# Load environment variables
-from utils.load_env_creds import load_env_credentials
-load_env_credentials()
-
-from openai import OpenAI
-
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+from utils.clients import llm_chat_json
 
 
 CLASSIFICATION_PROMPT = """You are an expert in Chinese wuxia (martial arts) literature and classical Chinese writing styles.
@@ -72,20 +66,18 @@ Analyze the following content block from a Chinese wuxia novel and classify it i
 
 
 def classify_content_block(content: str, model: str = "gpt-4o") -> Dict[str, Any]:
-    """Use OpenAI to classify a content block."""
+    """Use LLM to classify a content block."""
     try:
-        response = client.chat.completions.create(
-            model=model,
+        result = llm_chat_json(
             messages=[
                 {"role": "system", "content": "You are an expert literary analyst specializing in Chinese wuxia novels."},
                 {"role": "user", "content": CLASSIFICATION_PROMPT.format(content=content[:1000])}
             ],
-            response_format={"type": "json_object"},
+            model=model,
             temperature=0.3,
-            max_tokens=300
+            max_tokens=300,
+            component="classifier",
         )
-
-        result = json.loads(response.choices[0].message.content)
         return result
 
     except Exception as e:
@@ -240,13 +232,9 @@ def generate_classification_report(all_classifications: List[Dict[str, Any]]) ->
 
 def main():
     """Main execution function."""
-    sample_files = [
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0003/cleaned_D57c_倚天屠龍記三_金庸.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0374/cleaned_D1345_俠影紅顏_雲中岳.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0223/cleaned_D69c_尋秦記三_黃易.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0145/cleaned_I10L7_遊劍江湖_梁羽生.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0140/cleaned_D441_冰川天女傳_梁羽生.json",
-    ]
+    from utils.environment_config import get_or_create_config
+    _source = get_or_create_config().source_dir
+    sample_files = sorted(_source.rglob("cleaned_*.json"))[:5]
 
     all_classifications = []
 
@@ -275,12 +263,13 @@ def main():
     report = generate_classification_report(all_classifications)
 
     # Save report
-    output_path = Path("/Users/jacki/PycharmProjects/agentic_test_project/data/analysis/ai_classification_report.txt")
+    _proj = get_or_create_config().project_root
+    output_path = _proj / "data" / "analysis" / "ai_classification_report.txt"
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(report)
 
     # Save raw data
-    data_path = Path("/Users/jacki/PycharmProjects/agentic_test_project/data/analysis/classification_data.json")
+    data_path = _proj / "data" / "analysis" / "classification_data.json"
     with open(data_path, 'w', encoding='utf-8') as f:
         json.dump(all_classifications, f, ensure_ascii=False, indent=2)
 

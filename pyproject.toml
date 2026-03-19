@@ -50,4 +50,9 @@ book-footnotes = "cli.footnotes:main"
 book-epub = "cli.build_epub:main"
 
 [tool.setuptools.packages.find]
-include = ["processors*", "ai*", "utils*", "cli*"]
+include = ["processors*", "ai*", "utils*", "cli*", "wrappers*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--import-mode=importlib"

@@ -20,15 +20,11 @@ from utils.toc_alignment_validator import TOCAlignmentValidator, AlignmentResult
 
 router = APIRouter()
 
-# Get paths from environment or use defaults
-CLEANED_JSON_DIR = os.getenv(
-    "CLEANED_JSON_DIR",
-    "/Users/jacki/project_files/translation_project/01_clean_json"
-)
-CATALOG_DB_PATH = os.getenv(
-    "CATALOG_DB_PATH",
-    "/Users/jacki/project_files/translation_project/wuxia_catalog.db"
-)
+# Get paths from environment config
+from utils.environment_config import get_or_create_config
+_analysis_env = get_or_create_config()
+CLEANED_JSON_DIR = str(_analysis_env.source_dir)
+CATALOG_DB_PATH = str(_analysis_env.catalog_path)
 
 # In-memory cache for analysis results
 # In production, this should be Redis or a database

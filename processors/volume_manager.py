@@ -86,10 +86,10 @@ class VolumeManager:
             [VolumeInfo(work_number="D55", volume="001", ...),
              VolumeInfo(work_number="D55", volume="002", ...)]
         """
-        import sqlite3
+        from utils.db import connect_catalog
 
         try:
-            conn = sqlite3.connect(self.catalog_path)
+            conn = connect_catalog(self.catalog_path)
             cursor = conn.cursor()
 
             # Query for all volumes of this work
@@ -279,10 +279,10 @@ class VolumeManager:
             List of tuples: (work_number, volume_count)
             Sorted by volume count descending
         """
-        import sqlite3
+        from utils.db import connect_catalog
 
         try:
-            conn = sqlite3.connect(self.catalog_path)
+            conn = connect_catalog(self.catalog_path)
             cursor = conn.cursor()
 
             query = """

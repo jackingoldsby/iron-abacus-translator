@@ -1,0 +1,154 @@
+.multi-volume-progress {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.multi-volume-progress h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.volume-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 0;
+}
+
+.volume-tab {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  background: none;
+  color: #666;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.volume-tab:hover {
+  color: #333;
+  background: #f5f5f5;
+}
+
+.volume-tab.active {
+  color: #1976d2;
+  border-bottom-color: #1976d2;
+}
+
+.volume-tab .volume-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.volume-status-dot.pending { background: #bdbdbd; }
+.volume-status-dot.running { background: #2196f3; }
+.volume-status-dot.completed { background: #4caf50; }
+.volume-status-dot.failed { background: #f44336; }
+
+.volume-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.volume-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.volume-progress-label {
+  font-size: 12px;
+  color: #666;
+  min-width: 60px;
+}
+
+.volume-progress-bar {
+  flex: 1;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.volume-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.volume-progress-pct {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  min-width: 40px;
+  text-align: right;
+}
+
+.volume-overall {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.volume-overall-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.volume-overall-bar {
+  height: 10px;
+  background: #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.volume-overall-fill {
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #2196f3, #4caf50);
+  transition: width 0.5s ease;
+}
+
+.volume-sequential-notice {
+  font-size: 11px;
+  color: #999;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+.volume-accumulator {
+  margin-top: 12px;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #555;
+}
+
+.volume-accumulator-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.volume-accumulator-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.volume-accumulator-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

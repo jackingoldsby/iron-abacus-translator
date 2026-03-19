@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { worksAPI, jobsAPI } from '../api/client';
+import { useNavigate } from 'react-router-dom';
+import { worksAPI, jobsAPI, workflowAPI } from '../api/client';
+import { showToast } from '../components/Toast';
 
 function WorkListPage() {
+  const navigate = useNavigate();
   const [works, setWorks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedWorks, setSelectedWorks] = useState(new Set());
   const [showModal, setShowModal] = useState(false);
+  const [workStatuses, setWorkStatuses] = useState({}); // work_number -> { type, status, id, progress }
+  const [loadingStatuses, setLoadingStatuses] = useState(false);
+  const [useWorkflowSystem, setUseWorkflowSystem] = useState(true); // Default to workflow
   const [jobConfig, setJobConfig] = useState({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4.1-nano',
     temperature: 0.3,
     max_retries: 3,
   });
@@ -18,6 +24,7 @@ function WorkListPage() {
 
   useEffect(() => {
     loadWorks();
+    loadWorkStatuses();
   }, []);
 
   const loadWorks = async () => {
@@ -27,9 +34,56 @@ function WorkListPage() {
       setWorks(data);
     } catch (error) {
       console.error('Failed to load works:', error);
-      alert('Failed to load works catalog. Check console for details.');
+      showToast('Failed to load works catalog', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadWorkStatuses = async () => {
+    try {
+      setLoadingStatuses(true);
+
+      // Query both jobs and workflows
+      const [jobs, workflows] = await Promise.all([
+        jobsAPI.list().catch(() => []),
+        workflowAPI.list(100).catch(() => [])
+      ]);
+
+      // Build status map
+      const statusMap = {};
+
+      // Add legacy jobs (lower priority)
+      jobs.forEach(job => {
+        if (job.work_numbers && Array.isArray(job.work_numbers)) {
+          job.work_numbers.forEach(workNum => {
+            statusMap[workNum] = {
+              type: 'job',
+              id: job.job_id,
+              status: job.status,
+              progress: job.progress || 0
+            };
+          });
+        }
+      });
+
+      // Add workflows (higher priority - will override jobs)
+      workflows.forEach(workflow => {
+        if (workflow.work_id) {
+          statusMap[workflow.work_id] = {
+            type: 'workflow',
+            id: workflow.flow_run_id,
+            status: workflow.status,
+            progress: workflow.overall_progress_pct || 0
+          };
+        }
+      });
+
+      setWorkStatuses(statusMap);
+    } catch (error) {
+      console.error('Failed to load work statuses:', error);
+    } finally {
+      setLoadingStatuses(false);
     }
   };
 
@@ -110,22 +164,60 @@ function WorkListPage() {
     </th>
   );
 
+  const viewProgress = (workNumber) => {
+    const status = workStatuses[workNumber];
+    if (!status) return;
+
+    if (status.type === 'workflow') {
+      navigate(`/jobs?workflow_id=${status.id}`);
+    } else {
+      navigate(`/jobs?job_id=${status.id}`);
+    }
+  };
+
+  const startTranslationForWork = async (workNumber) => {
+    const work = works.find(w => w.work_number === workNumber);
+    if (!work) return;
+
+    setSelectedWorks(new Set([workNumber]));
+    setShowModal(true);
+  };
+
   const createTranslationJob = async () => {
     if (selectedWorks.size === 0) {
-      alert('Please select at least one work to translate');
+      showToast('Please select at least one work to translate', 'warning');
       return;
     }
 
     try {
       setCreating(true);
-      const workNumbers = Array.from(selectedWorks);
-      const job = await jobsAPI.create(workNumbers, jobConfig);
-      alert(`Translation job created: ${job.job_id}\n\nGo to Jobs page to monitor progress.`);
-      clearSelection();
-      setShowModal(false);
+
+      if (useWorkflowSystem && selectedWorks.size === 1) {
+        // Use new workflow system for single work
+        const workId = Array.from(selectedWorks)[0];
+        const workflow = await workflowAPI.start(workId, null, jobConfig, false);
+
+        clearSelection();
+        setShowModal(false);
+        loadWorkStatuses(); // Refresh statuses
+
+        showToast(`Workflow started! Navigating to jobs page...`, 'success', 3000);
+        navigate(`/jobs?workflow_id=${workflow.flow_run_id}`);
+      } else {
+        // Use legacy job system for bulk or if workflow disabled
+        const workNumbers = Array.from(selectedWorks);
+        const job = await jobsAPI.create(workNumbers, jobConfig);
+
+        clearSelection();
+        setShowModal(false);
+        loadWorkStatuses(); // Refresh statuses
+
+        showToast(`Translation job created! Navigating to jobs page...`, 'success', 3000);
+        navigate(`/jobs?job_id=${job.job_id}`);
+      }
     } catch (error) {
-      console.error('Failed to create job:', error);
-      alert('Failed to create translation job. Check console for details.');
+      console.error('Failed to create translation:', error);
+      showToast(`Failed to create translation: ${error.message || 'Unknown error'}`, 'error');
     } finally {
       setCreating(false);
     }
@@ -216,7 +308,8 @@ function WorkListPage() {
                 <SortableHeader column="character_count" align="right">Characters</SortableHeader>
                 <SortableHeader column="word_count" align="right">Words</SortableHeader>
                 <SortableHeader column="estimated_tokens" align="right">Est. Tokens</SortableHeader>
-                <SortableHeader column="translation_status">Status</SortableHeader>
+                <th>Translation Status</th>
+                <th style={{ width: '150px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -249,9 +342,42 @@ function WorkListPage() {
                     <small className="text-muted">{formatCount(work.estimated_tokens)}</small>
                   </td>
                   <td>
-                    <span className={`badge badge-${getStatusColor(work.translation_status)}`}>
-                      {getStatusLabel(work.translation_status)}
-                    </span>
+                    {workStatuses[work.work_number] ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span className={`badge badge-${getWorkflowStatusColor(workStatuses[work.work_number].status)}`}>
+                          {getWorkflowStatusLabel(workStatuses[work.work_number].status)}
+                        </span>
+                        {workStatuses[work.work_number].progress > 0 && (
+                          <div className="text-sm text-muted">
+                            {workStatuses[work.work_number].progress.toFixed(0)}%
+                          </div>
+                        )}
+                        <span className="badge badge-secondary text-xs">
+                          {workStatuses[work.work_number].type === 'workflow' ? '⚡ Workflow' : '⚙️ Job'}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="badge badge-secondary">○ Not Started</span>
+                    )}
+                  </td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    {workStatuses[work.work_number] ? (
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => viewProgress(work.work_number)}
+                        style={{ width: '100%' }}
+                      >
+                        📊 View Progress
+                      </button>
+                    ) : (
+                      <button
+                        className="btn btn-sm btn-success"
+                        onClick={() => startTranslationForWork(work.work_number)}
+                        style={{ width: '100%' }}
+                      >
+                        ▶️ Translate
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -264,7 +390,7 @@ function WorkListPage() {
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Create Translation Job</h2>
+            <h2>Start Translation</h2>
 
             <div className="form-group">
               <label>Selected Works ({selectedWorks.size})</label>
@@ -280,6 +406,30 @@ function WorkListPage() {
               </div>
             </div>
 
+            {selectedWorks.size === 1 && (
+              <div className="form-group">
+                <label>Translation System</label>
+                <select
+                  className="select"
+                  value={useWorkflowSystem ? 'workflow' : 'job'}
+                  onChange={(e) => setUseWorkflowSystem(e.target.value === 'workflow')}
+                  style={{ width: '100%' }}
+                >
+                  <option value="workflow">⚡ Workflow System (Recommended - 7 stage pipeline with footnotes)</option>
+                  <option value="job">⚙️ Legacy Job System (Simple translation)</option>
+                </select>
+                <span className="help-text">
+                  Workflow system provides stage-by-stage processing, cultural footnotes, and AI-powered cleanup.
+                </span>
+              </div>
+            )}
+
+            {selectedWorks.size > 1 && (
+              <div className="alert alert-info" style={{ padding: '10px', background: '#e8f4f8', borderRadius: '4px', marginBottom: '12px' }}>
+                <strong>Note:</strong> Bulk translation will use the legacy job system. For workflow features, please translate works individually.
+              </div>
+            )}
+
             <div className="form-group">
               <label>Translation Model</label>
               <select
@@ -288,7 +438,8 @@ function WorkListPage() {
                 onChange={(e) => setJobConfig({ ...jobConfig, model: e.target.value })}
                 style={{ width: '100%' }}
               >
-                <option value="gpt-4o-mini">GPT-4o Mini (Fast, Cost-Effective)</option>
+                <option value="gpt-4.1-nano">GPT-4.1 Nano (Default, Fast, Cost-Effective)</option>
+                <option value="gpt-4o-mini">GPT-4o Mini</option>
                 <option value="gpt-4o">GPT-4o (Best Quality)</option>
                 <option value="gpt-4-turbo">GPT-4 Turbo</option>
               </select>
@@ -345,6 +496,33 @@ function WorkListPage() {
   );
 }
 
+// Helper functions for workflow status display
+function getWorkflowStatusColor(status) {
+  switch (status?.toLowerCase()) {
+    case 'completed': return 'success';
+    case 'running': return 'warning';
+    case 'failed': return 'danger';
+    case 'cancelled': return 'secondary';
+    case 'pending': return 'info';
+    case 'scheduled': return 'info';
+    default: return 'secondary';
+  }
+}
+
+function getWorkflowStatusLabel(status) {
+  switch (status?.toLowerCase()) {
+    case 'completed': return '✓ Completed';
+    case 'running': return '⚙️ Running';
+    case 'failed': return '✗ Failed';
+    case 'cancelled': return '⏹ Cancelled';
+    case 'pending': return '⏳ Pending';
+    case 'scheduled': return '📅 Scheduled';
+    case 'queued': return '⏳ Queued';
+    default: return '○ Unknown';
+  }
+}
+
+// Legacy functions for backward compatibility
 function getStatusColor(status) {
   switch (status) {
     case 'completed': return 'success';

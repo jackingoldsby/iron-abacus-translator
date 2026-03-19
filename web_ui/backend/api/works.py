@@ -10,11 +10,11 @@ from models import Book, WorkSummary
 
 router = APIRouter()
 
-# Get paths from environment or use defaults
-CLEANED_JSON_DIR = os.getenv(
-    "CLEANED_JSON_DIR",
-    "/Users/jacki/project_files/translation_project/01_clean_json"
-)
+# Get paths from environment config
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+from utils.environment_config import get_or_create_config
+CLEANED_JSON_DIR = str(get_or_create_config().source_dir)
 
 
 def scan_works(search: Optional[str] = None) -> List[WorkSummary]:

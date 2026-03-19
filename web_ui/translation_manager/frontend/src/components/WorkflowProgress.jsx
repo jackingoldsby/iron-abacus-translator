@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { workflowAPI } from '../api/client';
 import StageNode from './StageNode';
 import DrillDownPanel from './DrillDownPanel';
 
@@ -7,80 +8,23 @@ import DrillDownPanel from './DrillDownPanel';
  *
  * Displays real-time workflow progress with DAG visualization
  * Features:
- * - SSE connection for live updates
+ * - Real-time updates via props (SSE managed by parent)
  * - Stage nodes with visual indicators (✓/✗/⏳/progress)
  * - Click to drill-down into logs/validation reports
  * - Overall progress tracking
+ *
+ * Memoized to prevent unnecessary re-renders when props haven't changed
  */
-const WorkflowProgress = ({ flowRunId, onComplete }) => {
-  const [workflowStatus, setWorkflowStatus] = useState(null);
+const WorkflowProgress = React.memo(({ flowRunId, workflowStatus, onComplete }) => {
   const [selectedStage, setSelectedStage] = useState(null);
   const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch initial status
-  const fetchStatus = useCallback(async () => {
-    try {
-      const response = await fetch(`http://localhost:8000/api/workflow/status/${flowRunId}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch workflow status: ${response.statusText}`);
-      }
-      const data = await response.json();
-      setWorkflowStatus(data);
-      setIsLoading(false);
-
-      // Check if workflow is complete
-      if (['completed', 'failed', 'cancelled'].includes(data.status) && onComplete) {
-        onComplete(data);
-      }
-    } catch (err) {
-      setError(err.message);
-      setIsLoading(false);
-    }
-  }, [flowRunId, onComplete]);
-
-  // Set up SSE connection for real-time updates
+  // Check if workflow is complete
   useEffect(() => {
-    // Initial fetch
-    fetchStatus();
-
-    // Set up Server-Sent Events (SSE) stream
-    const eventSource = new EventSource(`http://localhost:8000/api/workflow/stream/${flowRunId}`);
-
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-
-        // Handle error in stream
-        if (data.error) {
-          setError(data.error);
-          return;
-        }
-
-        setWorkflowStatus(data);
-
-        // Check if workflow is complete
-        if (['completed', 'failed', 'cancelled'].includes(data.status) && onComplete) {
-          onComplete(data);
-        }
-      } catch (err) {
-        console.error('Error parsing SSE data:', err);
-      }
-    };
-
-    eventSource.onerror = (err) => {
-      console.error('SSE error:', err);
-      eventSource.close();
-      // Fall back to polling
-      const pollInterval = setInterval(fetchStatus, 3000);
-      return () => clearInterval(pollInterval);
-    };
-
-    // Cleanup on unmount
-    return () => {
-      eventSource.close();
-    };
-  }, [flowRunId, fetchStatus, onComplete]);
+    if (workflowStatus && ['completed', 'failed', 'cancelled'].includes(workflowStatus.status) && onComplete) {
+      onComplete(workflowStatus);
+    }
+  }, [workflowStatus?.status, onComplete]);
 
   // Handle stage click for drill-down
   const handleStageClick = (stage) => {
@@ -92,7 +36,7 @@ const WorkflowProgress = ({ flowRunId, onComplete }) => {
     setSelectedStage(null);
   };
 
-  if (isLoading) {
+  if (!workflowStatus) {
     return (
       <div className="workflow-progress loading">
         <div className="loading-spinner"></div>
@@ -229,6 +173,13 @@ const WorkflowProgress = ({ flowRunId, onComplete }) => {
       )}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison: only re-render if these props actually changed
+  const flowRunIdEqual = prevProps.flowRunId === nextProps.flowRunId;
+  const workflowStatusEqual = JSON.stringify(prevProps.workflowStatus) === JSON.stringify(nextProps.workflowStatus);
+
+  // Return true to SKIP re-render, false to re-render
+  return flowRunIdEqual && workflowStatusEqual;
+});
 
 export default WorkflowProgress;

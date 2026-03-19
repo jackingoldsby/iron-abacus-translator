@@ -12,8 +12,8 @@ from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
-from openai import OpenAI
 from dotenv import load_dotenv
+from utils.clients import get_llm_client, LLMRequest
 
 # Load environment variables from .env file (override existing)
 load_dotenv(override=True)
@@ -105,21 +105,25 @@ class StructureValidator:
         model: str = DEFAULT_MODEL,
         temperature: float = DEFAULT_TEMPERATURE,
         timeout: int = DEFAULT_TIMEOUT,
-        api_key: Optional[str] = None
+        api_key: Optional[str] = None,
+        llm_client=None
     ):
         """
         Initialize the validator.
 
         Args:
-            model: OpenAI model to use
+            model: Model to use
             temperature: Model temperature (lower = more consistent)
             timeout: Timeout in seconds
-            api_key: OpenAI API key (defaults to OPENAI_API_KEY env var)
+            api_key: API key (defaults to env var)
+            llm_client: Pre-configured LLMClient (overrides provider lookup)
         """
         self.model = model
         self.temperature = temperature
         self.timeout = timeout
-        self.client = OpenAI(api_key=api_key or os.environ.get("OPENAI_API_KEY"))
+        self.llm = llm_client or get_llm_client(
+            component="validator", model=model, api_key=api_key
+        )
         logger.info(f"StructureValidator initialized with model: {model}")
 
     def validate(self, data: Dict[str, Any]) -> ValidationResult:
@@ -343,8 +347,7 @@ class StructureValidator:
             # Use OpenAI to classify chapters
             prompt = self._build_classification_prompt(chapter_data)
 
-            response = self.client.chat.completions.create(
-                model=self.model,
+            response = self.llm.chat(LLMRequest(
                 messages=[
                     {
                         "role": "system",
@@ -367,11 +370,11 @@ Return JSON array with: {id, section_type, special_type, confidence, reasoning}"
                 ],
                 temperature=self.temperature,
                 timeout=self.timeout,
-                response_format={"type": "json_object"}
-            )
+                json_mode=True,
+            ))
 
             # Parse response
-            response_data = json.loads(response.choices[0].message.content)
+            response_data = response.parsed
             classifications = response_data.get("classifications", [])
 
             for classification in classifications:

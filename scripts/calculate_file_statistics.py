@@ -11,15 +11,18 @@ This script:
 """
 
 import json
-import sqlite3
+from utils.db import connect_catalog
 import re
 from pathlib import Path
 from typing import Dict, Tuple
 import sys
 
 # Configuration
-CLEANED_JSON_DIR = Path("/Users/jacki/project_files/translation_project/test_cleaned_json_v2/test_10_works")
-CATALOG_DB_PATH = Path("/Users/jacki/project_files/translation_project/wuxia_catalog.db")
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from utils.environment_config import get_or_create_config
+_env = get_or_create_config()
+CLEANED_JSON_DIR = _env.source_dir
+CATALOG_DB_PATH = _env.catalog_path
 
 # Chinese character Unicode ranges
 CHINESE_CHAR_PATTERN = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6df\U0002a700-\U0002b73f\U0002b740-\U0002b81f\U0002b820-\U0002ceaf]')
@@ -115,7 +118,7 @@ def extract_content_from_json(file_path: Path) -> Tuple[int, int, int]:
         return 0, 0, 0
 
 
-def update_database(conn: sqlite3.Connection, file_path: str, char_count: int, word_count: int, token_count: int):
+def update_database(conn, file_path: str, char_count: int, word_count: int, token_count: int):
     """Update work_files table with calculated statistics"""
     cursor = conn.cursor()
 
@@ -140,7 +143,7 @@ def main():
         return 1
 
     # Connect to database
-    conn = sqlite3.connect(CATALOG_DB_PATH)
+    conn = connect_catalog(CATALOG_DB_PATH)
 
     # Get all file paths from database
     cursor = conn.cursor()

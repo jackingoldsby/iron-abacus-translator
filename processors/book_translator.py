@@ -10,6 +10,7 @@ Translates cleaned JSON files chapter-by-chapter with:
 """
 
 import sys
+import os
 import json
 import logging
 import time
@@ -606,15 +607,14 @@ class BookTranslator:
 def main():
     """CLI testing"""
     import sys
-    from utils.load_env_creds import load_env_credentials
-
     if len(sys.argv) < 3:
         print("Usage: python book_translator.py <input_json> <output_json>")
         print("Example: python book_translator.py cleaned_D55a.json translated_D55a.json")
         return 1
 
-    # Load API credentials
-    load_env_credentials(required_keys=['OPENAI_API_KEY'])
+    if not os.getenv('OPENAI_API_KEY'):
+        print("Error: OPENAI_API_KEY not set. Set in ~/.zshrc: export OPENAI_API_KEY='...'")
+        return 1
 
     input_path = Path(sys.argv[1])
     output_path = Path(sys.argv[2])

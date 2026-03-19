@@ -49,14 +49,6 @@ logger = logging.getLogger(__name__)
 _log_lock = threading.Lock()
 
 
-# Load environment credentials (including OpenAI API key)
-from utils.load_env_creds import load_env_credentials
-try:
-    load_env_credentials(override=True)  # Force load from env_creds.yml
-    logger.info("✓ Loaded credentials from env_creds.yml")
-except Exception as e:
-    logger.warning(f"Could not load env_creds.yml: {e}. Using environment variables.")
-
 from utils.topology_analyzer import TopologyAnalyzer
 from utils.fix_chapter_alignment import ChapterAlignmentFixer
 from utils.restructure_toc import TOCRestructurer

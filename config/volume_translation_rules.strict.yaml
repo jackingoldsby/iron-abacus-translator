@@ -1,0 +1,27 @@
+# Strict Mode Volume Translation Rules
+# Maximum quality enforcement with strict validation
+
+parallel:
+  max_workers: 3  # Fewer workers for more careful processing
+  timeout_per_block: 600  # 10 minutes per block (allow more time)
+
+validation:
+  aggregate_quality_threshold: 9.8  # Very high quality requirement
+  allow_footnote_mismatches: false  # Zero tolerance (strict)
+  block_quality_threshold: 9.8  # Individual blocks must also be high quality
+
+# Use strict block config
+block_config:
+  config_name: "strict"  # Use strict block-level config
+  quality_threshold: null  # Inherited from strict block config (9.8)
+  max_retries: null  # Inherited from strict block config (10)
+
+reporting:
+  include_per_block_stats: true
+  include_body_vs_nonbody_breakdown: true
+  save_detailed_manifest: true
+
+logging:
+  level: "DEBUG"  # Detailed logging
+  log_progress: true
+  log_statistics: true

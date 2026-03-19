@@ -276,29 +276,10 @@ class ContentTypeAnalyzer:
 
 def main():
     """Main execution function."""
-    # Sample files
-    sample_files = [
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0223/cleaned_D69c_尋秦記三_黃易.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0374/cleaned_D1345_俠影紅顏_雲中岳.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0445/cleaned_D1535_啞俠_倪匡.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0256/cleaned_D14BB6_風神七戒_黃鷹.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0565/cleaned_J090908f_崑崙六．天道卷_鳳歌.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0357/cleaned_D11L9_無情刀客有情天_雲中岳.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0518/cleaned_D14L3_響馬_獨孤紅.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0107/cleaned_D1192_殘劍孤星_高庸.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0076/cleaned_D16M5_千門卷三_方白羽.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0243/cleaned_D14X3_玉蜻蜓_黃鷹.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0181/cleaned_D1114_奪魂旗_諸葛青雲.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0332/cleaned_D1143_殘缺書生_蕭瑟.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0003/cleaned_D57c_倚天屠龍記三_金庸.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0519/cleaned_D14M3_玉龍美豪客_獨孤紅.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0425/cleaned_D1705b_泉會俠蹤．下_東方玉.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0145/cleaned_I10L7_遊劍江湖_梁羽生.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0140/cleaned_D441_冰川天女傳_梁羽生.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0344/cleaned_D13A3_京華魅影_雲中岳.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0452/cleaned_D16Q0_長虹貫日_倪匡.json",
-        "/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0116/cleaned_D1379_偷拳_白羽.json",
-    ]
+    # Sample files — pick up to 20 random files from source dir
+    from utils.environment_config import get_or_create_config
+    _source = get_or_create_config().source_dir
+    sample_files = sorted(_source.rglob("cleaned_*.json"))[:20]
 
     analyzer = ContentTypeAnalyzer()
     analyses = []
@@ -318,7 +299,7 @@ def main():
     report = analyzer.generate_report(analyses)
 
     # Save report
-    output_path = Path("/Users/jacki/PycharmProjects/agentic_test_project/data/analysis/content_type_analysis_report.txt")
+    output_path = get_or_create_config().project_root / "data" / "analysis" / "content_type_analysis_report.txt"
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(report)
 

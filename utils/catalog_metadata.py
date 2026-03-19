@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
 Catalog Metadata Extractor
-Extracts work metadata (title, author, volume) from the catalog SQLite database
+Extracts work metadata (title, author, volume) from the catalog database.
 """
 
-import sqlite3
 import logging
 from pathlib import Path
 from typing import Dict, Optional, Any
@@ -102,7 +101,8 @@ class CatalogMetadataExtractor:
             WorkMetadata or None if not found
         """
         try:
-            conn = sqlite3.connect(self.catalog_path)
+            from utils.db import connect_catalog
+            conn = connect_catalog(self.catalog_path)
             cursor = conn.cursor()
 
             # Query joining works and work_files tables
@@ -161,7 +161,8 @@ class CatalogMetadataExtractor:
             WorkMetadata or None if not found
         """
         try:
-            conn = sqlite3.connect(self.catalog_path)
+            from utils.db import connect_catalog
+            conn = connect_catalog(self.catalog_path)
             cursor = conn.cursor()
 
             query = """

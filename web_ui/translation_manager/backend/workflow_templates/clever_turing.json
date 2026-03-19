@@ -1,0 +1,83 @@
+{
+  "workflow_id": "clever_turing",
+  "name": "Complete Translation Pipeline",
+  "description": "Full 7-stage translation with cultural footnotes, cleanup, and validation. Ideal for complete book translations with detailed annotations.",
+  "version": "1.0",
+  "stages": [
+    {
+      "number": 1,
+      "name": "metadata",
+      "display_name": "Metadata",
+      "icon": "📋",
+      "description": "Translate work metadata (title, author, publisher) - NO footnotes",
+      "is_parallel": false,
+      "requires_footnotes": false
+    },
+    {
+      "number": 2,
+      "name": "toc",
+      "display_name": "Table of Contents",
+      "icon": "📑",
+      "description": "Translate table of contents entries - NO footnotes",
+      "is_parallel": false,
+      "requires_footnotes": false
+    },
+    {
+      "number": 3,
+      "name": "headings",
+      "display_name": "Headings",
+      "icon": "📝",
+      "description": "Translate chapter titles and section headings - NO footnotes",
+      "is_parallel": false,
+      "requires_footnotes": false
+    },
+    {
+      "number": 4,
+      "name": "body",
+      "display_name": "Body Content",
+      "icon": "📄",
+      "description": "Translate main content blocks WITH cultural and historical footnotes",
+      "is_parallel": true,
+      "requires_footnotes": true
+    },
+    {
+      "number": 5,
+      "name": "special",
+      "display_name": "Special Sections",
+      "icon": "✨",
+      "description": "Translate front matter/back matter WITH footnotes for cultural content",
+      "is_parallel": false,
+      "requires_footnotes": true
+    },
+    {
+      "number": 6,
+      "name": "cleanup",
+      "display_name": "Footnote Cleanup",
+      "icon": "🧹",
+      "description": "AI-powered removal of redundant character footnotes and duplicates",
+      "is_parallel": false,
+      "requires_footnotes": false
+    },
+    {
+      "number": 7,
+      "name": "validation",
+      "display_name": "Validation",
+      "icon": "✅",
+      "description": "Verify translation completeness and footnote marker integrity",
+      "is_parallel": false,
+      "requires_footnotes": false
+    }
+  ],
+  "default_config": {
+    "max_workers": 3,
+    "enable_checkpoints": true,
+    "enable_character_footnote_cleanup": true,
+    "enable_duplicate_footnote_cleanup": false
+  },
+  "created_at": "2025-01-15T00:00:00Z",
+  "updated_at": "2025-01-15T00:00:00Z",
+  "is_system_template": true,
+  "is_editable": false,
+  "run_count": 0,
+  "success_rate": 0.0
+}

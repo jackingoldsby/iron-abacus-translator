@@ -51,6 +51,8 @@ logs/
 *.db-journal
 *.sqlite
 *.sqlite3
+*.duckdb
+*.duckdb.wal
 
 # CSV data files (too large for git)
 works.csv
@@ -75,3 +77,4 @@ logs/translation/progress.db-*
 
 # Autonomous test logs
 autonomous_test_logs/
+.claude/worktrees/

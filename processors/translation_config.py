@@ -103,18 +103,11 @@ class TranslationConfig:
 
             logger.debug("Loaded paths from environment configuration")
         else:
-            # Fallback to hardcoded defaults if environment config not available
-            if self.source_dir is None:
-                self.source_dir = Path("/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS")
-            if self.output_dir is None:
-                self.output_dir = Path("/Users/jacki/project_files/translation_project/translated_books")
-            if self.catalog_path is None:
-                self.catalog_path = Path("/Users/jacki/project_files/translation_project/wuxia_catalog.db")
-            if self.log_dir is None:
-                self.log_dir = Path("./logs/translation")
-
-            if not _ENV_CONFIG_AVAILABLE:
-                logger.warning("EnvironmentConfig not available, using hardcoded defaults")
+            # Environment config should always be available
+            raise RuntimeError(
+                "EnvironmentConfig not available. "
+                "Set TRANSLATOR_DATA_ROOT env var or create a .env file."
+            )
 
         # Ensure paths are Path objects
         self.source_dir = Path(self.source_dir)

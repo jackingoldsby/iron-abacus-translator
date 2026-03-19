@@ -2,6 +2,9 @@ from __future__ import annotations
 import os
 from openai import OpenAI
 
+from utils.clients.llm_client import llm_chat_json
+
+
 def get_client() -> OpenAI:
     key = os.getenv("OPENAI_API_KEY")
     if not key:
@@ -9,11 +12,11 @@ def get_client() -> OpenAI:
     return OpenAI(api_key=key)
 
 def quick_chat(prompt: str) -> str:
-    client = get_client()
-    resp = client.chat.completions.create(
-        model="gpt-4.1-nano",
+    result = llm_chat_json(
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.0,
-        max_tokens=200
+        model="gpt-4.1-nano",
+        max_tokens=200,
+        json_mode=False,
+        component="openai_quick",
     )
-    return resp.choices[0].message.content
+    return result.get("text", "")

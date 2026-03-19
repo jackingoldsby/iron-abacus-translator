@@ -36,7 +36,7 @@ class ComponentFactory:
     Usage:
         factory = ComponentFactory()
         translator = factory.create_translator(model="gpt-4o-mini")
-        glossary = factory.create_glossary(db_path="./wuxia_glossary.db")
+        glossary = factory.create_glossary()
     """
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -117,32 +117,23 @@ class ComponentFactory:
     def create_glossary(
         self,
         db_path: Optional[str] = None,
-        implementation: str = "sqlite"
+        implementation: str = "duckdb"
     ) -> GlossaryInterface:
         """
         Create a glossary service instance.
 
         Args:
             db_path: Path to glossary database (or None for default)
-            implementation: Implementation to use ("sqlite", "mock", etc.)
+            implementation: Implementation to use ("duckdb", "mock", etc.)
 
         Returns:
             GlossaryInterface implementation
         """
-        if implementation == "sqlite":
-            from utils.wuxia_glossary import WuxiaGlossary
+        if implementation in ("sqlite", "duckdb", "default"):
+            from utils.glossary import TranslationGlossary
 
-            if db_path is None:
-                # Try to load from environment or use default
-                try:
-                    from utils.environment_config import get_or_create_env_config
-                    env_config = get_or_create_env_config()
-                    db_path = str(env_config.glossary_db_path)
-                except Exception as e:
-                    logger.warning(f"Could not load env config: {e}, using default")
-                    db_path = "./wuxia_glossary.db"
-
-            return WuxiaGlossary(db_path)
+            # TranslationGlossary uses environment config if db_path is None
+            return TranslationGlossary(db_path)
         elif implementation == "mock":
             return MockGlossary()
         else:
@@ -173,19 +164,19 @@ class ComponentFactory:
     def create_catalog(
         self,
         catalog_path: Optional[str] = None,
-        implementation: str = "sqlite"
+        implementation: str = "duckdb"
     ) -> CatalogInterface:
         """
         Create a catalog service instance.
 
         Args:
             catalog_path: Path to catalog database (or None for default)
-            implementation: Implementation to use ("sqlite", "mock", etc.)
+            implementation: Implementation to use ("duckdb", "mock", etc.)
 
         Returns:
             CatalogInterface implementation
         """
-        if implementation == "sqlite":
+        if implementation in ("duckdb", "default"):
             from utils.catalog_metadata import CatalogMetadataExtractor
 
             if catalog_path is None:
@@ -195,8 +186,8 @@ class ComponentFactory:
                     env_config = get_or_create_env_config()
                     catalog_path = str(env_config.catalog_path)
                 except Exception as e:
-                    logger.warning(f"Could not load env config: {e}, using default")
-                    catalog_path = "/Users/jacki/project_files/translation_project/wuxia_catalog.db"
+                    logger.warning(f"Could not load env config: {e}")
+                    raise
 
             return CatalogAdapter(catalog_path)
         elif implementation == "mock":

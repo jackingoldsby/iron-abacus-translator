@@ -1,0 +1,112 @@
+.prefect-visualization {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.prefect-visualization.empty {
+  padding: 40px;
+  text-align: center;
+  color: #999;
+}
+
+.prefect-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #555;
+}
+
+.prefect-title {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.prefect-tabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.prefect-tab {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.prefect-tab:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.prefect-tab.active {
+  background-color: #fff;
+  color: #667eea;
+  border-color: #fff;
+  font-weight: 600;
+}
+
+.prefect-external-link {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.prefect-external-link:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.prefect-iframe-container {
+  position: relative;
+  overflow: hidden;
+  background-color: #f5f7fa;
+}
+
+.prefect-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+.prefect-footer {
+  background-color: #f8f9fa;
+  padding: 10px 20px;
+  border-top: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.prefect-info {
+  font-size: 12px;
+  color: #666;
+}
+
+.prefect-info code {
+  background-color: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #333;
+}

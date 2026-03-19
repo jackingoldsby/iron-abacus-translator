@@ -1,0 +1,329 @@
+/* Wuxia Kindle CSS - Optimized for Kindle Paperwhite/Oasis */
+/* EPUB3 compatible, graceful fallback for older readers */
+
+/* === Base Typography === */
+body {
+  font-family: serif;
+  line-height: 1.6;
+  margin: 1em;
+  orphans: 2;
+  widows: 2;
+}
+
+/* === Title Page === */
+.title-page {
+  text-align: center;
+  page-break-after: always;
+  margin-top: 30%;
+}
+
+.title-page h1 {
+  font-size: 2em;
+  margin-bottom: 0.3em;
+  font-weight: bold;
+}
+
+.title-page .title-chinese {
+  font-size: 1.4em;
+  margin-bottom: 1em;
+  color: #555;
+}
+
+.title-page .author {
+  font-size: 1.2em;
+  margin-top: 1.5em;
+}
+
+.title-page .author-chinese {
+  font-size: 1em;
+  color: #555;
+}
+
+/* === Translator's Preface === */
+.translators-preface {
+  page-break-after: always;
+  margin-top: 2em;
+}
+
+.translators-preface h2 {
+  page-break-before: avoid;
+  text-align: center;
+  font-size: 1.3em;
+  margin-bottom: 1.5em;
+}
+
+.translators-preface p {
+  text-indent: 1.5em;
+  margin-bottom: 0.4em;
+  line-height: 1.7;
+}
+
+.translators-preface p.first {
+  text-indent: 0;
+}
+
+.translators-preface .signature {
+  text-indent: 0;
+  margin-top: 1.5em;
+  font-style: italic;
+}
+
+.translators-preface .dateline {
+  text-indent: 0;
+  font-style: italic;
+}
+
+/* === Chapter Headings === */
+h2 {
+  font-size: 1.5em;
+  margin-top: 2em;
+  margin-bottom: 1em;
+  text-align: center;
+  page-break-before: always;
+  page-break-after: avoid;
+}
+
+h2 .chapter-chinese {
+  display: block;
+  font-size: 0.7em;
+  font-weight: normal;
+  color: #666;
+  margin-top: 0.3em;
+}
+
+h3 {
+  font-size: 1.2em;
+  margin-top: 1.5em;
+  margin-bottom: 0.8em;
+}
+
+/* === Content Types === */
+
+/* Narrative - plain paragraph */
+p.narrative {
+  text-indent: 1.5em;
+  margin: 0.3em 0;
+}
+
+/* Dialogue - each line gets its own visual beat, trade fiction standard */
+p.dialogue {
+  text-indent: 1.5em;
+  margin: 0.8em 0;
+}
+
+/* Extra top margin when transitioning from narrative to dialogue or vice versa */
+p.narrative + p.dialogue,
+p.dialogue + p.narrative,
+p.descriptive + p.dialogue,
+p.dialogue + p.descriptive {
+  margin-top: 0.8em;
+}
+
+/* Verse/Poetry - italic, indented */
+div.verse {
+  margin: 1em 2em;
+  font-style: italic;
+}
+
+div.verse p {
+  text-indent: 0;
+  margin: 0.2em 0;
+}
+
+/* Document (letters, proclamations) - bordered blockquote */
+blockquote.document {
+  margin: 1em 1.5em;
+  padding: 0.8em 1em;
+  border-left: 3px solid #999;
+  font-style: normal;
+}
+
+blockquote.document .doc-title {
+  font-weight: bold;
+  margin-bottom: 0.5em;
+}
+
+/* Thought - italic */
+p.thought {
+  text-indent: 1.5em;
+  margin: 0.3em 0;
+}
+
+/* Descriptive - plain paragraph */
+p.descriptive {
+  text-indent: 1.5em;
+  margin: 0.3em 0;
+}
+
+/* === Scene Breaks === */
+hr.scene-break {
+  border: none;
+  text-align: center;
+  margin: 1.5em 0;
+}
+
+hr.scene-break::after {
+  content: "* * *";
+  letter-spacing: 0.5em;
+  color: #666;
+}
+
+/* === Footnote References (inline) === */
+a.noteref {
+  font-size: 0.85em;
+  vertical-align: super;
+  line-height: 0;
+  text-decoration: none;
+  color: #0066cc;
+}
+
+/* === Footnote Popups (EPUB3 aside) === */
+aside.footnote {
+  font-size: 0.9em;
+  margin: 0.5em 0;
+  padding: 0.5em;
+  border-top: 1px solid #ccc;
+}
+
+aside.footnote p {
+  text-indent: 0;
+  margin: 0.2em 0;
+}
+
+aside.footnote .fn-ideogram {
+  font-weight: bold;
+}
+
+aside.footnote .fn-pinyin {
+  font-style: italic;
+}
+
+/* === Chapter-End Footnotes (fallback for non-popup readers) === */
+section.chapter-footnotes {
+  margin-top: 2em;
+  padding-top: 1em;
+  border-top: 1px solid #999;
+  font-size: 0.9em;
+}
+
+section.chapter-footnotes h3 {
+  font-size: 1em;
+  margin-bottom: 0.5em;
+  page-break-before: avoid;
+}
+
+section.chapter-footnotes .footnote-entry {
+  margin: 0.4em 0;
+  text-indent: -1.5em;
+  padding-left: 1.5em;
+}
+
+section.chapter-footnotes .fn-number {
+  font-weight: bold;
+}
+
+/* === Glossary === */
+section.glossary {
+  page-break-before: always;
+}
+
+section.glossary h2 {
+  text-align: center;
+  margin-bottom: 1em;
+}
+
+.glossary-category {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.glossary-category h3 {
+  font-size: 1.1em;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 0.3em;
+}
+
+.glossary-entry {
+  margin: 0.6em 0;
+  padding-left: 1em;
+}
+
+.glossary-entry .ge-term {
+  font-weight: bold;
+}
+
+.glossary-entry .ge-pinyin {
+  font-style: italic;
+  color: #555;
+}
+
+.glossary-entry .ge-ideogram {
+  color: #555;
+}
+
+.glossary-entry .ge-explanation {
+  display: block;
+  margin-top: 0.1em;
+  margin-left: 1em;
+}
+
+.glossary-entry .ge-first-chapter {
+  font-size: 0.85em;
+  color: #888;
+}
+
+/* === Colophon (About This Edition) === */
+.colophon {
+  page-break-before: always;
+  margin-top: 2em;
+}
+
+.colophon h2 {
+  text-align: center;
+  font-size: 1.3em;
+  margin-bottom: 1.5em;
+}
+
+.colophon p {
+  text-indent: 0;
+  margin-bottom: 0.6em;
+  line-height: 1.7;
+  font-size: 0.9em;
+  color: #444;
+}
+
+/* === Table of Contents === */
+nav#toc ol {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+nav#toc li {
+  margin: 0.4em 0;
+}
+
+nav#toc a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* === Kindle-Specific Adjustments === */
+@media amzn-kf8 {
+  /* KF8 (Kindle Fire, newer Kindles) */
+  aside[epub\:type="footnote"] {
+    display: none;
+  }
+}
+
+@media amzn-mobi {
+  /* Older Kindle devices */
+  div.verse {
+    margin-left: 1em;
+    margin-right: 1em;
+  }
+
+  blockquote.document {
+    border-left: none;
+    padding-left: 1.5em;
+  }
+}

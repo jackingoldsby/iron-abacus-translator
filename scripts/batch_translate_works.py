@@ -20,6 +20,7 @@ Usage:
 """
 
 import sys
+import os
 import json
 import argparse
 import logging
@@ -31,7 +32,6 @@ from tqdm import tqdm
 from processors.translation_config import TranslationConfig
 from processors.volume_manager import VolumeManager
 from scripts.translate_work import WorkTranslationOrchestrator
-from utils.load_env_creds import load_env_credentials
 
 logger = logging.getLogger(__name__)
 
@@ -385,11 +385,9 @@ Examples:
 
         return 0
 
-    # Load API credentials
-    try:
-        load_env_credentials(required_keys=['OPENAI_API_KEY'])
-    except Exception as e:
-        logger.error(f"Failed to load API credentials: {e}")
+    # Verify API credentials
+    if not os.getenv('OPENAI_API_KEY'):
+        logger.error("OPENAI_API_KEY not set. Set in ~/.zshrc: export OPENAI_API_KEY='...'")
         return 1
 
     # Initialize batch manager

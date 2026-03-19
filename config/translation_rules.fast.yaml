@@ -1,0 +1,44 @@
+# Fast Mode Configuration
+# Lower quality requirements, faster processing, minimal retries
+
+validation:
+  quality:
+    threshold: 8.5  # Lower quality threshold for speed
+    enabled: true
+
+  footnote_markers:
+    enabled: true
+    fail_on_mismatch: true
+    allowed_patterns:
+      - '\[\d+\]'
+
+  input:
+    min_text_length: 5
+    max_text_length: 15000  # Allow longer texts
+
+retry:
+  max_attempts: 2  # Minimal retries for speed
+  backoff_strategy: "constant"
+  initial_delay: 0.5
+  max_delay: 1.0
+
+formatting:
+  preserve_whitespace: true
+  normalize_quotes: false
+  trim_output: true
+
+translation:
+  model: "gpt-4.1-nano"
+  temperature: 0.4  # Slightly higher for variety
+  timeout: 60  # Shorter timeout
+  max_tokens: null
+
+logging:
+  level: "WARNING"  # Less verbose logging for speed
+  include_metrics: false
+  log_validation_details: false
+  log_retry_attempts: false
+
+glossary:
+  enabled: false
+  path: null

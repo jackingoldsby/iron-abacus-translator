@@ -1,0 +1,27 @@
+# Fast Mode Volume Translation Rules
+# Optimized for speed with relaxed validation
+
+parallel:
+  max_workers: 10  # More workers for faster processing
+  timeout_per_block: 120  # 2 minutes per block (faster timeout)
+
+validation:
+  aggregate_quality_threshold: 8.5  # Lower quality threshold
+  allow_footnote_mismatches: true  # Allow some mismatches
+  block_quality_threshold: 8.5  # Lower individual block threshold
+
+# Use fast block config
+block_config:
+  config_name: "fast"  # Use fast block-level config
+  quality_threshold: null  # Inherited from fast block config (8.5)
+  max_retries: null  # Inherited from fast block config (3)
+
+reporting:
+  include_per_block_stats: true
+  include_body_vs_nonbody_breakdown: true
+  save_detailed_manifest: true
+
+logging:
+  level: "INFO"
+  log_progress: true
+  log_statistics: true

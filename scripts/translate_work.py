@@ -12,6 +12,7 @@ Usage:
 """
 
 import sys
+import os
 import json
 import argparse
 import logging
@@ -23,8 +24,6 @@ from typing import Dict, Any, List, Optional
 from processors.translation_config import TranslationConfig, WorkProgress, setup_logging
 from processors.volume_manager import VolumeManager
 from processors.book_translator import BookTranslator
-from utils.load_env_creds import load_env_credentials
-
 logger = logging.getLogger(__name__)
 
 
@@ -345,11 +344,9 @@ Examples:
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
 
-    # Load API credentials
-    try:
-        load_env_credentials(required_keys=['OPENAI_API_KEY'])
-    except Exception as e:
-        logger.error(f"Failed to load API credentials: {e}")
+    # Verify API credentials
+    if not os.getenv('OPENAI_API_KEY'):
+        logger.error("OPENAI_API_KEY not set. Set in ~/.zshrc: export OPENAI_API_KEY='...'")
         return 1
 
     # Initialize configuration

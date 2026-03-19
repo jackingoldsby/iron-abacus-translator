@@ -1,0 +1,196 @@
+{
+  "node_id": "volume_translation_node",
+  "node_name": "Volume Translation",
+  "node_version": "1.0.0",
+  "node_description": "Translate entire volume with parallel block processing and aggregate validation",
+
+  "inputs": {
+    "required": {
+      "volume_data": {
+        "type": "Dict[str, Any]",
+        "description": "Complete volume JSON structure with chapters and content blocks",
+        "schema": {
+          "structure": {
+            "metadata": "Optional[Dict] - Title, author, publisher",
+            "toc": "Optional[Dict] - Table of contents",
+            "front_matter": "Optional[Dict] - Introduction, preface",
+            "body": {
+              "chapters": "List[Dict] - List of chapters with content_blocks"
+            },
+            "back_matter": "Optional[Dict] - Appendix, afterword"
+          }
+        }
+      },
+      "work_id": {
+        "type": "str",
+        "description": "Work identifier for tracking and configuration"
+      }
+    },
+    "optional": {
+      "volume_id": {
+        "type": "str",
+        "description": "Volume identifier (e.g., 'a', 'b', 'c') for multi-volume works"
+      }
+    }
+  },
+
+  "outputs": {
+    "success": "VolumeTranslationResult with translated volume and validation reports",
+    "failure": "VolumeTranslationResult with error details"
+  },
+
+  "dependencies": {
+    "internal": [
+      "wrappers.content_block_translation_wrapper.ContentBlockTranslationWrapper",
+      "wrappers.volume_config.VolumeConfig"
+    ],
+    "external": [
+      "concurrent.futures.ThreadPoolExecutor",
+      "tqdm.tqdm"
+    ]
+  },
+
+  "configuration": {
+    "config_path": "config/volume_translation_rules.yaml",
+    "named_configs": [
+      "strict - Maximum quality enforcement (quality >= 9.8, max_workers=3)",
+      "fast - Speed optimized (quality >= 8.5, max_workers=10)"
+    ],
+    "work_overrides": "config/volume_work_overrides/{work_id}_rules.yaml",
+    "parameters": {
+      "max_workers": {
+        "type": "int",
+        "default": 5,
+        "range": "1-50",
+        "description": "Maximum parallel workers for block translation"
+      },
+      "timeout_per_block": {
+        "type": "int",
+        "default": 300,
+        "unit": "seconds",
+        "description": "Timeout for individual block translation"
+      },
+      "aggregate_quality_threshold": {
+        "type": "float",
+        "default": 9.5,
+        "range": "0.0-10.0",
+        "description": "Minimum average quality score across all blocks"
+      },
+      "allow_footnote_mismatches": {
+        "type": "bool",
+        "default": false,
+        "description": "Whether to allow footnote marker/array count mismatches"
+      },
+      "block_quality_threshold": {
+        "type": "float",
+        "default": 9.5,
+        "range": "0.0-10.0",
+        "description": "Quality threshold for individual blocks"
+      }
+    }
+  },
+
+  "validation": {
+    "aggregate_validation": {
+      "average_quality": "Average quality across all successful blocks >= aggregate_quality_threshold",
+      "footnote_mismatches": "Total footnote mismatches = 0 (if allow_footnote_mismatches=false)",
+      "block_success": "All blocks must succeed (no failures)"
+    },
+    "block_validation": "Delegated to ContentBlockTranslationWrapper",
+    "error_handling": "Continue processing remaining blocks on individual failures"
+  },
+
+  "statistics": {
+    "overall": [
+      "total_blocks - Total number of blocks processed",
+      "successful_blocks - Number of successful translations",
+      "failed_blocks - Number of failed translations",
+      "success_rate - Percentage of successful blocks",
+      "average_quality - Average quality score across all blocks",
+      "total_footnotes - Total footnote count",
+      "total_footnote_mismatches - Total mismatch count",
+      "total_translation_time - Total processing time in seconds",
+      "avg_time_per_block - Average time per block"
+    ],
+    "breakdown": {
+      "body_blocks": "Statistics for body content (chapters)",
+      "non_body_blocks": "Statistics for metadata, TOC, front/back matter"
+    }
+  },
+
+  "workflow_pattern": {
+    "pattern_name": "Fan-Out/Fan-In with Aggregate Validation",
+    "stages": [
+      "1. Extract blocks - Categorize blocks into body/non-body",
+      "2. Fan-out - Parallel translation using ThreadPoolExecutor",
+      "3. Fan-in - Collect results with progress tracking",
+      "4. Calculate statistics - Aggregate metrics and breakdowns",
+      "5. Validate - Check aggregate quality and footnote consistency",
+      "6. Reconstruct - Rebuild volume with translated content",
+      "7. Generate manifest - Comprehensive processing report"
+    ]
+  },
+
+  "integration": {
+    "translation_pipeline": "Stage 4 (Body Translation) replacement",
+    "replaces": "Sequential block processing in orchestrate_translation_pipeline.py",
+    "benefits": [
+      "Parallel processing - 5-10x faster than sequential",
+      "Aggregate validation - Ensures overall quality",
+      "Statistics breakdown - Body vs non-body insights",
+      "Progress tracking - Real-time visibility"
+    ]
+  },
+
+  "performance": {
+    "parallelism": "Up to max_workers concurrent translations",
+    "throughput": "~100-200 blocks per hour (with max_workers=5)",
+    "memory_usage": "Linear with max_workers (each worker loads translation model)",
+    "network_usage": "Parallel API calls to OpenAI (respect rate limits)"
+  },
+
+  "error_handling": {
+    "block_failure": "Continue processing remaining blocks",
+    "timeout": "Individual block timeout enforced",
+    "retry": "Handled at ContentBlockTranslationWrapper level",
+    "aggregation_failure": "Fail entire volume if validation fails"
+  },
+
+  "logging": {
+    "levels": "DEBUG, INFO, WARNING, ERROR",
+    "progress": "tqdm progress bar with real-time metrics",
+    "manifest": "Comprehensive JSON report with all statistics"
+  },
+
+  "testing": {
+    "unit_tests": "tests/wrappers/test_volume_translation_wrapper.py",
+    "test_coverage": [
+      "Fan-out/fan-in pattern",
+      "Aggregate validation",
+      "Statistics calculation",
+      "Parallel processing",
+      "Error handling"
+    ]
+  },
+
+  "examples": {
+    "basic": "VolumeTranslationWrapper().execute(volume_data, 'D1379')",
+    "with_config": "VolumeTranslationWrapper(config_name='strict').execute(volume_data, 'D1379')",
+    "with_override": "VolumeTranslationWrapper(max_workers=10).execute(volume_data, 'D1379')",
+    "work_specific": "VolumeTranslationWrapper(work_id='D1379').execute(volume_data, 'D1379')"
+  },
+
+  "metadata": {
+    "author": "Claude Code",
+    "created": "2025-11-16",
+    "last_modified": "2025-11-16",
+    "status": "production",
+    "tags": [
+      "translation",
+      "parallel-processing",
+      "fan-out-fan-in",
+      "aggregate-validation",
+      "volume-level"
+    ]
+  }
+}
