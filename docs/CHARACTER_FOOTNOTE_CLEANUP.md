@@ -239,8 +239,8 @@ To use AI classification:
 # Set environment variable
 export OPENAI_API_KEY=your-key-here
 
-# Or create env_creds.yml in project root
-OPENAI_API_KEY: your-key-here
+# Or set in ~/.zshrc permanently
+# export OPENAI_API_KEY='your-key-here'
 ```
 
 ## Best Practices

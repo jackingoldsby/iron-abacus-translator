@@ -34,7 +34,7 @@ cd ..
 
 Edit `backend/.env`:
 ```bash
-CATALOG_DB_PATH=/Users/jacki/project_files/translation_project/wuxia_catalog.db
+CATALOG_DB_PATH=/Users/jacki/project_files/translation_project/db/works_translator.duckdb
 SOURCE_DIR=/Users/jacki/project_files/translation_project/wuxia_individual_files
 OUTPUT_DIR=/Users/jacki/project_files/translation_project/translations
 ```
@@ -104,7 +104,7 @@ translation_manager/
 ls backend/.env
 
 # Check database path
-ls -la /path/to/wuxia_catalog.db
+ls -la /path/to/works_translator.duckdb
 
 # Reinstall dependencies
 cd backend
@@ -128,10 +128,10 @@ npm install
 ## Integration
 
 The Translation Manager integrates with:
-- SQLite catalog database (`wuxia_catalog.db`)
+- DuckDB catalog database (`works_translator.duckdb`)
 - Translation scripts (`scripts/translate_work.py`)
 - Volume manager (`processors/volume_manager.py`)
-- OpenAI API (via `env_creds.yml`)
+- OpenAI API (via environment variables)
 
 ## Next Steps
 

@@ -122,8 +122,8 @@ Complete list of files created for the translation and annotation pipeline.
 
 ### Input Sources
 - **Cleaned JSON**: `/Users/jacki/project_files/translation_project/test_cleaned_json_v2/COMPLETE_ALL_BOOKS/`
-- **Catalog DB**: `/Users/jacki/project_files/translation_project/wuxia_catalog.db`
-- **API Key**: `env_creds.yml` (OPENAI_API_KEY)
+- **Catalog DB**: `/Users/jacki/project_files/translation_project/db/works_translator.duckdb`
+- **API Key**: `~/.zshrc` (OPENAI_API_KEY)
 
 ### Output Destinations
 - **Translated JSON**: `/Users/jacki/project_files/translation_project/translated_books/`
@@ -137,12 +137,12 @@ Complete list of files created for the translation and annotation pipeline.
 - `openai>=1.0.0` - OpenAI API client
 - `tqdm>=4.65.0` - Progress bars
 - `yaml` - Configuration loading
-- `sqlite3` - Database queries (built-in)
+- `duckdb` - Database queries
 - `json`, `logging`, `pathlib` - Standard library
 
 ### External Dependencies
 - OpenAI API (GPT-4o-mini)
-- SQLite catalog database
+- DuckDB catalog database
 - Cleaned JSON from restructuring pipeline
 
 ## Testing Status
@@ -171,7 +171,7 @@ All components tested and verified:
 
 ### Configuration Files (Edit Rarely)
 - `processors/translation_config.py` - Change defaults
-- `env_creds.yml` - API keys (external)
+- `~/.zshrc` - API keys (environment exports)
 
 ## Maintenance
 

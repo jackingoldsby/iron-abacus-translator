@@ -12,7 +12,7 @@ import logging
 from pathlib import Path
 
 
-from utils.wuxia_glossary import WuxiaGlossary
+from utils.glossary import TranslationGlossary
 
 # Setup logging
 logging.basicConfig(
@@ -26,12 +26,14 @@ def main():
     """Demonstrate glossary matching on wuxia_0004 source text"""
 
     # Load cleaned JSON (use wuxia_0004 which is "書劍恩仇錄")
-    input_path = Path("/Users/jacki/project_files/translation_project/wuxia_individual_files/wuxia_0004/D58a_書劍恩仇錄上_金庸.json")
+    from utils.environment_config import get_or_create_config
+    _raw = get_or_create_config().raw_dir
+    input_path = _raw / "wuxia_0004" / "D58a_書劍恩仇錄上_金庸.json"
 
     if not input_path.exists():
         logger.error(f"Input file not found: {input_path}")
         logger.error("Available alternatives:")
-        alt_path = Path("/Users/jacki/project_files/translation_project/wuxia_individual_files/wuxia_0004/D58b_書劍恩仇錄下_金庸.json")
+        alt_path = _raw / "wuxia_0004" / "D58b_書劍恩仇錄下_金庸.json"
         if alt_path.exists():
             logger.info(f"  Found: {alt_path}")
         return 1
@@ -43,16 +45,17 @@ def main():
         logger.error(f"Failed to load input file: {e}")
         return 1
 
-    # Load glossary
-    glossary_path = Path(__file__).parent.parent / "wuxia_glossary.db"
+    # Load glossary from environment config
+    from utils.environment_config import get_or_create_config
+    glossary_path = get_or_create_config().glossary_path
 
     if not glossary_path.exists():
         logger.error(f"Glossary database not found: {glossary_path}")
         return 1
 
     try:
-        glossary = WuxiaGlossary(glossary_path)
-        logger.info(f"✓ Loaded wuxia glossary from {glossary_path}")
+        glossary = TranslationGlossary(glossary_path)
+        logger.info(f"✓ Loaded glossary from {glossary_path}")
     except Exception as e:
         logger.error(f"Failed to load glossary: {e}")
         return 1

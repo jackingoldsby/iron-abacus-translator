@@ -1013,7 +1013,7 @@ source_dir = os.path.join(DEFAULT_PROJECT_BASE, 'wuxia_individual_files')
    - Handle absolute paths and symlinks
 
 2. **`processors/structure_validator_ai.py`** - AI validation layer
-   - Load OpenAI key from env_creds.yml
+   - Load OpenAI key from environment variable (os.getenv)
 
 3. **`processors/json_output_standardizer.py`** - Schema enforcement
 

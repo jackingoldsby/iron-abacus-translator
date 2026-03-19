@@ -41,11 +41,11 @@ python scripts/catalog_wuxia_files.py --base-dir /path/to/translation_project
 # Or specify each path individually
 python scripts/catalog_wuxia_files.py \
   --wuxia-dir /path/to/wuxia_individual_files \
-  --db-path /path/to/wuxia_catalog.db
+  --db-path /path/to/works_translator.duckdb
 
 python scripts/enrich_catalog_with_csv.py \
   --csv /path/to/works.csv \
-  --db /path/to/wuxia_catalog.db
+  --db /path/to/works_translator.duckdb
 ```
 
 ### Method 3: Default Paths (Fallback)
@@ -69,14 +69,15 @@ translation_project/
 │   ├── wuxia_0002/
 │   └── ...
 ├── works.csv
-└── wuxia_catalog.db (created by scripts)
+└── db/
+    └── works_translator.duckdb (created by scripts)
 ```
 
 ## Script Usage
 
 ### 1. catalog_wuxia_files.py
 
-Scans directories and creates the SQLite database.
+Scans directories and creates the DuckDB database.
 
 ```bash
 # Basic usage (uses env var or default)
@@ -88,14 +89,14 @@ python scripts/catalog_wuxia_files.py --base-dir /custom/path
 # With specific paths
 python scripts/catalog_wuxia_files.py \
   --wuxia-dir /data/wuxia_files \
-  --db-path /output/catalog.db
+  --db-path /output/works_translator.duckdb
 
 # View help
 python scripts/catalog_wuxia_files.py --help
 ```
 
 **Output:**
-- Creates `wuxia_catalog.db` with `works` and `work_files` tables
+- Creates `works_translator.duckdb` with `works` and `work_files` tables
 - Catalogs all valid JSON files from wuxia_XXXX directories
 
 ### 2. enrich_catalog_with_csv.py
@@ -109,7 +110,7 @@ python scripts/enrich_catalog_with_csv.py
 # With custom paths
 python scripts/enrich_catalog_with_csv.py \
   --csv /path/to/works.csv \
-  --db /path/to/wuxia_catalog.db
+  --db /path/to/works_translator.duckdb
 
 # View help
 python scripts/enrich_catalog_with_csv.py --help
@@ -168,6 +169,8 @@ The repository should ignore data files:
 # Database files
 *.db
 *.db-journal
+*.duckdb
+*.duckdb.wal
 
 # CSV data files
 works.csv
@@ -211,7 +214,7 @@ python scripts/test_file_paths.py
 
 ```bash
 # Re-run catalog (will recreate database)
-rm $TRANSLATION_PROJECT_DIR/wuxia_catalog.db
+rm $TRANSLATION_PROJECT_DIR/db/works_translator.duckdb
 python scripts/catalog_wuxia_files.py
 
 # Re-enrich
@@ -248,12 +251,12 @@ ls -la $TRANSLATION_PROJECT_DIR/
 # Should see:
 # - wuxia_individual_files/
 # - works.csv
-# - wuxia_catalog.db (if already created)
+# - db/works_translator.duckdb (if already created)
 
 # Or specify paths explicitly
 python scripts/enrich_catalog_with_csv.py \
   --csv /actual/path/to/works.csv \
-  --db /actual/path/to/wuxia_catalog.db
+  --db /actual/path/to/works_translator.duckdb
 ```
 
 ### Verifying Setup

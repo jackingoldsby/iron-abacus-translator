@@ -21,11 +21,11 @@ See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for detailed configuration options.
 
 ## Database Location
 
-**Default:** `${TRANSLATION_PROJECT_DIR}/wuxia_catalog.db`
+**Default:** `${TRANSLATION_PROJECT_DIR}/db/works_translator.duckdb`
 
 Example:
 ```
-/Users/jacki/project_files/translation_project/wuxia_catalog.db
+/Users/jacki/project_files/translation_project/db/works_translator.duckdb
 ```
 
 ## Table Structure
@@ -66,21 +66,20 @@ Individual file volumes for each work
 The easiest way - the database stores the complete absolute path:
 
 ```python
-import sqlite3
+import duckdb
 
-conn = sqlite3.connect('/Users/jacki/project_files/translation_project/wuxia_catalog.db')
-cursor = conn.cursor()
+conn = duckdb.connect('/Users/jacki/project_files/translation_project/db/works_translator.duckdb', read_only=True)
 
 # Get all file paths for work D55 (射鵰英雄傳)
-cursor.execute('''
+results = conn.execute('''
     SELECT wf.volume, wf.full_path
     FROM work_files wf
     JOIN works w ON wf.work_id = w.work_id
     WHERE w.work_number = 'D55'
     ORDER BY wf.volume
-''')
+''').fetchall()
 
-for volume, path in cursor.fetchall():
+for volume, path in results:
     print(f"Volume {volume}: {path}")
 
 conn.close()
@@ -211,12 +210,12 @@ Full Path: /Users/jacki/project_files/translation_project/wuxia_individual_files
 ## Python Helper Function
 
 ```python
-import sqlite3
+import duckdb
 from pathlib import Path
 from typing import List, Optional
 
 class WuxiaCatalog:
-    def __init__(self, db_path: str = '/Users/jacki/project_files/translation_project/wuxia_catalog.db'):
+    def __init__(self, db_path: str = '/Users/jacki/project_files/translation_project/db/works_translator.duckdb'):
         self.db_path = db_path
 
     def get_work_files(self, work_number: str) -> List[dict]:
@@ -229,11 +228,9 @@ class WuxiaCatalog:
         Returns:
             List of dicts with volume, filename, and full_path
         """
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        conn = duckdb.connect(self.db_path, read_only=True)
 
-        cursor.execute('''
+        results = conn.execute('''
             SELECT
                 wf.volume,
                 wf.filename,
@@ -242,12 +239,13 @@ class WuxiaCatalog:
             JOIN works w ON wf.work_id = w.work_id
             WHERE w.work_number = ?
             ORDER BY wf.volume
-        ''', (work_number,))
+        ''', [work_number]).fetchall()
 
-        results = [dict(row) for row in cursor.fetchall()]
+        columns = ['volume', 'filename', 'full_path']
+        result_dicts = [dict(zip(columns, row)) for row in results]
         conn.close()
 
-        return results
+        return result_dicts
 
     def search_by_english_title(self, title_search: str) -> List[dict]:
         """
@@ -259,11 +257,9 @@ class WuxiaCatalog:
         Returns:
             List of matching works with metadata
         """
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        conn = duckdb.connect(self.db_path, read_only=True)
 
-        cursor.execute('''
+        results = conn.execute('''
             SELECT
                 w.work_number,
                 w.author_chinese,
@@ -275,14 +271,18 @@ class WuxiaCatalog:
             FROM works w
             LEFT JOIN work_files wf ON w.work_id = wf.work_id
             WHERE w.title_english LIKE ?
-            GROUP BY w.work_id
+            GROUP BY w.work_id, w.work_number, w.author_chinese,
+                     w.author_english, w.title_chinese, w.title_english,
+                     w.directory_number
             ORDER BY w.work_number
-        ''', (f'%{title_search}%',))
+        ''', [f'%{title_search}%']).fetchall()
 
-        results = [dict(row) for row in cursor.fetchall()]
+        columns = ['work_number', 'author_chinese', 'author_english',
+                    'title_chinese', 'title_english', 'directory_number', 'volume_count']
+        result_dicts = [dict(zip(columns, row)) for row in results]
         conn.close()
 
-        return results
+        return result_dicts
 
 # Usage example:
 catalog = WuxiaCatalog()
@@ -323,7 +323,7 @@ python scripts/catalog_wuxia_files.py
 python scripts/enrich_catalog_with_csv.py
 ```
 
-This will create a fresh database at `${TRANSLATION_PROJECT_DIR}/wuxia_catalog.db`.
+This will create a fresh database at `${TRANSLATION_PROJECT_DIR}/db/works_translator.duckdb`.
 
 ### Testing Your Setup
 

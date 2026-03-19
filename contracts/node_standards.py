@@ -258,7 +258,7 @@ class NodeDependencies(BaseModel):
     """External dependencies required by node"""
 
     apis: List[str] = Field(default_factory=list, description="External APIs (e.g., 'OpenAI GPT-4.1-nano')")
-    files: List[str] = Field(default_factory=list, description="Required files (e.g., 'wuxia_glossary.json')")
+    files: List[str] = Field(default_factory=list, description="Required files (e.g., 'glossary.json')")
     environment: List[str] = Field(default_factory=list, description="Environment variables (e.g., 'OPENAI_API_KEY')")
 
 

@@ -32,7 +32,7 @@ ls -la | grep translation_data
 
 # Test it works:
 ls translation_data/
-# Should show: works.csv, wuxia_catalog.db, wuxia_individual_files/
+# Should show: works.csv, db/works_translator.duckdb, wuxia_individual_files/
 ```
 
 ### For Automated Setup Scripts
@@ -69,7 +69,7 @@ create_symlinks(project_root)
 All wuxia catalog scripts use this symlink to access:
 - `wuxia_individual_files/` - JSON source files (640 directories)
 - `works.csv` - Metadata CSV file
-- `wuxia_catalog.db` - SQLite database
+- `db/works_translator.duckdb` - DuckDB catalog database
 
 The scripts automatically resolve paths relative to the project root:
 
@@ -80,18 +80,6 @@ DEFAULT_DATA_DIR = PROJECT_ROOT / 'translation_data'
 ```
 
 This keeps the project git-portable while maintaining access to large data files outside the repository.
-
-### Configuration in env.yml
-
-The symlink is documented in `env.yml`:
-
-```yaml
-symlinks:
-  - name: translation_data
-    target: /Users/jacki/project_files/translation_project
-    type: directory
-    description: "Symlink to translation project data directory"
-```
 
 ### Excluded from Git
 

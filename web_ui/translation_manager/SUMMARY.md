@@ -17,7 +17,7 @@ A comprehensive web-based translation management interface for the Book Processi
 
 **Features**:
 - ✅ RESTful API with 6 endpoints
-- ✅ SQLite catalog database integration
+- ✅ DuckDB catalog database integration
 - ✅ WebSocket support for real-time updates
 - ✅ Async job queue system
 - ✅ Background job processor
@@ -177,7 +177,7 @@ Total Documentation: ~2,000 lines
 
 The translation manager seamlessly integrates with:
 
-✅ **SQLite Catalog Database** (`wuxia_catalog.db`)
+✅ **DuckDB Catalog Database** (`works_translator.duckdb`)
 - Reads works and metadata
 - Queries volumes per work
 - Supports search and filtering
@@ -196,15 +196,15 @@ The translation manager seamlessly integrates with:
 - Uses same format as existing scripts
 
 ✅ **API Key Management**
-- Loads from project root `env_creds.yml`
-- Compatible with existing credential system
+- Loads from environment variables (`~/.zshrc`)
+- Compatible with standard environment variable patterns
 
 ## Technical Specifications
 
 ### Backend
 - **Framework**: FastAPI 0.104+
 - **Language**: Python 3.8+
-- **Database**: SQLite 3.x
+- **Database**: DuckDB
 - **WebSocket**: Native FastAPI support
 - **Async**: asyncio for job processing
 - **Port**: 8001 (configurable)
@@ -297,7 +297,7 @@ Following the provided documentation:
 1. ✅ Copy `.env.example` to `.env` in backend
 2. ✅ Edit `.env` with correct paths
 3. ✅ Verify catalog database exists
-4. ✅ Check OpenAI API key in `env_creds.yml`
+4. ✅ Check OpenAI API key in `~/.zshrc` environment exports
 5. ✅ Run `./start.sh`
 
 ### Testing (First Week)

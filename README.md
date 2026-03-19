@@ -53,7 +53,7 @@ python utils/restructure_toc.py --input cleaned_book.json
 python scripts/batch_process_books.py \
   --source-dir ./source_files \
   --output-dir ./output \
-  --catalog-path ./wuxia_catalog.db \
+  --catalog-path ./works_translator.duckdb \
   --limit 10  # Test on first 10 files
 ```
 
@@ -149,7 +149,7 @@ book-processing-toolkit/
   - No file modifications
 
 ✅ **Sanity Checker** - Early validation with metadata enrichment
-  - Extracts metadata from catalog SQLite database (author, title, volume)
+  - Extracts metadata from catalog DuckDB database (author, title, volume)
   - Validates Chinese chapter numbering sequences
   - Detects missing, duplicate, or out-of-order chapters
   - Supports Chinese numerals: 一二三...十廿卅...百千
