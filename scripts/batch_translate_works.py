@@ -25,7 +25,7 @@ import json
 import argparse
 import logging
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from tqdm import tqdm
 
 

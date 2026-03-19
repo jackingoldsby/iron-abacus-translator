@@ -44,7 +44,7 @@ from scripts.orchestrate_translation_pipeline import (
     MetadataTranslationProcessor,
     TOCTranslationProcessor,
     HeadingTranslationProcessor,
-    SpecialSectionsProcessor,
+    SpecialSectionProcessor,
 )
 
 # Import workflow wrappers

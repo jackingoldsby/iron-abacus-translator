@@ -215,21 +215,21 @@ class CharacterFootnoteCleanup:
             List of FootnoteClassification objects
         """
         # Build the prompt
-        system_prompt = """You are an expert in Chinese literature and history. Classify footnotes into these categories:
+        system_prompt = """You are an expert in Chinese literature and history. Classify each footnote INDIVIDUALLY into one of these categories:
 
 1. FICTIONAL_CHARACTER - Fictional story characters, protagonists, antagonists, side characters in the narrative
 2. HISTORICAL_FIGURE - Real historical persons (e.g., Emperor Kangxi 康熙帝, Confucius 孔子, historical officials)
 3. LEGENDARY_PERSONAGE - Mythological or legendary figures (e.g., Guan Yu 關羽, Buddha 佛陀, deities, mythical heroes)
 4. CULTURAL - Cultural concepts, places, events, terminology, weapons, items, idioms, literary devices, historical periods/dynasties
 
-For each footnote, return:
-- type: One of the four categories above
-- confidence: 0.0 to 1.0
-- reasoning: Brief explanation of classification
+Return a JSON object with a "classifications" key containing an array with EXACTLY one object per footnote, in the same order as the input. Each object must have:
+- "type": One of FICTIONAL_CHARACTER, HISTORICAL_FIGURE, LEGENDARY_PERSONAGE, CULTURAL
+- "confidence": 0.0 to 1.0
+- "reasoning": Brief explanation
 
-Return as JSON array with one object per footnote."""
+Example for 2 footnotes: {"classifications": [{"type": "CULTURAL", "confidence": 0.9, "reasoning": "..."}, {"type": "FICTIONAL_CHARACTER", "confidence": 0.8, "reasoning": "..."}]}"""
 
-        user_content = "Classify these footnotes:\n\n"
+        user_content = f"Classify these {len(footnotes)} footnotes (return exactly {len(footnotes)} classifications):\n\n"
         for idx, fn in enumerate(footnotes):
             user_content += f"{idx + 1}. Ideogram: {fn['ideogram']}\n"
             user_content += f"   Explanation: {fn['explanation']}\n\n"
@@ -249,7 +249,28 @@ Return as JSON array with one object per footnote."""
 
             # Parse classifications with Pydantic validation
             classifications = []
-            results_list = result_data.get('classifications', result_data.get('results', []))
+            # Model may wrap results under various keys
+            results_list = None
+            if isinstance(result_data, dict):
+                for key in ('classifications', 'results', 'footnotes', 'items', 'data'):
+                    if key in result_data and isinstance(result_data[key], list):
+                        results_list = result_data[key]
+                        logger.info(f"Found {len(results_list)} results under key '{key}'")
+                        break
+                if results_list is None:
+                    # Try any list-valued key
+                    for k, v in result_data.items():
+                        if isinstance(v, list) and len(v) > 0:
+                            results_list = v
+                            logger.info(f"Found {len(results_list)} results under unexpected key '{k}'")
+                            break
+            elif isinstance(result_data, list):
+                results_list = result_data
+                logger.info(f"Response is direct array with {len(results_list)} items")
+
+            if results_list is None:
+                logger.error(f"Could not find results in API response: {str(result_data)[:500]}")
+                results_list = []
 
             for idx, fn in enumerate(footnotes):
                 try:

@@ -55,8 +55,13 @@ _MECHANICAL_RULES = """
    - Place [1], [2], [3] IMMEDIATELY after the footnoted term, OUTSIDE any quotes
    - Sequential from [1]. VERIFY: count your footnotes, count your markers — they must match.
 
-7. **Footnote style — philological depth:**
+7. **Footnote style — concise philological depth:**
    When you DO footnote, write with scholarly precision — register, connotation, cultural context. Not dictionary definitions.
+   - Keep explanations to 1-2 sentences MAX. State the fact, not its narrative significance.
+   - NEVER interpret the story: no "underscoring the gravity", no "indicating the importance of", no "suggesting that the character..."
+   - WRONG: "The Shàngfāng Bǎojiàn was a treasured imperial sword... Its unsheathing was a grave gesture, often halting proceedings and commanding immediate respect."
+   - RIGHT: "The Shàngfāng Bǎojiàn — an imperial sword granted by the emperor to an envoy, authorizing summary execution without prior approval."
+   - Explain WHAT the term IS. Never explain what it MEANS IN THIS SCENE.
 
 {suppress_list_section}
 
@@ -111,7 +116,7 @@ Liang writes classical, elegant prose closer to traditional Chinese literary fic
 
 - **Lyrical and measured**: Long descriptive passages, landscape set-pieces, and introspective narration. Do NOT flatten these into action-beat prose. Let the sentences breathe. A paragraph of mountain scenery is not filler — it is atmosphere and theme.
 - **Poetry-heavy**: Liang integrates classical verse (詞, 詩, 對聯) extensively — not as decoration but as characterization and thematic statement. Translate verse with care for meter, parallelism, and imagery. Preserve the literary weight. When a character recites a Tang poem, the English should feel like poetry.
-- **Historically grounded**: His plots interweave real historical events (Qing conquest, Taiping Rebellion, Manchu–Han conflict, border campaigns). Historical detail matters — translate with precision and footnote the real history. The footnotes for a Liang novel should read like a historian's annotations.
+- **Historically grounded**: His plots interweave real historical events (Qing conquest, Taiping Rebellion, Manchu–Han conflict, border campaigns). Historical detail matters — translate with precision and footnote the real history. Keep footnotes concise and factual — state what the term IS, not what it means in the scene.
 - **Formal dialogue**: Characters speak with Confucian propriety. Even rivals address each other with elaborate courtesy before fighting. Preserve this formality — do NOT modernize or casualize.
   - 討教 → "seek instruction from" (formal challenge)
   - 奉陪 → "I shall attend to you" (dignified acceptance)

@@ -8,7 +8,7 @@ Translation Pipeline Orchestrator
 - Stage 3 (TOC): Table of contents translation (no footnotes)
 - Stage 4 (HEADINGS): Chapter heading translation (no footnotes)
 - Stage 5 (SPECIAL): Front/back matter translation
-- Stage 6 (CLEANUP): 6a (character removal) + 6b (triviality) + 6c (density diagnostic)
+- Stage 6 (CLEANUP): 6a (character removal) + 6b (triviality) + 6c (density diagnostic) + 6d (verbose trimming)
 - Stage 7 (VALIDATION): Coverage and footnote integrity checks
 - Stage 8 (EPUB): Build EPUB with series info from catalog
 
@@ -31,6 +31,7 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from enum import Enum
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm import tqdm
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -248,6 +249,20 @@ class WIPManager:
                     json.dump(stage_log, f, ensure_ascii=False, indent=2)
 
         return wip_path
+
+    def backup_wip(self, filename: str, stage: PipelineStage, tag: str = "") -> Optional[Path]:
+        """Create a timestamped backup of an existing WIP file before overwriting."""
+        wip_path = self._wip_path(filename, stage)
+        if not wip_path.exists():
+            return None
+        from datetime import datetime
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        suffix = f"_{tag}" if tag else ""
+        backup_path = wip_path.with_name(f"{wip_path.stem}_backup_{ts}{suffix}.json")
+        import shutil
+        shutil.copy2(wip_path, backup_path)
+        logger.info(f"Backed up WIP: {backup_path}")
+        return backup_path
 
     def load_wip(self, filename: str, stage: PipelineStage) -> Optional[Dict[str, Any]]:
         wip_path = self._wip_path(filename, stage)
@@ -732,6 +747,18 @@ class CleanupProcessor(StageProcessor):
             logger.error(f"    6c failed: {e}")
             errors.append(f"6c: {e}")
 
+        # 6d: Trim verbose footnote explanations
+        logger.info("  6d: Trimming verbose footnotes...")
+        try:
+            trimmed_6d = self._trim_verbose_footnotes(data)
+            if trimmed_6d:
+                logger.info(f"    6d trimmed {trimmed_6d} verbose footnotes")
+            else:
+                logger.info("    6d: no verbose footnotes found")
+        except Exception as e:
+            logger.error(f"    6d failed: {e}")
+            errors.append(f"6d: {e}")
+
         # Reposition misplaced markers (e.g. mid-word splits like Wǔ[14]zǐ)
         logger.info("  Repositioning misplaced markers...")
         repos_count, unanchored_count = _reposition_markers(data)
@@ -920,6 +947,133 @@ class CleanupProcessor(StageProcessor):
             )
 
         return removed
+
+    def _trim_verbose_footnotes(
+        self, data: Dict[str, Any], batch_size: int = 20
+    ) -> int:
+        """
+        6d: Remove story context from footnote explanations.
+
+        Sends ALL footnotes to the AI to strip narrative interpretation,
+        editorial commentary, and scene-specific context. Keeps only
+        factual cultural/historical content.
+
+        Returns number of footnotes rewritten.
+        """
+        from openai import OpenAI
+
+        chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+
+        # Collect all footnotes (mutable refs so we can edit in place)
+        all_fns: list[dict] = []
+        for chapter in chapters:
+            for block in chapter.get("content_blocks", []):
+                for fn in block.get("footnotes", []):
+                    if fn.get("explanation", "").strip():
+                        all_fns.append(fn)
+
+        if not all_fns:
+            return 0
+
+        logger.info(f"    Reviewing {len(all_fns)} footnotes for story context...")
+
+        client = OpenAI()
+        trimmed = 0
+
+        system_prompt = (
+            "You are editing footnotes in a translated Chinese novel. "
+            "Each footnote should state ONLY what the term IS — its factual "
+            "definition, historical identity, or cultural significance.\n\n"
+            "STRIP these patterns from every footnote:\n"
+            "- Story interpretation: 'underscoring the gravity', 'indicating "
+            "the importance of', 'reflecting the character's...'\n"
+            "- Scene narration: 'in this scene', 'here it refers to', "
+            "'the presence of X indicates...'\n"
+            "- Editorial commentary: 'often hampered by', 'a grave gesture', "
+            "'pivotal to the plot'\n"
+            "- Redundant elaboration that restates the definition in different words\n\n"
+            "KEEP: historical facts, dynasty names, dates, official functions, "
+            "cultural practices, religious/philosophical context.\n\n"
+            "If a footnote is already clean and factual, return it unchanged.\n\n"
+            'Return ONLY a JSON object: {"trimmed": [\n'
+            '  {"ideogram": "<chinese_chars>", "explanation": "<cleaned_text>"},\n'
+            "  ...\n"
+            "]}\n"
+            "CRITICAL: Include the EXACT ideogram from the input so results "
+            "can be matched. Same count as input."
+        )
+
+        # Build ideogram→fn lookup for safe matching
+        ideo_to_fns: dict[str, list[dict]] = {}
+        for fn in all_fns:
+            ideo = fn.get("ideogram", "").strip()
+            if ideo:
+                ideo_to_fns.setdefault(ideo, []).append(fn)
+
+        for i in tqdm(range(0, len(all_fns), batch_size),
+                       desc="Trimming footnotes", total=(len(all_fns) + batch_size - 1) // batch_size):
+            batch = all_fns[i:i + batch_size]
+            user_lines = []
+            for idx, fn in enumerate(batch, 1):
+                ideo = fn.get("ideogram", "")
+                expl = fn.get("explanation", "")
+                user_lines.append(f"{idx}. {ideo} — {expl}")
+
+            try:
+                resp = client.chat.completions.create(
+                    model="gpt-4.1-nano",
+                    temperature=0.1,
+                    response_format={"type": "json_object"},
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": "\n".join(user_lines)},
+                    ],
+                )
+                result_text = resp.choices[0].message.content.strip()
+                result_data = json.loads(result_text)
+
+                # Extract trimmed results — expect list of {ideogram, explanation}
+                trimmed_list = None
+                if isinstance(result_data, dict):
+                    for key in ("trimmed", "results", "explanations", "footnotes"):
+                        if key in result_data and isinstance(result_data[key], list):
+                            trimmed_list = result_data[key]
+                            break
+                    if trimmed_list is None:
+                        for v in result_data.values():
+                            if isinstance(v, list) and len(v) > 0:
+                                trimmed_list = v
+                                break
+
+                if not trimmed_list:
+                    continue
+
+                # Match by ideogram (safe) rather than position (fragile)
+                batch_ideo_map = {fn.get("ideogram", "").strip(): fn for fn in batch}
+                for item in trimmed_list:
+                    if isinstance(item, dict):
+                        ideo = item.get("ideogram", "").strip()
+                        new_expl = item.get("explanation", "").strip()
+                    elif isinstance(item, str):
+                        # Fallback: positional match if model returns flat strings
+                        # Only safe if count matches exactly
+                        continue
+                    else:
+                        continue
+
+                    if not ideo or not new_expl:
+                        continue
+
+                    fn = batch_ideo_map.get(ideo)
+                    if fn and new_expl != fn["explanation"]:
+                        fn["explanation"] = new_expl
+                        trimmed += 1
+
+            except Exception as e:
+                logger.warning(f"    6d batch {i // batch_size + 1} failed: {e}")
+                continue
+
+        return trimmed
 
 
 # =============================================================================
@@ -1118,6 +1272,7 @@ class TranslationPipeline:
         resume: bool = False,
         accumulator: Optional[FootnoteContextAccumulator] = None,
         chapter_limit: int = 0,
+        chapter_offset: int = 0,
     ) -> Dict[str, Any]:
         """
         Run the translation pipeline for a single volume.
@@ -1160,7 +1315,8 @@ class TranslationPipeline:
                 import duckdb
                 conn = duckdb.connect(str(self.config.catalog_path), read_only=True)
                 row = conn.execute(
-                    "SELECT category_english, author_chinese FROM works WHERE work_number = ?",
+                    "SELECT category_english, author_chinese, title_english, author_english "
+                    "FROM works WHERE work_number = ?",
                     [work_number],
                 ).fetchone()
                 conn.close()
@@ -1171,6 +1327,13 @@ class TranslationPipeline:
                     if row[1] and not author_chinese:
                         author_chinese = row[1]
                         logger.info(f"Catalog lookup: author_chinese='{author_chinese}'")
+                    # Inject catalog English titles into meta so Stage 2 uses them
+                    if row[2] and not meta.get('title_english'):
+                        meta['title_english'] = row[2]
+                        logger.info(f"Catalog lookup: title_english='{row[2]}'")
+                    if row[3] and not meta.get('author_english'):
+                        meta['author_english'] = row[3]
+                        logger.info(f"Catalog lookup: author_english='{row[3]}'")
             except Exception as e:
                 logger.warning(f"Catalog lookup failed: {e}")
         # Enrich meta with work_number and missing fields for downstream stages
@@ -1191,12 +1354,19 @@ class TranslationPipeline:
             f"category='{category}' → prompt_key='{prompt_key}'"
         )
 
-        # Limit chapters if requested (for testing)
-        if chapter_limit > 0:
+        # Slice chapters if requested (offset + limit for chunked runs)
+        # For chunked body translation: translate the slice, then merge back
+        # into the full chapter list so WIP preserves all translated chapters.
+        _all_chapters = None  # Will hold full list if chunking
+        if chapter_offset > 0 or chapter_limit > 0:
             chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
-            if len(chapters) > chapter_limit:
-                logger.info(f"Limiting to first {chapter_limit} of {len(chapters)} chapters")
-                data["structure"]["body"]["chapters"] = chapters[:chapter_limit]
+            total = len(chapters)
+            start = min(chapter_offset, total)
+            end = min(start + chapter_limit, total) if chapter_limit > 0 else total
+            if start > 0 or end < total:
+                logger.info(f"Chapters {start+1}-{end} of {total}")
+                _all_chapters = chapters  # Keep reference to full list
+                data["structure"]["body"]["chapters"] = chapters[start:end]
 
         # Determine start stage
         start_stage = self.config.start_stage
@@ -1231,6 +1401,23 @@ class TranslationPipeline:
             meta["title_chinese"] = meta["title"]
         if not meta.get("author") and author_chinese:
             meta["author"] = author_chinese
+        # Re-inject catalog English titles (may be lost if loading old WIP)
+        if self.config.catalog_path and self.config.catalog_path.exists():
+            try:
+                import duckdb
+                conn = duckdb.connect(str(self.config.catalog_path), read_only=True)
+                row = conn.execute(
+                    "SELECT title_english, author_english FROM works WHERE work_number = ?",
+                    [work_number],
+                ).fetchone()
+                conn.close()
+                if row:
+                    if row[0] and not meta.get('title_english'):
+                        meta['title_english'] = row[0]
+                    if row[1] and not meta.get('author_english'):
+                        meta['author_english'] = row[1]
+            except Exception:
+                pass
         data["meta"] = meta
 
         # Build stage processors
@@ -1259,8 +1446,55 @@ class TranslationPipeline:
             logger.info(f"Stage {stage_num}: {stage.description}")
             logger.info(f"{'='*60}")
 
+            # For chunked body translation: snapshot the existing WIP
+            # BEFORE the processor overwrites it with just the slice
+            _pre_chunk_wip = None
+            if stage_num == 1 and _all_chapters is not None:
+                _pre_chunk_wip = self.wip_manager.load_wip(
+                    filename, PipelineStage.BODY
+                )
+                if _pre_chunk_wip:
+                    self.wip_manager.backup_wip(
+                        filename, PipelineStage.BODY,
+                        tag=f"before_ch{chapter_offset+1}",
+                    )
+
             try:
                 data = processor.process(data, filename)
+
+                # Chunked merge: after body translation (stage 1), merge
+                # translated chunk back into the full chapter list
+                if stage_num == 1 and _all_chapters is not None:
+                    translated_chunk = data["structure"]["body"]["chapters"]
+                    start = chapter_offset
+                    end = start + len(translated_chunk)
+
+                    if _pre_chunk_wip:
+                        # Merge into the pre-existing WIP (not the one the
+                        # processor just overwrote with only the slice)
+                        merged = _pre_chunk_wip["structure"]["body"]["chapters"]
+                        for i, ch in enumerate(translated_chunk):
+                            idx = start + i
+                            if idx < len(merged):
+                                merged[idx] = ch
+                            else:
+                                merged.append(ch)
+                        data["structure"]["body"]["chapters"] = merged
+                        data["meta"] = _pre_chunk_wip.get("meta", data.get("meta", {}))
+                    else:
+                        # First chunk — overlay onto the full (untranslated) list
+                        for i, ch in enumerate(translated_chunk):
+                            _all_chapters[start + i] = ch
+                        data["structure"]["body"]["chapters"] = list(_all_chapters)
+                    logger.info(
+                        f"Merged chunk (ch {start+1}-{end}) "
+                        f"into {len(data['structure']['body']['chapters'])} total chapters"
+                    )
+                    # Re-save WIP with merged data
+                    self.wip_manager.save_wip(
+                        data, filename, PipelineStage.BODY, {}
+                    )
+
                 stage_results.append({
                     "stage": stage_num,
                     "name": stage.stage_name,
@@ -1432,7 +1666,12 @@ def main():
     parser.add_argument(
         "--chapters",
         type=int, default=0,
-        help="Limit to first N chapters (0 = all, default: 0)",
+        help="Limit to N chapters (0 = all, default: 0)",
+    )
+    parser.add_argument(
+        "--chapter-offset",
+        type=int, default=0,
+        help="Skip first N chapters (default: 0). Use with --chapters for chunked runs.",
     )
 
     args = parser.parse_args()
@@ -1452,6 +1691,7 @@ def main():
         volume=args.volume,
         resume=args.resume,
         chapter_limit=args.chapters,
+        chapter_offset=args.chapter_offset,
     )
 
     # Print summary

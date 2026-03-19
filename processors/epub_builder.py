@@ -60,8 +60,11 @@ _PREFACE_PARAGRAPHS = [
 ]
 
 _COLOPHON_PARAGRAPHS = [
-    "The original Chinese source text is embedded in this file, paragraph"
-    " by paragraph, as a data attribute on each block of translated text.",
+    "The original Chinese source text is embedded in this file as HTML5 data"
+    " attributes. Each source paragraph is stored in a data-zh attribute on"
+    " the first English paragraph derived from it. Where one Chinese paragraph"
+    " expands to multiple English paragraphs, they share a data-zh-block"
+    " identifier for grouping.",
     "Anyone who unpacks the EPUB can extract the bilingual alignment."
     " This is intentional \u2014 it allows readers with Chinese literacy"
     " to cross-reference the translation against the source, and makes"
@@ -251,15 +254,21 @@ class EpubBuilder:
         ]
         for ch_idx, ch_item in enumerate(chapter_items):
             ch = chapters[ch_idx]
-            ch_title = ch.get("translated_title") or ""
+            ch_title = ch.get("title_english") or ch.get("translated_title") or ""
             if not ch_title:
                 ch_title = self._translate_chapter_title(
                     ch.get("title", ""), ch_idx + 1
                 )
-            # Strip markdown asterisks from TOC text
-            ch_title_clean = ch_title.replace("*", "")
+            # Strip footnote markers and markdown asterisks from TOC text
+            ch_title_clean = re.sub(r'\[\d+\]', '', ch_title).strip()
+            ch_title_clean = ch_title_clean.replace("*", "")
+            # Link to the chapter heading anchor, not just the file
             toc_entries.append(
-                epub.Link(ch_item.file_name, ch_title_clean, ch_item.id)
+                epub.Link(
+                    f"{ch_item.file_name}#ch-heading",
+                    ch_title_clean,
+                    ch_item.id,
+                )
             )
         if glossary_item:
             toc_entries.append(
@@ -269,7 +278,9 @@ class EpubBuilder:
 
         # Add navigation files
         book.add_item(epub.EpubNcx())
-        book.add_item(epub.EpubNav())
+        nav = epub.EpubNav()
+        nav.add_item(css_item)
+        book.add_item(nav)
 
         # Set spine
         book.spine = spine
@@ -563,7 +574,7 @@ class EpubBuilder:
     ) -> epub.EpubHtml:
         """Build a single chapter XHTML file with popup footnotes."""
         title_zh = chapter.get("title", "")
-        title_en = chapter.get("translated_title") or ""
+        title_en = chapter.get("title_english") or chapter.get("translated_title") or ""
         if not title_en:
             # Generate English title from Chinese 第N回/章 pattern or fall back
             title_en = self._translate_chapter_title(title_zh, chapter_num)
@@ -572,12 +583,13 @@ class EpubBuilder:
         # Build body content
         body_parts = []
 
-        # Chapter heading
-        title_html = _escape(title_en)
+        # Chapter heading — strip footnote markers, markdown bold/italic
+        title_html = re.sub(r'\[\d+\]', '', title_en).strip()
+        title_html = _escape(title_html)
         title_html = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', title_html)
         title_html = re.sub(r'\*([^*]+)\*', r'<em>\1</em>', title_html)
         title_html = title_html.replace('**', '').replace('*', '')
-        heading = f'<h2>{title_html}'
+        heading = f'<h2 id="ch-heading">{title_html}'
         if title_zh:
             heading += f'<span class="chapter-chinese">{_escape(title_zh)}</span>'
         heading += '</h2>'
@@ -593,9 +605,14 @@ class EpubBuilder:
             content_type = block.get("content_type", "narrative")
             footnotes = block.get("footnotes", [])
 
-            # Skip first block if it was used as the chapter heading
-            if block_idx == 0 and translated.strip() == chapter.get("translated_title", "").strip():
-                continue
+            # Skip first block if its source text IS the chapter heading
+            # (The body translator and heading translator produce different
+            #  English wordings, so compare the Chinese source instead.)
+            if block_idx == 0:
+                block_source = block.get("content", "").strip()
+                chapter_title_zh = chapter.get("title", "").strip()
+                if block_source and chapter_title_zh and block_source == chapter_title_zh:
+                    continue
 
             if not translated:
                 # Render section-break blocks as <hr>
@@ -626,8 +643,18 @@ class EpubBuilder:
                 chapter_footnotes.append(fn_entry)
 
             # Original Chinese source for data-zh attribute
+            # data-zh carries the full Chinese text on the first EN paragraph;
+            # data-zh-block groups all EN paragraphs from the same source block
             zh_source = _escape(block.get("content", ""))
-            zh_attr = f' data-zh="{zh_source}"' if zh_source else ""
+            zh_block_id = block.get("id", f"b{block_idx}")
+            zh_attr_full = (
+                f' data-zh="{zh_source}" data-zh-block="{zh_block_id}"'
+                if zh_source else ""
+            )
+            zh_attr_ref = (
+                f' data-zh-block="{zh_block_id}"'
+                if zh_source else ""
+            )
 
             # Verse/document: render as before without splitting
             if content_type in ("verse", "document"):
@@ -636,7 +663,7 @@ class EpubBuilder:
                 )
                 body_parts.append(
                     self._wrap_content_type(
-                        rendered_text, content_type, zh_attr=zh_attr,
+                        rendered_text, content_type, zh_attr=zh_attr_full,
                     )
                 )
                 prev_content_type = content_type
@@ -672,8 +699,9 @@ class EpubBuilder:
                     raw_seg, old_to_new, chapter_num
                 )
                 t_style = ' style="margin-top:0.8em"' if is_transition else ""
-                # Attach Chinese source to first segment of each block
-                seg_zh = zh_attr if seg_idx == 0 else ""
+                # First segment: full Chinese source + block ID
+                # Subsequent segments: block ID only (for grouping)
+                seg_zh = zh_attr_full if seg_idx == 0 else zh_attr_ref
                 body_parts.append(
                     f'<p class="{seg_class}"{t_style}{seg_zh}>{rendered_seg}</p>'
                 )
