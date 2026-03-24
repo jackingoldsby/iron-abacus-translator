@@ -818,19 +818,19 @@
     {
       "chinese": "鋼鞭",
       "pinyin": "gāngbiān",
-      "recommended_form": "steel whip",
-      "footnote_template": "gāngbiān — a rigid steel rod weapon, used for bludgeoning. Despite the name 'whip' (鞭), this is a solid metal truncheon, not a flexible weapon.",
+      "recommended_form": "steel chain whip",
+      "footnote_template": "gāngbiān — a steel chain whip, a flexible weapon made of connected steel segments. Swung to strike from unpredictable angles; can wrap around opponents' weapons to disarm them.",
       "category": "weapons",
-      "rationale": "A rigid metal weapon. 鋼 (steel) + 鞭 (whip/rod). The 鞭 here refers to the rigid rod variant, not a flexible whip.",
+      "rationale": "Flexible segmented weapon. 鋼 (steel) + 鞭 (whip). This is a FLEXIBLE chain whip, not a rigid rod.",
       "expected_frequency": "MEDIUM"
     },
     {
       "chinese": "鐵鞭",
       "pinyin": "tiěbiān",
-      "recommended_form": "iron whip",
-      "footnote_template": "tiěbiān — a rigid iron rod weapon. Like the steel whip (鋼鞭), this is a solid metal truncheon despite the name 'whip'.",
+      "recommended_form": "iron chain whip",
+      "footnote_template": "tiěbiān — an iron chain whip, a flexible segmented weapon similar to the steel chain whip (鋼鞭).",
       "category": "weapons",
-      "rationale": "Rigid metal weapon. 鐵 (iron) + 鞭 (whip/rod).",
+      "rationale": "Flexible segmented weapon. 鐵 (iron) + 鞭 (whip).",
       "expected_frequency": "MEDIUM"
     },
     {
@@ -938,7 +938,7 @@
       "recommended_form": "riding crop",
       "footnote_template": "mǎbiān — a horse whip or riding crop. Usually NOT a combat weapon, but sometimes repurposed in mounted combat scenes.",
       "category": "weapons",
-      "rationale": "Equestrian equipment. 馬 (horse) + 鞭 (whip). This IS a flexible whip, unlike 鋼鞭/鐵鞭.",
+      "rationale": "Equestrian equipment. 馬 (horse) + 鞭 (whip). A leather/rope whip, not a segmented metal chain whip.",
       "expected_frequency": "MEDIUM",
       "deduplication_strategy": "FIRST_OCCURRENCE_ONLY"
     }
