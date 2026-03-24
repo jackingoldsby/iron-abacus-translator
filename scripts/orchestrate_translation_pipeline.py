@@ -1656,17 +1656,24 @@ class CleanupProcessor(StageProcessor):
         # short surnames or fragments. Require canonical to be a plausible
         # full name (contains a space or apostrophe, or 6+ chars).
         female_names = set()
+        unknown_names = set()  # For 她-based fallback check
         for char in dramatis:
+            canonical = char.get("canonical", "")
+            is_full_name = (
+                " " in canonical or "'" in canonical or len(canonical) >= 6
+            )
             if char.get("gender") == "female":
-                canonical = char.get("canonical", "")
-                is_full_name = (
-                    " " in canonical or "'" in canonical or len(canonical) >= 6
-                )
                 if is_full_name:
                     female_names.add(canonical.lower())
                 for alias in char.get("aliases", []):
                     if len(alias) >= 6:
                         female_names.add(alias.lower())
+            elif char.get("gender") == "unknown":
+                if is_full_name:
+                    unknown_names.add(canonical.lower())
+                for alias in char.get("aliases", []):
+                    if len(alias) >= 6:
+                        unknown_names.add(alias.lower())
 
         issues = []
         for ch_idx, chapter in enumerate(chapters):
@@ -1705,6 +1712,26 @@ class CleanupProcessor(StageProcessor):
                                  f"translation has 0 she/her",
                         "severity": "warning",
                     })
+
+                # Flag: source has 1+ 她 AND an unknown-gender character name
+                # appears in the translation with "he/him" — likely a gender
+                # error the dramatis personae couldn't catch due to unknown gender
+                elif she_count_source >= 1 and she_count_trans == 0 and unknown_names:
+                    trans_lower = translated.lower()
+                    matched_unknown = [
+                        name for name in unknown_names
+                        if name and name in trans_lower
+                    ]
+                    if matched_unknown and he_count_trans > 0:
+                        issues.append({
+                            "chapter": ch_idx,
+                            "block": blk_idx,
+                            "block_id": block.get("id", ""),
+                            "issue": f"Source has {she_count_source}x 她, "
+                                     f"unknown-gender '{matched_unknown[0]}' "
+                                     f"present with he/him but no she/her",
+                            "severity": "info",
+                        })
 
                 # Flag: known female character name + "he/him" in same
                 # sentence with NO "she/her" anywhere in that sentence.
