@@ -519,6 +519,287 @@ def _sanitize_orphan_markers(data: Dict[str, Any]) -> int:
 
 
 # =============================================================================
+# HONORIFIC PROCESSING (6e italicization + 6f footnote injection)
+# =============================================================================
+
+# Honorific registry: pinyin → (ideogram, explanation for footnote)
+_HONORIFIC_REGISTRY = {
+    # Martial/Jianghu
+    "Shīxiōng": ("師兄", "Senior fellow disciple — a martial-arts brother who entered training under the same master earlier."),
+    "Shīdì": ("師弟", "Junior fellow disciple — a martial-arts brother who entered training under the same master later."),
+    "Shījiě": ("師姐", "Senior female fellow disciple under the same master."),
+    "Shīmèi": ("師妹", "Junior female fellow disciple under the same master."),
+    "Shīfù": ("師父", "One's own martial-arts master or teacher."),
+    "Shīshū": ("師叔", "Martial uncle — one's master's junior martial brother."),
+    "Shībó": ("師伯", "Martial uncle — one's master's senior martial brother."),
+    "Qiánbèi": ("前輩", "A respectful address for a senior or elder in the martial-arts world."),
+    "Wǎnbèi": ("晚輩", "A self-deprecating term meaning 'junior', used when addressing a martial-arts senior."),
+    "Shàoxiá": ("少俠", "Young hero — a respectful address for a promising young martial artist."),
+    "Dàxiá": ("大俠", "Great hero — an honorific for a renowned, righteous martial artist."),
+    "Nǚxiá": ("女俠", "Heroine or swordswoman — the female equivalent of a great hero."),
+    "Zhǎngmén": ("掌門", "Sect leader — the head of a martial-arts school or sect."),
+    "Méngzhǔ": ("盟主", "Alliance chief — the elected leader of a confederation of martial-arts sects."),
+    "Jiàozhǔ": ("教主", "Cult or sect master — the supreme leader of a religious or heterodox sect."),
+    "Bāngzhǔ": ("幫主", "Gang chief — the leader of a martial-arts gang or brotherhood."),
+    "Zhàizhǔ": ("寨主", "Stronghold chief — the leader of a mountain stronghold or bandit lair."),
+    "Zhuāngzhǔ": ("莊主", "Manor lord — the master of a martial-arts manor or estate."),
+    "Tángzhǔ": ("堂主", "Hall master — a sub-leader within a sect, heading one of its divisions."),
+    "Hùfǎ": ("護法", "Dharma protector — a guardian elder or enforcer within a sect."),
+    "Zhǎnglǎo": ("長老", "Elder — a senior rank within a martial-arts sect."),
+    # Family/Social
+    "Dàgē": ("大哥", "Elder brother — a familiar or sworn-brotherhood address."),
+    "Dàsǎo": ("大嫂", "Elder brother's wife or sister-in-law."),
+    "Sǎozi": ("嫂子", "Sister-in-law — an informal address for an elder brother's wife."),
+    "Bófù": ("伯父", "Uncle — specifically one's father's elder brother."),
+    "Bómǔ": ("伯母", "Aunt — specifically one's father's elder brother's wife."),
+    "Shūshu": ("叔叔", "Uncle — specifically one's father's younger brother."),
+    "Yímā": ("姨媽", "Aunt — specifically one's mother's sister."),
+    "Gūniáng": ("姑娘", "Miss — a respectful address for a young unmarried woman."),
+    "Xiǎojiě": ("小姐", "Miss — a more formal address for a young woman, often with surname."),
+    "Gōngzǐ": ("公子", "Young master or young lord — the son of a noble or wealthy family."),
+    "Shàoyé": ("少爺", "Young master — the young heir of a household."),
+    "Fūrén": ("夫人", "Madam or Lady — a respectful address for a married woman of status."),
+    "Tàitai": ("太太", "Madam or wife — a general address for a married woman."),
+    "Lǎo Tàitai": ("老太太", "Old madam — a respectful address for an elderly matriarch."),
+    "Lǎoyé": ("老爺", "My lord or your lordship — an address for an official or master of a household."),
+    "Yātou": ("丫頭", "Maidservant or girl — a familiar, sometimes affectionate address."),
+    # Imperial/Official
+    "Wángyé": ("王爺", "Prince or royal lord — a member of the imperial family holding a princely title."),
+    "Tàizǐ": ("太子", "Crown prince — the designated heir to the imperial throne."),
+    "Jiāngjūn": ("將軍", "General — a high-ranking military commander."),
+    "Dàrén": ("大人", "Lord or your excellency — a respectful address for a government official."),
+    "Shèngshàng": ("聖上", "His Majesty — a reverent address for the reigning emperor."),
+    # Religious
+    "Dàshī": ("大師", "Great master — a Buddhist honorific for a highly respected monk."),
+    "Fāngzhàng": ("方丈", "Abbot — the head of a Buddhist monastery."),
+    "Zhùchí": ("住持", "Abbot — an alternate title for the head of a Buddhist monastery."),
+    "Dàozhǎng": ("道長", "Taoist master — a respectful address for a senior Taoist priest."),
+    "Zhēnrén": ("真人", "Perfected one — a Taoist honorific for one who has attained spiritual mastery."),
+}
+
+_HONORIFIC_PINYIN = list(_HONORIFIC_REGISTRY.keys())
+
+# Build compiled regex: match honorific pinyin NOT already wrapped in *...*
+_HONORIFIC_RE = None
+
+
+def _build_honorific_regex():
+    """Build compiled regex for all honorific pinyin forms."""
+    global _HONORIFIC_RE
+    forms = sorted(_HONORIFIC_PINYIN, key=len, reverse=True)
+    escaped = [re.escape(f) for f in forms]
+    pattern = r"(?<!\*)(" + "|".join(escaped) + r")(?!\*)"
+    _HONORIFIC_RE = re.compile(pattern)
+
+
+# Also build a regex that matches both bare and italicized forms
+_HONORIFIC_ANY_RE = None
+
+
+def _build_honorific_any_regex():
+    """Build regex matching honorific pinyin whether or not italicized."""
+    global _HONORIFIC_ANY_RE
+    forms = sorted(_HONORIFIC_PINYIN, key=len, reverse=True)
+    escaped = [re.escape(f) for f in forms]
+    # Match with or without surrounding asterisks
+    pattern = r"\*?(" + "|".join(escaped) + r")\*?"
+    _HONORIFIC_ANY_RE = re.compile(pattern)
+
+
+def _italicize_honorifics(data: Dict[str, Any]) -> int:
+    """Wrap bare honorific pinyin in *asterisks* for italic rendering.
+
+    Returns number of honorific occurrences italicized.
+    """
+    if _HONORIFIC_RE is None:
+        _build_honorific_regex()
+
+    count = 0
+    chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+    for chapter in chapters:
+        for block in chapter.get("content_blocks", []):
+            text = block.get("translated_content", "")
+            if not text:
+                continue
+            new_text, n = _HONORIFIC_RE.subn(r"*\1*", text)
+            if n > 0:
+                block["translated_content"] = new_text
+                count += n
+    return count
+
+
+def _ensure_honorific_footnotes(data: Dict[str, Any]) -> int:
+    """Ensure every honorific has a footnote on its first occurrence.
+
+    Scans all chapters in order. For each honorific pinyin form found,
+    checks whether a footnote already exists (in that block or any prior
+    block). If not, injects a footnote on the first occurrence.
+
+    Returns number of footnotes injected.
+    """
+    if _HONORIFIC_ANY_RE is None:
+        _build_honorific_any_regex()
+
+    seen_honorifics: set = set()  # pinyin forms already footnoted
+    injected = 0
+
+    chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+
+    # First pass: collect which honorifics already have footnotes anywhere
+    for chapter in chapters:
+        for block in chapter.get("content_blocks", []):
+            for fn in block.get("footnotes", []):
+                ideogram = fn.get("ideogram", "")
+                # Check if this footnote's ideogram matches a known honorific
+                for pinyin, (ideo, _) in _HONORIFIC_REGISTRY.items():
+                    if ideogram == ideo:
+                        seen_honorifics.add(pinyin)
+
+    # Second pass: find first occurrence of each missing honorific, inject footnote
+    for chapter in chapters:
+        for block in chapter.get("content_blocks", []):
+            text = block.get("translated_content", "")
+            if not text:
+                continue
+
+            # Find all honorific matches in this block
+            for match in _HONORIFIC_ANY_RE.finditer(text):
+                pinyin = match.group(1)
+                if pinyin in seen_honorifics:
+                    continue
+                if pinyin not in _HONORIFIC_REGISTRY:
+                    continue
+
+                # This honorific needs a footnote — inject it
+                seen_honorifics.add(pinyin)
+                ideogram, explanation = _HONORIFIC_REGISTRY[pinyin]
+
+                fns = block.get("footnotes", [])
+                # Determine next footnote key for this block
+                existing_keys = [fn.get("key", 0) for fn in fns]
+                next_key = max(existing_keys, default=0) + 1
+
+                # Add footnote entry
+                fns.append({
+                    "key": next_key,
+                    "ideogram": ideogram,
+                    "pinyin": pinyin.lower(),
+                    "explanation": explanation,
+                })
+                block["footnotes"] = fns
+
+                # Insert [N] marker after the first occurrence in the text
+                marker = f"[{next_key}]"
+                pos = match.end()
+                block["translated_content"] = text[:pos] + marker + text[pos:]
+                # Update text for subsequent matches in this block
+                text = block["translated_content"]
+
+                injected += 1
+
+    return injected
+
+
+# Tone mark characters used to detect pinyin words
+_TONE_CHARS = set("āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜĀÁǍÀĒÉĚÈĪÍǏÌŌÓǑÒŪÚǓÙǕǗǙǛ")
+
+# Regex: a "word" containing at least one tone diacritic, possibly with
+# punctuation attached (commas, periods, parens, quotes, dashes).
+# We capture: optional leading punct + pinyin-word + optional trailing punct
+_PINYIN_WORD_RE = re.compile(
+    r'(?<!\*)'                  # not already preceded by *
+    r'([(\["\']*'               # optional leading punct/quotes
+    r'[A-Za-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜĀÁǍÀĒÉĚÈĪÍǏÌŌÓǑÒŪÚǓÙǕǗǙǛ]+'  # the word
+    r'[)\]"\',;.!?:—]*'        # optional trailing punct
+    r')'
+    r'(?!\*)'                   # not already followed by *
+)
+
+
+def _has_tone(word: str) -> bool:
+    """Check if a word contains pinyin tone diacritics."""
+    return any(c in _TONE_CHARS for c in word)
+
+
+def _italicize_pinyin_in_text(text: str) -> tuple[str, int]:
+    """Wrap bare pinyin words (containing tone marks) in *asterisks*.
+
+    Groups consecutive pinyin words into a single italic span:
+    "Wú Sānguì" → "*Wú Sānguì*" (not "*Wú* *Sānguì*")
+
+    Returns (new_text, count_of_spans_italicized).
+    """
+    if not text:
+        return text, 0
+
+    words = text.split(" ")
+    result = []
+    count = 0
+    i = 0
+
+    while i < len(words):
+        word = words[i]
+        # Strip surrounding asterisks to check if already italic
+        stripped = word.strip("*")
+
+        if _has_tone(stripped) and not (word.startswith("*") and word.endswith("*")):
+            # Start of a pinyin span — collect consecutive pinyin words
+            span = [word]
+            j = i + 1
+            while j < len(words):
+                next_stripped = words[j].strip("*")
+                if _has_tone(next_stripped) and not (words[j].startswith("*") and words[j].endswith("*")):
+                    span.append(words[j])
+                    j += 1
+                else:
+                    break
+
+            # Wrap the span in italics
+            span_text = " ".join(span)
+            # Strip leading/trailing punctuation outside the asterisks
+            # e.g. "(Sānguì," → "(*Sānguì*,"
+            leading = ""
+            inner = span_text
+            # Pull off leading punctuation
+            while inner and inner[0] in "([\"'":
+                leading += inner[0]
+                inner = inner[1:]
+            # Pull off trailing punctuation
+            trailing = ""
+            while inner and inner[-1] in ",.;:!?—)]\"\' ":
+                trailing = inner[-1] + trailing
+                inner = inner[:-1]
+            result.append(f"{leading}*{inner}*{trailing}")
+            count += 1
+            i = j
+        else:
+            result.append(word)
+            i += 1
+
+    return " ".join(result), count
+
+
+def _italicize_pinyin_in_footnotes(data: Dict[str, Any]) -> int:
+    """Italicize bare pinyin words in footnote explanations.
+
+    Returns number of footnotes modified.
+    """
+    modified = 0
+    chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+    for chapter in chapters:
+        for block in chapter.get("content_blocks", []):
+            for fn in block.get("footnotes", []):
+                expl = fn.get("explanation", "")
+                if not expl:
+                    continue
+                new_expl, n = _italicize_pinyin_in_text(expl)
+                if n > 0:
+                    fn["explanation"] = new_expl
+                    modified += 1
+    return modified
+
+
+# =============================================================================
 # BODY TRANSLATION PROCESSOR (Stage 1)
 # =============================================================================
 
@@ -758,6 +1039,63 @@ class CleanupProcessor(StageProcessor):
         except Exception as e:
             logger.error(f"    6d failed: {e}")
             errors.append(f"6d: {e}")
+
+        # 6e: Enforce italicized honorific pinyin
+        logger.info("  6e: Italicizing honorific pinyin...")
+        italicized_count = _italicize_honorifics(data)
+        if italicized_count:
+            logger.info(f"    6e italicized {italicized_count} honorific occurrences")
+        else:
+            logger.info("    6e: all honorifics already italicized")
+
+        # 6f: Ensure honorific footnotes on first occurrence
+        logger.info("  6f: Ensuring honorific footnotes...")
+        injected_count = _ensure_honorific_footnotes(data)
+        if injected_count:
+            logger.info(f"    6f injected {injected_count} missing honorific footnotes")
+        else:
+            logger.info("    6f: all honorifics already footnoted")
+
+        # 6g: Italicize pinyin in footnote explanations
+        logger.info("  6g: Italicizing pinyin in footnotes...")
+        fn_italicized = _italicize_pinyin_in_footnotes(data)
+        if fn_italicized:
+            logger.info(f"    6g italicized pinyin in {fn_italicized} footnotes")
+        else:
+            logger.info("    6g: all footnote pinyin already italicized")
+
+        # 6h: Consistency checks — dramatis personae, pinyin, gender, tense
+        logger.info("  6h: Consistency checks...")
+        try:
+            consistency_report = self._run_consistency_checks(data)
+            if consistency_report:
+                dp_count = len(consistency_report.get("dramatis_personae", []))
+                pinyin_issues = len(consistency_report.get("pinyin_variants", []))
+                gender_issues = len(consistency_report.get("gender_mismatches", []))
+                mixed_tense = len(consistency_report.get("mixed_tense_blocks", []))
+                logger.info(
+                    f"    6h: {dp_count} characters, "
+                    f"{pinyin_issues} pinyin variants, "
+                    f"{gender_issues} gender flags, "
+                    f"{mixed_tense} mixed-tense blocks"
+                )
+                # Stash report in data for validation stage
+                data.setdefault("_pipeline_reports", {})["consistency"] = consistency_report
+        except Exception as e:
+            logger.error(f"    6h failed: {e}")
+            errors.append(f"6h: {e}")
+
+        # 6i: Retranslate mixed-tense blocks with preceding context
+        logger.info("  6i: Retranslating mixed-tense blocks...")
+        try:
+            retranslated_6i = self._retranslate_mixed_tense(data)
+            if retranslated_6i:
+                logger.info(f"    6i retranslated {retranslated_6i} mixed-tense blocks")
+            else:
+                logger.info("    6i: no mixed-tense blocks to retranslate")
+        except Exception as e:
+            logger.error(f"    6i failed: {e}")
+            errors.append(f"6i: {e}")
 
         # Reposition misplaced markers (e.g. mid-word splits like Wǔ[14]zǐ)
         logger.info("  Repositioning misplaced markers...")
@@ -1074,6 +1412,481 @@ class CleanupProcessor(StageProcessor):
                 continue
 
         return trimmed
+
+    # -----------------------------------------------------------------
+    # 6h: Consistency checks — dramatis personae + pinyin + gender + tense
+    # -----------------------------------------------------------------
+
+    def _run_consistency_checks(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        6h: Build a dramatis personae via light AI call, then run
+        programmatic consistency scanners for pinyin, gender, and tense.
+
+        Returns a report dict with findings.
+        """
+        chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+        if not chapters:
+            return {}
+
+        # Step 1: Build dramatis personae (light AI)
+        dramatis = self._build_dramatis_personae(data)
+        data["_dramatis_personae"] = dramatis
+
+        # Step 2: Pinyin consistency scan
+        pinyin_variants = self._check_pinyin_consistency(chapters, dramatis)
+
+        # Step 3: Gender pronoun spot-check
+        gender_mismatches = self._check_gender_consistency(chapters, dramatis)
+
+        # Step 4: Tense scan — tag each block
+        mixed_tense_blocks = self._scan_tense(chapters)
+
+        return {
+            "dramatis_personae": dramatis,
+            "pinyin_variants": pinyin_variants,
+            "gender_mismatches": gender_mismatches,
+            "mixed_tense_blocks": mixed_tense_blocks,
+        }
+
+    # Known honorific/title tokens to exclude from name extraction
+    _HONORIFIC_TOKENS = {
+        "shīxiōng", "shīdì", "shījiě", "shīmèi", "shīfù", "shīshū",
+        "shībó", "qiánbèi", "wǎnbèi", "shàoxiá", "dàxiá", "nǚxiá",
+        "zhǎngmén", "méngzhǔ", "jiàozhǔ", "bāngzhǔ", "zhàizhǔ",
+        "zhuāngzhǔ", "tángzhǔ", "hùfǎ", "zhǎnglǎo", "dàgē", "dàsǎo",
+        "sǎozi", "bófù", "bómǔ", "shūshu", "yímā", "gūniáng", "xiǎojiě",
+        "gōngzǐ", "shàoyé", "fūrén", "tàitai", "lǎoyé", "yātou",
+        "wángyé", "tàizǐ", "jiāngjūn", "dàrén", "shèngshàng",
+        "dàshī", "fāngzhàng", "zhùchí", "dàozhǎng", "zhēnrén",
+        "gōnggong", "xiānggōng", "guǎnjiā", "shàozhàizhǔ",
+        "jūshì", "lángzhōng", "xiānshēng", "dàyuánshuài",
+        # Additional titles/honorifics that leaked through in testing
+        "dàyé", "bóbó", "fó", "miàn", "cáizhǔ", "bānzhǔ",
+        "shīgē", "shìxiōng",
+    }
+
+    def _build_dramatis_personae(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Extract proper names from translated text and footnotes, then use a
+        light AI call to cluster them into characters with canonical spelling,
+        gender, and aliases.
+        """
+        from openai import OpenAI
+
+        chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+
+        # Collect all pinyin proper names (capitalized words with tone diacritics)
+        tone_chars = set("āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ")
+        name_counts: Dict[str, int] = {}
+
+        for chapter in chapters:
+            for block in chapter.get("content_blocks", []):
+                text = block.get("translated_content", "")
+                # Find capitalized words with tone marks
+                tokens = re.findall(r"[A-ZÀ-Ý\u0100-\u01FF][a-zà-ÿ\u0100-\u01FF'ʼ]+", text)
+                for token in tokens:
+                    # Strip possessive 's before counting
+                    clean = re.sub(r"['ʼ]s$", "", token)
+                    if not clean:
+                        continue
+                    if any(c in tone_chars for c in clean):
+                        name_counts[clean] = name_counts.get(clean, 0) + 1
+
+        # Filter out known honorifics and single-syllable tokens (likely fragments)
+        filtered_names: Dict[str, int] = {}
+        for name, count in name_counts.items():
+            if name.lower() in self._HONORIFIC_TOKENS:
+                continue
+            # Skip very short tokens (single syllable like "Hú", "Lǐ") unless
+            # they appear 5+ times — these are likely surnames used alone
+            if len(name) <= 3 and count < 5:
+                continue
+            if count >= 2:
+                filtered_names[name] = count
+
+        # Also collect names from footnotes
+        footnote_names = []
+        for chapter in chapters:
+            for block in chapter.get("content_blocks", []):
+                for fn in block.get("footnotes", []):
+                    ideogram = fn.get("ideogram", "")
+                    explanation = fn.get("explanation", "")
+                    if ideogram and explanation:
+                        footnote_names.append(f"{ideogram}: {explanation}")
+
+        if not filtered_names:
+            return []
+
+        # Light AI call to cluster names into characters
+        client = OpenAI()
+        # Sort by frequency descending so the model sees important names first
+        sorted_names = sorted(filtered_names.items(), key=lambda x: -x[1])
+        name_list = ", ".join(f"{n} ({c}x)" for n, c in sorted_names[:150])
+        fn_context = "\n".join(footnote_names[:80])
+
+        prompt = (
+            "Below are pinyin names extracted from a translated Chinese wuxia novel "
+            "(with occurrence counts), plus footnote context.\n\n"
+            "YOUR TASK: Group these into individual CHARACTERS (people in the story). "
+            "Cluster different spellings and name forms that refer to the same person.\n\n"
+            "CRITICAL RULES:\n"
+            "- Each entry = ONE person. Do NOT merge two different characters.\n"
+            "- Chinese names have SURNAME + GIVEN NAME. 'Cáo Yúnqí' and 'Miáo Ruòlán' "
+            "are DIFFERENT people (different surnames: Cáo vs Miáo). Do NOT merge them.\n"
+            "- A given name alone (e.g. 'Ruòlán') is an alias for the full name "
+            "(e.g. 'Miáo Ruòlán'), NOT a separate character.\n"
+            "- A surname alone (e.g. 'Miáo') used 50x is likely the same person "
+            "referred to by surname only.\n"
+            "- EXCLUDE place names (mountains, cities, provinces, lakes, regions)\n"
+            "- EXCLUDE honorific/title words (Shīxiōng, Gūniáng, Dàshī, Gōnggong, "
+            "Xiānggōng, Dàyé, Wángyé, etc.)\n"
+            "- EXCLUDE common nouns, martial arts terms, religious terms (Fó, Chán)\n"
+            "- INCLUDE only actual fictional or historical PEOPLE\n\n"
+            "GENDER RULES:\n"
+            "- Only mark 'female' if you have STRONG evidence: 姑娘/小姐/夫人/三娘/嫂 "
+            "in the name or footnotes, or the character is a well-known female figure.\n"
+            "- Only mark 'male' if you have strong evidence: 公子/少爺/大俠 markers, "
+            "or the character is a well-known male figure.\n"
+            "- When in doubt, say 'unknown'. Wrong gender is worse than unknown.\n\n"
+            "ALIASES:\n"
+            "- List spelling variants from the name list that refer to this person "
+            "(e.g. different romanizations, surname-only, given-name-only).\n"
+            "- Do NOT put different people's names as aliases of each other.\n\n"
+            "Names: " + name_list + "\n\n"
+            "Footnote context:\n" + fn_context + "\n\n"
+            'Return JSON: {"characters": [{"canonical": "Surname Givenname", '
+            '"ideogram": "漢字", "gender": "male|female|unknown", '
+            '"aliases": ["Givenname", "Surname"]}, ...]}\n'
+        )
+
+        try:
+            resp = client.chat.completions.create(
+                model="gpt-4.1-mini",
+                temperature=0.1,
+                response_format={"type": "json_object"},
+                messages=[{"role": "user", "content": prompt}],
+            )
+            result = json.loads(resp.choices[0].message.content.strip())
+            characters = result.get("characters", [])
+            logger.info(f"    Dramatis personae: {len(characters)} characters identified")
+            return characters
+        except Exception as e:
+            logger.warning(f"    Dramatis personae AI call failed: {e}")
+            return []
+
+    def _check_pinyin_consistency(
+        self, chapters: List[Dict], dramatis: List[Dict]
+    ) -> List[Dict[str, Any]]:
+        """
+        Check that each character's name is spelled consistently throughout.
+        Uses the dramatis personae aliases to detect variants.
+        Also does a second pass: scan all blocks for pinyin tokens and group
+        by stripped-diacritic form to catch variants the AI missed.
+        """
+        issues = []
+
+        # Pass 1: Check dramatis personae aliases
+        for char in dramatis:
+            canonical = char.get("canonical", "")
+            aliases = [a for a in char.get("aliases", []) if a != canonical]
+            # Normalize: strip possessives from aliases
+            clean_aliases = list({re.sub(r"['ʼ]s$", "", a) for a in aliases} - {canonical})
+            if clean_aliases:
+                issues.append({
+                    "character": canonical,
+                    "variants": clean_aliases,
+                    "recommendation": f"Standardize to '{canonical}' throughout",
+                })
+
+        # Pass 2: Scan all blocks for pinyin variants by base form
+        import unicodedata
+        tone_chars = set("āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ")
+
+        def strip_diacritics(s: str) -> str:
+            nfkd = unicodedata.normalize("NFKD", s)
+            return "".join(c for c in nfkd if not unicodedata.combining(c)).lower()
+
+        pinyin_groups: Dict[str, Dict[str, int]] = {}  # base → {variant: count}
+        for chapter in chapters:
+            for block in chapter.get("content_blocks", []):
+                text = block.get("translated_content", "")
+                tokens = re.findall(
+                    r"[A-ZÀ-Ý\u0100-\u01FF][a-zà-ÿ\u0100-\u01FF'ʼ]+", text
+                )
+                for token in tokens:
+                    clean = re.sub(r"['ʼ]s$", "", token)
+                    if not any(c in tone_chars for c in clean):
+                        continue
+                    if clean.lower() in self._HONORIFIC_TOKENS:
+                        continue
+                    base = strip_diacritics(clean)
+                    pinyin_groups.setdefault(base, {})
+                    pinyin_groups[base][clean] = pinyin_groups[base].get(clean, 0) + 1
+
+        # Flag groups with multiple surface forms (true pinyin inconsistency)
+        already_reported = {i["character"] for i in issues}
+        for base, variants in pinyin_groups.items():
+            if len(variants) <= 1:
+                continue
+            # Pick the most frequent as canonical
+            sorted_v = sorted(variants.items(), key=lambda x: -x[1])
+            canonical_v = sorted_v[0][0]
+            if canonical_v in already_reported:
+                continue
+            other_forms = [v for v, _ in sorted_v[1:]]
+            issues.append({
+                "character": canonical_v,
+                "variants": other_forms,
+                "counts": dict(sorted_v),
+                "recommendation": f"Standardize to '{canonical_v}' throughout",
+            })
+
+        return issues
+
+    def _check_gender_consistency(
+        self, chapters: List[Dict], dramatis: List[Dict]
+    ) -> List[Dict[str, Any]]:
+        """
+        For each block, cross-reference pronoun usage against source 她/他.
+        Flag blocks where source has 她 but translation has no she/her,
+        or where a known female character is referred to with he/him.
+        """
+        # Build set of known female character names — only use
+        # multi-syllable names (8+ chars) to avoid false positives from
+        # short surnames or fragments. Require canonical to be a plausible
+        # full name (contains a space or apostrophe, or 6+ chars).
+        female_names = set()
+        for char in dramatis:
+            if char.get("gender") == "female":
+                canonical = char.get("canonical", "")
+                is_full_name = (
+                    " " in canonical or "'" in canonical or len(canonical) >= 6
+                )
+                if is_full_name:
+                    female_names.add(canonical.lower())
+                for alias in char.get("aliases", []):
+                    if len(alias) >= 6:
+                        female_names.add(alias.lower())
+
+        issues = []
+        for ch_idx, chapter in enumerate(chapters):
+            for blk_idx, block in enumerate(chapters[ch_idx].get("content_blocks", [])):
+                source = block.get("content", "")
+                translated = block.get("translated_content", "")
+                if not source or not translated:
+                    continue
+
+                # Count gendered pronouns in source
+                she_count_source = source.count("她")
+                he_count_source = source.count("他")
+
+                # Count in translation (outside quotes for accuracy)
+                trans_lower = translated.lower()
+                she_count_trans = (
+                    trans_lower.count(" she ")
+                    + trans_lower.count(" her ")
+                    + trans_lower.count(" hers ")
+                )
+                he_count_trans = (
+                    trans_lower.count(" he ")
+                    + trans_lower.count(" him ")
+                    + trans_lower.count(" his ")
+                )
+
+                # Flag: source has 2+ 她 but translation has zero she/her
+                # (single 她 can legitimately map to a different sentence or
+                # be inside quoted speech referring to someone else)
+                if she_count_source >= 2 and she_count_trans == 0:
+                    issues.append({
+                        "chapter": ch_idx,
+                        "block": blk_idx,
+                        "block_id": block.get("id", ""),
+                        "issue": f"Source has {she_count_source}x 她 but "
+                                 f"translation has 0 she/her",
+                        "severity": "warning",
+                    })
+
+                # Flag: known female character name + "he/him" in same
+                # sentence with NO "she/her" anywhere in that sentence.
+                # Only flag full-name matches (2+ syllable) to avoid
+                # false positives from single-syllable surname matches.
+                if female_names:
+                    # Strip quoted speech — pronouns inside quotes may
+                    # refer to characters the speaker is discussing
+                    narration = re.sub(r'"[^"]*"', '', translated)
+                    narration = re.sub(r'\u201c[^\u201d]*\u201d', '', narration)
+                    sentences = re.split(r'[.!?]', narration)
+                    for sent in sentences:
+                        sent_lower = sent.lower()
+                        # Only match names with 2+ syllables (5+ chars)
+                        has_female_name = any(
+                            name in sent_lower
+                            for name in female_names
+                            if name and len(name) >= 5
+                        )
+                        has_he = " he " in sent_lower or " him " in sent_lower
+                        has_she = " she " in sent_lower or " her " in sent_lower
+                        if has_female_name and has_he and not has_she:
+                            issues.append({
+                                "chapter": ch_idx,
+                                "block": blk_idx,
+                                "block_id": block.get("id", ""),
+                                "issue": f"Female character + 'he/him' without "
+                                         f"'she/her' in sentence",
+                                "severity": "warning",
+                                "snippet": sent.strip()[:100],
+                            })
+        return issues
+
+    def _scan_tense(self, chapters: List[Dict]) -> List[Dict[str, Any]]:
+        """
+        Scan each translated block for tense consistency.
+        Tags each block with detected_tense: "past", "present", or "mixed".
+        Returns list of mixed-tense blocks for 6i retranslation.
+        """
+        # Narrative past-tense verbs (irregular forms that are unambiguous)
+        past_markers = re.compile(
+            r'\b(said|went|came|stood|drew|struck|turned|looked|asked|replied|'
+            r'answered|walked|ran|fell|thought|knew|saw|heard|felt|took|gave|'
+            r'held|pulled|pushed|threw|caught|brought|fought|leaped|laughed|'
+            r'cried|whispered|shouted|nodded|shook|bowed|raised|lowered|'
+            r'stepped|moved|grabbed|slashed|pierced|dodged|landed|'
+            r'retreated|advanced|rushed|charged|appeared|vanished|continued|'
+            r'exclaimed|murmured|muttered|sighed|gasped|groaned|snorted|'
+            r'was|were|had|did|could|would)\b'
+        )
+        # Present-tense verbs (third-person singular narrative forms)
+        present_markers = re.compile(
+            r'\b(says|goes|comes|stands|draws|strikes|turns|looks|asks|replies|'
+            r'answers|walks|runs|falls|thinks|knows|sees|hears|feels|takes|gives|'
+            r'holds|pulls|pushes|throws|catches|brings|fights|leaps|laughs|'
+            r'cries|whispers|shouts|nods|shakes|bows|raises|lowers|'
+            r'steps|moves|grabs|slashes|pierces|dodges|lands|'
+            r'retreats|advances|rushes|charges|appears|vanishes|continues|'
+            r'exclaims|murmurs|mutters|sighs|gasps|groans|snorts)\b'
+        )
+        # Ambiguous words that can be nouns, adjectives, or present tense —
+        # exclude from counting to reduce false positives
+        # (is/are/has/does/can/will/blocks removed — too ambiguous)
+
+        mixed_blocks = []
+
+        for ch_idx, chapter in enumerate(chapters):
+            for blk_idx, block in enumerate(chapter.get("content_blocks", [])):
+                translated = block.get("translated_content", "")
+                if not translated or len(translated) < 80:
+                    block["detected_tense"] = "short"
+                    continue
+
+                # Strip ALL quoted speech (straight and curly quotes)
+                narration = re.sub(r'"[^"]*"', '', translated)
+                narration = re.sub(r'\u201c[^\u201d]*\u201d', '', narration)
+                # Also strip single-quoted speech
+                narration = re.sub(r"\u2018[^\u2019]*\u2019", '', narration)
+                narration = re.sub(r"'[^']*'", '', narration)
+
+                past_count = len(past_markers.findall(narration))
+                present_count = len(present_markers.findall(narration))
+                total = past_count + present_count
+
+                # Need at least 5 verb signals to make a judgment
+                if total < 5:
+                    block["detected_tense"] = "insufficient"
+                    continue
+
+                past_ratio = past_count / total
+                present_ratio = present_count / total
+
+                if past_ratio >= 0.85:
+                    block["detected_tense"] = "past"
+                elif present_ratio >= 0.85:
+                    block["detected_tense"] = "present"
+                else:
+                    block["detected_tense"] = "mixed"
+                    mixed_blocks.append({
+                        "chapter": ch_idx,
+                        "block": blk_idx,
+                        "block_id": block.get("id", ""),
+                        "past_count": past_count,
+                        "present_count": present_count,
+                        "ratio": f"{past_ratio:.0%} past / {present_ratio:.0%} present",
+                    })
+
+        return mixed_blocks
+
+    # -----------------------------------------------------------------
+    # 6i: Retranslate mixed-tense blocks with preceding paragraph context
+    # -----------------------------------------------------------------
+
+    def _retranslate_mixed_tense(self, data: Dict[str, Any]) -> int:
+        """
+        For blocks tagged 'mixed' tense, retranslate with the previous
+        block's translation as context so the model can match tense.
+        Returns count of retranslated blocks.
+        """
+        chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+        retranslated = 0
+
+        translator = TranslationService(
+            model=self.config.model,
+            temperature=self.config.temperature,
+            genre=self.config.genre,
+            author=self.config.author,
+        )
+
+        for chapter in chapters:
+            blocks = chapter.get("content_blocks", [])
+            for i, block in enumerate(blocks):
+                if block.get("detected_tense") != "mixed":
+                    continue
+
+                source_text = block.get("content", "")
+                if not source_text:
+                    continue
+
+                # Get previous block's translation for context
+                preceding_context = ""
+                if i > 0:
+                    prev_translated = blocks[i - 1].get("translated_content", "")
+                    if prev_translated:
+                        # Last 300 chars to keep prompt short
+                        preceding_context = prev_translated[-300:]
+
+                # Build augmented translation request
+                context_prefix = ""
+                if preceding_context:
+                    context_prefix = (
+                        "[CONTEXT — preceding paragraph's translation, "
+                        "for tense consistency. Match its tense:]\n"
+                        f'"{preceding_context}"\n\n'
+                        "[NOW TRANSLATE THIS BLOCK:]\n"
+                    )
+
+                try:
+                    response = translator.translate_from_dict({
+                        "content_text_id": block.get("id", 0),
+                        "content_source_text": context_prefix + source_text,
+                    })
+                    annotated = response.get("translated_annotated_content", {})
+                    new_text = annotated.get("annotated_content_text", "")
+                    new_footnotes = annotated.get("footnotes", [])
+
+                    if new_text:
+                        block["translated_content"] = new_text
+                        block["footnotes"] = new_footnotes
+                        block["detected_tense"] = "retranslated"
+                        block["_retranslated_reason"] = "mixed_tense"
+                        retranslated += 1
+                        logger.info(
+                            f"    Retranslated block {block.get('id', '?')} "
+                            f"(was mixed tense)"
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"    Failed to retranslate block {block.get('id', '?')}: {e}"
+                    )
+
+        return retranslated
 
 
 # =============================================================================
@@ -1673,8 +2486,24 @@ def main():
         type=int, default=0,
         help="Skip first N chapters (default: 0). Use with --chapters for chunked runs.",
     )
+    parser.add_argument(
+        "--log-file",
+        default=None,
+        help="Write full log to this file (in addition to stderr)",
+    )
 
     args = parser.parse_args()
+
+    # Set up file logging if requested, or auto-create one
+    log_path = args.log_file
+    if not log_path:
+        log_dir = Path("/tmp")
+        log_path = str(log_dir / f"translation_{args.work_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+    file_handler = logging.FileHandler(log_path, encoding="utf-8")
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    logging.getLogger().addHandler(file_handler)
+    logger.info(f"Logging to: {log_path}")
 
     config = OrchestrationConfig(
         start_stage=args.start_stage,

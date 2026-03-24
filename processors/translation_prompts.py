@@ -37,9 +37,14 @@ _MECHANICAL_RULES = """
 
 1. **ZERO Chinese characters in output** — the text must contain NO ideograms (漢字). Render every term as English, pinyin, or both. No exceptions. Scan your output before returning.
 
-2. **Pinyin with tone marks on EVERY syllable** — character names, place names, technical terms. "Yún Lěi" not "Yun Lei". "Hénán" not "Henan". Zero exceptions.
+2. **Pinyin with tone marks on EVERY syllable — non-negotiable.** Character names, place names, honorifics, technical terms — ALL pinyin MUST carry correct tone diacritics. "Yún Lěi" not "Yun Lei". "Hénán" not "Henan". "Shīxiōng" not "Shixiong". Use the standard diacritics: ā á ǎ à, ē é ě è, ī í ǐ ì, ō ó ǒ ò, ū ú ǔ ù, ǖ ǘ ǚ ǜ. Scan your ENTIRE output for any bare pinyin syllables missing tone marks before returning. Zero exceptions.
 
-3. **Tense — simple past, consistently.** Pluperfect only when sequence genuinely requires it.
+   **CONSISTENCY:** Each name/term must be spelled IDENTICALLY every time it appears. Pick one romanization and stick with it. Common failures:
+   - Spacing: "Xuěshān Fēihú" not sometimes "Xuě Shān Fēi Hú"
+   - Apostrophes: "Qín'ér" consistently, not sometimes "Qín Ér" or "Qín'er"
+   - Diacritic placement: "Miáo" not "Míao" (the tone mark goes on the main vowel per standard pinyin rules: a/e always take the mark; otherwise the second vowel in a pair)
+
+3. **Tense — be scrupulous about tense consistency within each paragraph.** Narrative voice should not drift between past and present within a paragraph. If you start narrating in past tense, do not slip into present mid-paragraph. Direct speech inside quotation marks and embedded generalizations (proverbs, known facts) are exempt. Pluperfect only when sequence genuinely requires it.
 
 4. **Italics (*asterisks*)** — ONLY for untranslated foreign terms/concepts. NEVER italicize character names or place names.
 
@@ -49,6 +54,78 @@ _MECHANICAL_RULES = """
    - NEVER create footnotes that spoil/foreshadow plot events or explain symbolism
 
 5a. **NAME ACCURACY — non-negotiable.** Every personal name, courtesy name, posthumous name, and title MUST match the source characters exactly. Cross-check your pinyin against the ideograms before returning. A fabricated or conflated identification is worse than no footnote at all. If uncertain, transliterate faithfully and say so — do NOT invent.
+
+5b. **GENDER PRONOUNS — read the source carefully.** Chinese distinguishes 他 (he), 她 (she), and 它 (it). Use the pronoun that matches the source character. Do NOT default to "he" — many key characters in wuxia are women (female warriors, heroines, swordswomen, maidservants). If the source uses 她, the translation MUST use "she/her/hers".
+
+   COMMON FAILURE MODE: In scenes with both men and women, the model drifts to "he" for everyone after a few paragraphs. TRACK each character's gender throughout the passage. When you see 她 in the source, stop and verify your pronoun matches.
+
+   Female character markers: 姑娘, 小姐, 夫人, 女, 嫂, 丫鬟, 婦, 奶媽 all indicate female characters. If a character was introduced with these terms, they remain female throughout.
+
+5d. **POLYSEMOUS TERMS — read context, not just characters.**
+   - 公公 (gōnggong): In imperial/palace context = eunuch. In family/casual context = grandpa, elderly man, father-in-law. When a child or young woman addresses someone as X公公, it almost always means "Grandpa X" or "Old Man X" — NOT eunuch.
+   - 化子/叫化子 (huàzi/jiàohuāzi): beggar, mendicant. NOT alchemist (煉丹師). 叫化雞 = "beggar's chicken" — this is a common word.
+   - 郎中 (lángzhōng): itinerant physician, folk doctor. NOT a court physician (太醫).
+   - 先生 (xiānshēng): teacher, mister, doctor — context-dependent.
+   Do NOT default to the rarest or most exotic meaning. Choose the meaning that fits the social context of the scene.
+
+5e. **DO NOT fabricate proper names from common words.** Chinese demonstratives (那, 這, 那個), directional words (左, 右, 上, 下), and descriptive terms (長, 大, 小) are NOT surnames or given names unless the text explicitly introduces them as such. 那義兄 = "that sworn brother", NOT "Brother Nà Yì". 右僮 = "the right-hand servant", NOT a person named "Yòu Tóng".
+
+5c. **HONORIFICS — transliterate as italicized pinyin and footnote on first occurrence.** Chinese honorifics encode social relationships, rank, and respect. TRANSLITERATE them as pinyin and ITALICIZE the honorific portion with asterisks — e.g. "Ruǎn *Shīxiōng*", "Miáo *Gūniáng*", "Bǎoshù *Dàshī*", "Táo *Zhàizhǔ*". The personal name stays roman; only the honorific is italicized. Do NOT translate them to English ("Senior Brother Ruǎn"). Keep the pinyin form consistent throughout the work. The FIRST time each honorific appears, footnote it explaining the relationship it encodes.
+
+   **Martial/Jianghu titles:**
+   - 師兄 (shīxiōng) — senior fellow disciple (same master, entered training earlier)
+   - 師弟 (shīdì) — junior fellow disciple
+   - 師姐/師妹 (shījiě/shīmèi) — female equivalents
+   - 師父/師傅 (shīfù) — one's own martial-arts master/teacher
+   - 師叔 (shīshū) — master's junior martial brother
+   - 師伯 (shībó) — master's senior martial brother
+   - 前輩 (qiánbèi) — senior/elder (addressing a martial-arts veteran)
+   - 晚輩 (wǎnbèi) — junior (self-deprecating address)
+   - 少俠 (shàoxiá) — young hero
+   - 大俠 (dàxiá) — great hero
+   - 女俠 (nǚxiá) — heroine / swordswoman
+   - 掌門 (zhǎngmén) — sect leader
+   - 盟主 (méngzhǔ) — alliance chief
+   - 教主 (jiàozhǔ) — cult/sect master
+   - 幫主 (bāngzhǔ) — gang chief
+   - 寨主 (zhàizhǔ) — stronghold chief / bandit leader
+   - 莊主 (zhuāngzhǔ) — manor lord
+   - 堂主 (tángzhǔ) — hall master (sub-leader within a sect)
+   - 護法 (hùfǎ) — dharma protector / guardian elder
+   - 長老 (zhǎnglǎo) — elder (sect rank)
+
+   **Family/Social:**
+   - 大哥 (dàgē) — elder brother (sworn or familiar)
+   - 大嫂 (dàsǎo) — elder brother's wife / sister-in-law
+   - 嫂子 (sǎozi) — sister-in-law
+   - 伯父/伯母 (bófù/bómǔ) — uncle/aunt (father's elder brother's side)
+   - 叔叔 (shūshu) — uncle (father's younger brother)
+   - 姨媽 (yímā) — aunt (mother's sister)
+   - 姑娘 (gūniáng) — miss / young unmarried woman
+   - 小姐 (xiǎojiě) — miss (more formal)
+   - 公子 (gōngzǐ) — young master / young lord
+   - 少爺 (shàoyé) — young master (of a household)
+   - 夫人 (fūrén) — madam / lady (married woman of status)
+   - 太太 (tàitai) — madam / wife
+   - 老太太 (lǎo tàitai) — old madam / grandmother figure
+   - 老爺 (lǎoyé) — my lord / your lordship
+   - 丫鬟/丫頭 (yātou) — maidservant / girl (familiar, can be affectionate)
+
+   **Imperial/Official:**
+   - 王爺 (wángyé) — prince / royal lord
+   - 太子 (tàizǐ) — crown prince
+   - 將軍 (jiāngjūn) — general
+   - 大人 (dàrén) — lord / your excellency (addressing an official)
+   - 聖上 (shèngshàng) — His Majesty / the Emperor
+
+   **Religious:**
+   - 大師 (dàshī) — great master (Buddhist monk)
+   - 方丈 (fāngzhàng) — abbot
+   - 住持 (zhùchí) — abbot (alternate)
+   - 道長 (dàozhǎng) — Taoist master/priest
+   - 真人 (zhēnrén) — perfected one (Taoist honorific)
+
+   These honorifics are NOT on the suppress list — they SHOULD be footnoted on first use.
 
 6. **Footnote markers** — CRITICAL:
    - Every footnote MUST have a [N] marker in annotated_content_text
