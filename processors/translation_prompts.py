@@ -70,6 +70,16 @@ _MECHANICAL_RULES = """
 
 5e. **DO NOT fabricate proper names from common words.** Chinese demonstratives (那, 這, 那個), directional words (左, 右, 上, 下), and descriptive terms (長, 大, 小) are NOT surnames or given names unless the text explicitly introduces them as such. 那義兄 = "that sworn brother", NOT "Brother Nà Yì". 右僮 = "the right-hand servant", NOT a person named "Yòu Tóng".
 
+5f. **WEAPON TERMINOLOGY — Chinese hoplological taxonomy.**
+   Chinese classifies bladed weapons by EDGE GEOMETRY, not by length:
+   - 刀 (dāo) = single-edged blade of ANY length → "sabre" in combat contexts. NEVER "knife" or "dagger" for a weapon.
+   - 劍/剑 (jiàn) = double-edged blade → "sword" or "straight sword"
+   - 短刀 (duǎndāo) = short sabre, NOT "dagger". A 短刀 is still a dāo (single-edged).
+   - 匕首 (bǐshǒu) = dagger (the ONLY term correctly translated as "dagger")
+   - 大刀 (dàdāo) = great sabre / two-handed sabre, NOT "big knife"
+   - 朴刀 (pōdāo/pǔdāo) = a type of long-handled sabre, NOT "simple knife"
+   The glossary context will provide specific translations for compound weapon terms — use them exactly.
+
 5c. **HONORIFICS — transliterate as italicized pinyin and footnote on first occurrence.** Chinese honorifics encode social relationships, rank, and respect. TRANSLITERATE them as pinyin and ITALICIZE the honorific portion with asterisks — e.g. "Ruǎn *Shīxiōng*", "Miáo *Gūniáng*", "Bǎoshù *Dàshī*", "Táo *Zhàizhǔ*". The personal name stays roman; only the honorific is italicized. Do NOT translate them to English ("Senior Brother Ruǎn"). Keep the pinyin form consistent throughout the work. The FIRST time each honorific appears, footnote it explaining the relationship it encodes.
 
    **Martial/Jianghu titles:**

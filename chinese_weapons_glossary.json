@@ -1,0 +1,946 @@
+{
+  "metadata": {
+    "title": "Chinese Weapons Glossary for LLM Translation",
+    "version": "1.0.0",
+    "purpose": "Reference glossary to prevent mistranslation of Chinese weapon terminology in wuxia/martial arts fiction. Intended for injection into LLM translation pipelines as system-level context.",
+    "usage_note": "When encountering any weapon term in the source text, the translator MUST consult this glossary before rendering into English. The Chinese hoplological taxonomy classifies bladed weapons primarily by EDGE GEOMETRY (single-edge vs. double-edge), NOT by length or function as in European hoplology. This is the single most common source of translation error.",
+    "key_taxonomic_principle": "刀 (dāo) = single-edged blade of ANY length. 剑 (jiàn) = double-edged blade of ANY length. The dāo/jiàn distinction is about edge count, not about size. A 刀 can be a paring knife or a two-handed anti-cavalry weapon. Translating 刀 as 'knife' or 'dagger' is almost always wrong in a martial arts context.",
+    "sources": [
+      "Wikipedia: Dao (Chinese sword), Jian, Eighteen Arms of Wushu",
+      "Mandarin Mansion (mandarinmansion.com) — Peter Dekker's typology of Chinese sabers",
+      "Great Ming Military (greatmingmilitary.blogspot.com)",
+      "WuxiaSociety.com weapon articles",
+      "Immortal Mountain glossary of wuxia/xianxia terms",
+      "Philip Tom, 'Some Notable Sabers of the Qing Dynasty', Metropolitan Museum Journal 36 (2001)",
+      "Sprague, M. Chinese Swords: The Evolution and Use of the Jian and Dao (2013)",
+      "Yang, J.M. Ancient Chinese Weapons: A Martial Arts Guide (1999)",
+      "Huangchao Liqi Tushi (皇朝禮器圖式, 1766)"
+    ]
+  },
+
+  "taxonomic_categories": {
+    "description": "The fundamental classification system for Chinese weapons. The 'Four Major Weapons' (四大兵器) form the core; the 'Eighteen Arms of Wushu' (十八般兵器) form the extended canonical set.",
+    "four_major_weapons": ["刀 dāo (single-edged blade)", "剑 jiàn (double-edged blade)", "枪 qiāng (spear)", "棍 gùn (staff)"],
+    "epithets": {
+      "百兵之王": { "pinyin": "bǎi bīng zhī wáng", "meaning": "King of a Hundred Weapons", "refers_to": "枪 qiāng (spear) — in military/technical contexts" },
+      "百兵之君": { "pinyin": "bǎi bīng zhī jūn", "meaning": "Lord/Sovereign of a Hundred Weapons", "refers_to": "剑 jiàn — in literary/wuxia contexts" },
+      "百兵之帅": { "pinyin": "bǎi bīng zhī shuài", "meaning": "Marshal of a Hundred Weapons", "refers_to": "刀 dāo — in literary/wuxia contexts" },
+      "百兵之祖": { "pinyin": "bǎi bīng zhī zǔ", "meaning": "Ancestor/Elder of a Hundred Weapons", "refers_to": "棍 gùn (staff)" },
+      "note": "These epithets vary across texts and periods. In wuxia fiction, the jian-as-king and dao-as-lord pairing is a literary convention encoding character archetypes: the refined scholar-hero (jian) vs. the pragmatic warrior (dao). This is NOT a strict historical military classification."
+    }
+  },
+
+  "weapons": [
+
+    {
+      "id": "dao_generic",
+      "chinese_simplified": "刀",
+      "chinese_traditional": "刀",
+      "pinyin": "dāo",
+      "category": "single-edged blade (generic)",
+      "correct_translations": ["sabre", "saber", "single-edged sword", "blade"],
+      "acceptable_contextual_translations": ["knife (ONLY when the object is clearly a small cutting implement, e.g., kitchen knife, paring knife)"],
+      "common_mistranslations": ["knife (when referring to a weapon)", "dagger", "broadsword (imprecise but semi-acceptable)"],
+      "description": "Generic term for ANY single-edged bladed implement. In martial arts and military contexts, this almost always refers to a sword-length or longer weapon. The character 刀 is used both for the weapon category and as a component in compound terms for specific subtypes.",
+      "translation_rule": "DEFAULT to 'sabre' or 'saber' in martial arts/combat contexts. Use 'knife' ONLY when context makes clear the object is a small utilitarian cutting tool (e.g., 菜刀 càidāo = kitchen knife/cleaver). When in doubt, use 'sabre'. NEVER translate as 'dagger' unless the source text explicitly specifies a very short concealed blade (匕首 bǐshǒu is the correct term for dagger).",
+      "wuxia_connotation": "The dao is associated with directness, pragmatism, military competence, and sometimes lower social status compared to the jian. Dao-wielding characters are often soldiers, wandering fighters, or anti-heroes."
+    },
+
+    {
+      "id": "jian",
+      "chinese_simplified": "剑",
+      "chinese_traditional": "劍",
+      "pinyin": "jiàn",
+      "category": "double-edged blade",
+      "correct_translations": ["sword", "straight sword", "double-edged sword"],
+      "common_mistranslations": ["blade (too vague)", "rapier (wrong entirely — different geometry and tradition)"],
+      "description": "A straight, double-edged sword. The blade is typically narrow and optimized for thrusting, cutting with either edge, and precise technique. Historically associated with aristocracy, scholars, and Daoist practitioners. In wuxia, it is the prestige weapon.",
+      "translation_rule": "Translate as 'sword'. If disambiguation from dāo is needed in context, use 'straight sword' or 'double-edged sword'. The jian is THE default 'sword' in Chinese martial arts.",
+      "wuxia_connotation": "The jian encodes refinement, moral uprightness, scholarly martial arts, orthodox school affiliation. Jian-wielding characters are typically scholar-heroes, Daoist cultivators, or members of prestigious sects."
+    },
+
+    {
+      "id": "liuyedao",
+      "chinese_simplified": "柳叶刀",
+      "chinese_traditional": "柳葉刀",
+      "pinyin": "liǔyèdāo",
+      "category": "single-edged blade (subtype of dāo)",
+      "correct_translations": ["willow-leaf sabre", "willow-leaf saber"],
+      "common_mistranslations": ["willow knife", "willow blade"],
+      "description": "The most common form of Chinese sabre from the Ming dynasty onward. Features a moderate curve along the entire blade length, resembling a willow leaf. Standard military sidearm for both infantry and cavalry, replacing the yanmaodao. This is the 'default' dāo in most wuxia set from Ming onward.",
+      "translation_rule": "Translate as 'willow-leaf sabre'. If the source text uses only 刀 without qualification but the setting is Ming or later, the weapon depicted is likely a liuyedao."
+    },
+
+    {
+      "id": "yanmaodao",
+      "chinese_simplified": "雁毛刀",
+      "chinese_traditional": "雁毛刀",
+      "pinyin": "yànmáodāo",
+      "also_known_as": ["雁翎刀 yànlíngdāo (goose-feather sabre/goose-quill sabre)"],
+      "category": "single-edged blade (subtype of dāo)",
+      "correct_translations": ["goose-quill sabre", "goose-feather sabre"],
+      "common_mistranslations": ["goose knife", "feather blade"],
+      "description": "A transitional form between the straight-backed dāo and fully curved sabres. The blade is mostly straight with a slight curve near the tip. Originated during the Ming dynasty, fell out of common use by mid-Qing. The term yànlíngdāo (雁翎刀) appears in classical literature and is likely the historical term; yànmáodāo is primarily collector's jargon.",
+      "translation_rule": "Translate as 'goose-quill sabre' or 'goose-feather sabre'. Preserve the avian metaphor — it is a deliberate blade-profile descriptor, not mere decoration."
+    },
+
+    {
+      "id": "piandao",
+      "chinese_simplified": "㓲刀",
+      "chinese_traditional": "㓲刀",
+      "pinyin": "piāndāo",
+      "category": "single-edged blade (subtype of dāo)",
+      "correct_translations": ["slicing sabre", "slashing sabre"],
+      "common_mistranslations": ["slicing knife", "slashing knife"],
+      "description": "A deeply curved sabre optimized for draw-cutting and slicing. Resembles the Persian shamshir or Middle Eastern scimitar. One of the rarest Chinese sabre types. Primarily used by specialized shield-bearing skirmisher units during Ming and Qing. Distinguished from liuyedao by its deeper curvature and slicing (rather than percussive cutting) action.",
+      "translation_rule": "Translate as 'slicing sabre'. This is a specialist military weapon, not a kitchen implement."
+    },
+
+    {
+      "id": "niuweidao",
+      "chinese_simplified": "牛尾刀",
+      "chinese_traditional": "牛尾刀",
+      "pinyin": "niúwěidāo",
+      "category": "single-edged blade (subtype of dāo)",
+      "correct_translations": ["oxtail sabre", "oxtail saber"],
+      "common_mistranslations": ["oxtail knife", "broadsword (imprecise but historically tolerated)"],
+      "description": "A heavy-bladed sabre with a characteristic flaring tip that widens toward the end, resembling an ox tail. First recorded in the early 19th century (late Qing). Exclusively a CIVILIAN weapon — no record of military issue. This is the archetypal 'Chinese broadsword' of kung fu cinema. Popular among martial artists, rebels, and civilians.",
+      "translation_rule": "Translate as 'oxtail sabre'. The term 'broadsword' is semi-acceptable in informal contexts given its ubiquity in kung fu film subtitles, but 'oxtail sabre' is more precise."
+    },
+
+    {
+      "id": "dadao",
+      "chinese_simplified": "大刀",
+      "chinese_traditional": "大刀",
+      "pinyin": "dàdāo",
+      "category": "single-edged blade (large, two-handed)",
+      "correct_translations": ["great sabre", "great saber", "Chinese great sword (acceptable in some contexts)"],
+      "common_mistranslations": ["big knife", "big sword", "machete"],
+      "description": "A large, heavy, single-edged blade with a broad falchion-like profile. Dates from the Song dynasty. Used both as a two-handed infantry weapon and (with a longer handle) as a polearm. Famously wielded by Chinese militia units against Japanese forces in the 1930s (the 'Dadao teams'). In wuxia, it signals raw power and directness.",
+      "translation_rule": "Translate as 'great sabre'. NEVER 'big knife'."
+    },
+
+    {
+      "id": "changdao",
+      "chinese_simplified": "长刀",
+      "chinese_traditional": "長刀",
+      "pinyin": "chángdāo",
+      "category": "single-edged blade (two-handed, long)",
+      "correct_translations": ["long sabre", "two-handed sabre"],
+      "common_mistranslations": ["long knife", "longsword (this implies a European double-edged weapon)"],
+      "description": "A large, two-handed single-edged sword used primarily during the Ming dynasty against steppe cavalry and coastal pirates (wokou). Functionally similar to the Japanese nodachi/ōdachi in length and two-handed use, though structurally distinct.",
+      "translation_rule": "Translate as 'long sabre' or 'two-handed sabre'. Do NOT use 'longsword' — that term implies a European Oakeshott-type double-edged weapon."
+    },
+
+    {
+      "id": "zhanmadao",
+      "chinese_simplified": "斩马刀",
+      "chinese_traditional": "斬馬刀",
+      "pinyin": "zhǎnmǎdāo",
+      "category": "single-edged blade (anti-cavalry, two-handed)",
+      "correct_translations": ["horse-chopping sabre", "horse-cutting sabre"],
+      "common_mistranslations": ["horse-chopping knife", "horse-slaying sword"],
+      "description": "A long, two-handed single-edged blade designed specifically for anti-cavalry use — cutting the legs of enemy horses. Dates from the Song dynasty. The name is literal and functional: 斩 (chop/behead) + 马 (horse) + 刀 (sabre).",
+      "translation_rule": "Translate as 'horse-chopping sabre'. The literal name is both accurate and vivid; preserve it."
+    },
+
+    {
+      "id": "duandao",
+      "chinese_simplified": "短刀",
+      "chinese_traditional": "短刀",
+      "pinyin": "duǎndāo",
+      "category": "single-edged blade (short)",
+      "correct_translations": ["short sabre", "short saber"],
+      "common_mistranslations": ["dagger", "knife", "short knife", "short sword"],
+      "description": "A compact, single-edged weapon generally in the shape of a liuyedao but shorter (typically under 100cm total length). This is a SHORT SABRE, not a dagger. It has a full grip, guard, and blade geometry consistent with a sabre — it is simply shorter than standard. The term 短 (short) modifies 刀 (sabre), it does not transform the weapon category.",
+      "translation_rule": "ALWAYS translate as 'short sabre'. NEVER as 'dagger' or 'knife'. This is the EXACT mistranslation pattern this glossary exists to prevent. A 匕首 (bǐshǒu) is a dagger. A 短刀 is a short sabre."
+    },
+
+    {
+      "id": "bishou",
+      "chinese_simplified": "匕首",
+      "chinese_traditional": "匕首",
+      "pinyin": "bǐshǒu",
+      "category": "short blade / dagger",
+      "correct_translations": ["dagger", "dirk"],
+      "common_mistranslations": ["knife (too vague)", "short sword (too large)"],
+      "description": "THIS is the actual Chinese term for a dagger — a short, concealable thrusting weapon. Distinguished from 短刀 (short sabre) by its small size, lack of a full guard, and concealment function. Often classified under 暗器 (hidden weapons) when used for assassination or surprise attack.",
+      "translation_rule": "Translate as 'dagger'. This is the ONLY standard Chinese weapon term that correctly maps to 'dagger'."
+    },
+
+    {
+      "id": "guandao",
+      "chinese_simplified": "关刀",
+      "chinese_traditional": "關刀",
+      "pinyin": "guāndāo",
+      "also_known_as": ["偃月刀 yǎnyuèdāo (reclining-moon blade)", "青龙偃月刀 qīnglóng yǎnyuèdāo (Green Dragon Crescent Blade — the legendary weapon of Guan Yu)"],
+      "category": "polearm (single-edged blade on long shaft)",
+      "correct_translations": ["guandao", "Guan's sabre (in reference to Guan Yu)", "crescent-blade halberd (functional description)"],
+      "common_mistranslations": ["halberd (technically different — a halberd is a 戟 jǐ)", "glaive (closest European analogue but still structurally distinct)", "Guan Yu's knife"],
+      "description": "A polearm with a heavy, curved, single-edged blade mounted on a long wooden shaft. Named after the legendary Three Kingdoms general Guan Yu (关羽). The blade profile resembles a reclining crescent moon. Although 刀 is in the name (because the blade is single-edged), this is a POLEARM, not a one-handed weapon.",
+      "translation_rule": "Translate as 'guandao' (romanized, no translation) or 'crescent-blade polearm'. The weapon is iconic enough in wuxia to warrant keeping the Chinese term. If the text references the specific legendary weapon of Guan Yu (青龙偃月刀), translate as 'Green Dragon Crescent Blade'."
+    },
+
+    {
+      "id": "pudao",
+      "chinese_simplified": "朴刀",
+      "chinese_traditional": "朴刀",
+      "pinyin": "pǔdāo",
+      "category": "polearm (single-edged blade on medium shaft)",
+      "correct_translations": ["pudao", "long-handled sabre"],
+      "common_mistranslations": ["simple knife", "plain knife"],
+      "description": "A polearm with a curved, single-edged blade on a medium-length handle. Shorter than a guandao, longer than a standard dao. Versatile weapon used for slashing, chopping, and thrusting. Common among lower-ranking soldiers and jianghu fighters in wuxia fiction. Appears prominently in Water Margin (水浒传).",
+      "translation_rule": "Translate as 'pudao' (romanized) or 'long-handled sabre'. NEVER as 'plain knife'."
+    },
+
+    {
+      "id": "shuangshoujian",
+      "chinese_simplified": "双手剑",
+      "chinese_traditional": "雙手劍",
+      "pinyin": "shuāngshǒujiàn",
+      "category": "double-edged blade (two-handed)",
+      "correct_translations": ["two-handed sword", "great sword (double-edged)"],
+      "common_mistranslations": ["double sword (this means two swords, not a two-handed one)"],
+      "description": "A large, double-edged straight sword requiring two hands. Rare but appears in wuxia fiction, particularly in association with powerful or unorthodox techniques.",
+      "translation_rule": "Translate as 'two-handed sword'. Distinguish carefully from 双剑 (shuāngjiàn = 'paired swords' / 'twin swords' = two swords wielded simultaneously)."
+    },
+
+    {
+      "id": "shuangjian",
+      "chinese_simplified": "双剑",
+      "chinese_traditional": "雙劍",
+      "pinyin": "shuāngjiàn",
+      "category": "double-edged blade (paired)",
+      "correct_translations": ["paired swords", "twin swords"],
+      "common_mistranslations": ["double sword (ambiguous)", "two-handed sword (completely wrong)"],
+      "description": "Two swords wielded simultaneously, one in each hand. A distinctive fighting style in wuxia fiction, often associated with couples who fight together (husband-and-wife sword techniques) or with elegant, complex swordsmanship.",
+      "translation_rule": "Translate as 'paired swords' or 'twin swords'. NEVER confuse with 双手剑 (two-handed sword)."
+    },
+
+    {
+      "id": "shuangdao",
+      "chinese_simplified": "双刀",
+      "chinese_traditional": "雙刀",
+      "pinyin": "shuāngdāo",
+      "category": "single-edged blade (paired)",
+      "correct_translations": ["paired sabres", "twin sabres"],
+      "common_mistranslations": ["double knife", "twin knives"],
+      "description": "Two single-edged sabres wielded simultaneously. In some traditions, paired butterfly swords (蝴蝶刀 húdiédāo) fall under this category.",
+      "translation_rule": "Translate as 'paired sabres' or 'twin sabres'."
+    },
+
+    {
+      "id": "hudiedao",
+      "chinese_simplified": "蝴蝶刀",
+      "chinese_traditional": "蝴蝶刀",
+      "pinyin": "húdiédāo",
+      "category": "single-edged blade (short, paired)",
+      "correct_translations": ["butterfly swords", "butterfly sabres"],
+      "common_mistranslations": ["butterfly knives (this refers to a balisong/folding knife in English)", "butterfly blades"],
+      "description": "Short, single-edged swords typically wielded in pairs. Associated with Southern Chinese martial arts, particularly Wing Chun and Hung Gar. Each blade is approximately forearm-length with a single edge and a D-shaped guard.",
+      "translation_rule": "Translate as 'butterfly swords'. CRITICAL: Do NOT translate as 'butterfly knives' — in English, 'butterfly knife' exclusively refers to the balisong (a folding knife with two rotating handles). This is a completely different weapon."
+    },
+
+    {
+      "id": "qiang",
+      "chinese_simplified": "枪",
+      "chinese_traditional": "槍",
+      "pinyin": "qiāng",
+      "category": "polearm (thrusting)",
+      "correct_translations": ["spear", "lance (acceptable in some mounted combat contexts)"],
+      "common_mistranslations": ["gun (the modern meaning of 枪 is 'gun/firearm', but in wuxia context it ALWAYS means spear)", "rifle"],
+      "description": "The Chinese spear, traditionally adorned with a red tassel behind the spearhead. The tassel is functional: it obscures the spearhead's exact position and prevents blood from making the shaft slippery. The shaft is typically flexible (waxwood), giving the weapon a characteristic whipping action. Called the 'King of Weapons' (百兵之王) in martial arts tradition.",
+      "translation_rule": "ALWAYS translate as 'spear' in wuxia/historical contexts. In modern/contemporary settings, 枪 means 'gun'. Context determines everything. The red tassel (红缨 hóngyīng) is a distinguishing feature — if mentioned, translate as 'red-tasseled spear'."
+    },
+
+    {
+      "id": "gun",
+      "chinese_simplified": "棍",
+      "chinese_traditional": "棍",
+      "pinyin": "gùn",
+      "category": "polearm (impact)",
+      "correct_translations": ["staff", "quarterstaff"],
+      "common_mistranslations": ["stick (too diminutive)", "rod (too vague)", "cudgel (different weapon — see 棒 bàng)"],
+      "description": "A long wooden staff, typically around 6 feet (1.8m). One of the four major weapons. Strongly associated with Shaolin Temple martial arts. Called the 'Ancestor/Elder of Weapons' (百兵之祖). The quintessential weapon of Buddhist warrior-monks in wuxia fiction.",
+      "translation_rule": "Translate as 'staff'. For Sun Wukong's weapon (如意金箍棒 rúyì jīn gū bàng), note that this is technically a 棒 (bàng), not a 棍 (gùn) — see separate entry."
+    },
+
+    {
+      "id": "bang",
+      "chinese_simplified": "棒",
+      "chinese_traditional": "棒",
+      "pinyin": "bàng",
+      "category": "polearm (impact, heavy)",
+      "correct_translations": ["cudgel", "club"],
+      "common_mistranslations": ["staff (different weapon — 棍 gùn is staff)", "stick"],
+      "description": "A shorter, heavier striking weapon than the staff (棍). More emphasis on percussive force than the longer, more versatile staff. The distinction matters: 棍 techniques emphasize sweeping, deflecting, and flowing movements; 棒 techniques emphasize direct striking power.",
+      "translation_rule": "Translate as 'cudgel'. Distinguish from 棍 (staff)."
+    },
+
+    {
+      "id": "ji",
+      "chinese_simplified": "戟",
+      "chinese_traditional": "戟",
+      "pinyin": "jǐ",
+      "category": "polearm (compound blade)",
+      "correct_translations": ["halberd", "Chinese halberd", "ji (romanized)"],
+      "common_mistranslations": ["spear (different weapon)", "lance"],
+      "description": "A polearm combining a spearhead with a single-edged or crescent-shaped blade mounted at right angles to the shaft. This allows both thrusting and sweeping/hooking attacks. One of the oldest Chinese military weapons, dating to the Shang dynasty. In wuxia, associated with great warriors (Lü Bu's 方天画戟 fāngtiān huà jǐ, the 'Sky Piercer', is the most famous example).",
+      "translation_rule": "Translate as 'halberd'. While not a perfect mapping to the European halberd (which has an axe blade rather than a crescent), this is the established convention and is close enough functionally."
+    },
+
+    {
+      "id": "fangtianhuaji",
+      "chinese_simplified": "方天画戟",
+      "chinese_traditional": "方天畫戟",
+      "pinyin": "fāngtiān huà jǐ",
+      "category": "polearm (compound blade, legendary)",
+      "correct_translations": ["Sky Piercer", "Heaven-square painted halberd", "Fang Tian Hua Ji (romanized)"],
+      "common_mistranslations": ["square-sky halberd (too literal, loses the literary register)"],
+      "description": "A legendary halberd associated with Lü Bu (吕布), the supreme warrior of the Three Kingdoms period. Features a crescent-shaped blade on each side of the spearhead, giving it a distinctive symmetrical profile. One of the most iconic weapons in Chinese literary tradition.",
+      "translation_rule": "In wuxia translation, either romanize as 'Fang Tian Hua Ji' or use an established literary translation like 'Sky Piercer'. If translating the name literally, 'Heaven-square painted halberd' captures the components."
+    },
+
+    {
+      "id": "fu",
+      "chinese_simplified": "斧",
+      "chinese_traditional": "斧",
+      "pinyin": "fǔ",
+      "category": "impact/chopping weapon",
+      "correct_translations": ["axe", "hatchet (if small)"],
+      "common_mistranslations": ["rarely mistranslated"],
+      "description": "A single-bladed chopping weapon. Comes in one-handed (hand axe) and two-handed (battle axe) varieties. In wuxia fiction, associated with rough, powerful, often lower-class fighters. Sometimes paired (双斧 shuāngfǔ = paired axes).",
+      "translation_rule": "Translate as 'axe'."
+    },
+
+    {
+      "id": "yue",
+      "chinese_simplified": "钺",
+      "chinese_traditional": "鉞",
+      "pinyin": "yuè",
+      "category": "impact/chopping weapon (ceremonial/heavy)",
+      "correct_translations": ["battle-axe", "greataxe", "ceremonial axe"],
+      "common_mistranslations": ["axe (technically distinct — the 钺 is larger and often ceremonial)"],
+      "description": "A large axe, often with a broad crescent-shaped blade. Historically, the yuè was a symbol of military authority and used in executions. Larger and heavier than the standard fǔ (axe). In wuxia, it signals raw power and often a villainous or intimidating character.",
+      "translation_rule": "Translate as 'battle-axe' or 'greataxe' to distinguish from the standard 斧 (axe)."
+    },
+
+    {
+      "id": "gou",
+      "chinese_simplified": "钩",
+      "chinese_traditional": "鉤",
+      "pinyin": "gōu",
+      "category": "exotic weapon (hooked blade)",
+      "correct_translations": ["hook sword", "hook swords (usually paired)"],
+      "common_mistranslations": ["hook (too vague — could be a fishhook)"],
+      "description": "A sword with a hooked tip and a crescent-shaped guard. Almost always wielded in pairs (双钩 shuānggōu). The hooks can interlock to extend reach, and the crescent guards can be used for parrying and slashing. One of the most distinctive Chinese weapons with no close European analogue.",
+      "translation_rule": "Translate as 'hook sword' or 'hook swords'. Retain 'hook sword' as a compound noun — do not decompose into 'hooked sword' (which implies a different modification)."
+    },
+
+    {
+      "id": "cha",
+      "chinese_simplified": "叉",
+      "chinese_traditional": "叉",
+      "pinyin": "chā",
+      "category": "polearm (multi-pronged)",
+      "correct_translations": ["trident", "military fork"],
+      "common_mistranslations": ["fork (too domestic)"],
+      "description": "A three-pronged polearm. Functionally similar to a European trident or military fork. Used for thrusting, trapping, and disarming. In wuxia, sometimes associated with aquatic settings or unorthodox fighters.",
+      "translation_rule": "Translate as 'trident'."
+    },
+
+    {
+      "id": "bian_whip",
+      "chinese_simplified": "鞭",
+      "chinese_traditional": "鞭",
+      "pinyin": "biān",
+      "category": "flexible weapon / rigid segmented weapon",
+      "correct_translations": ["chain whip (if segmented metal)", "whip (if leather/rope)", "steel whip (if rigid metal rod)"],
+      "common_mistranslations": ["whip (ambiguous — there are TWO completely different weapons called 鞭)"],
+      "description": "CRITICAL DISAMBIGUATION: 鞭 (biān) refers to TWO entirely different weapons in Chinese martial arts: (1) A FLEXIBLE chain whip (九节鞭 jiǔjiébiān = 'nine-section whip') made of connected metal segments. (2) A RIGID steel rod or mace (铁鞭 tiěbiān) resembling a metal truncheon, sometimes with ridges. Context determines which is meant. The chain whip is more common in wuxia fiction.",
+      "translation_rule": "If the weapon is described as flexible, segmented, or whip-like in use: translate as 'chain whip'. If the weapon is described as rigid, heavy, or used for bludgeoning: translate as 'steel whip' or 'iron whip'. If ambiguous, default to 'chain whip' in wuxia contexts."
+    },
+
+    {
+      "id": "jian_mace",
+      "chinese_simplified": "锏",
+      "chinese_traditional": "鐧",
+      "pinyin": "jiǎn",
+      "category": "impact weapon (rigid metal rod)",
+      "correct_translations": ["mace", "iron mace", "metal truncheon"],
+      "common_mistranslations": ["sword (confusion with 剑 jiàn — different character and tone!)"],
+      "description": "A rigid metal rod weapon, sometimes with flanges or ridges. Used for bludgeoning through armor. CRITICAL: Do NOT confuse 锏 (jiǎn, third tone, mace) with 剑 (jiàn, fourth tone, sword). They are homophones in some romanization systems but completely different weapons and characters.",
+      "translation_rule": "Translate as 'mace'. Pay careful attention to the character — 锏 (metal radical 钅) vs. 剑 (blade radical 刂)."
+    },
+
+    {
+      "id": "chui",
+      "chinese_simplified": "锤",
+      "chinese_traditional": "錘",
+      "pinyin": "chuí",
+      "category": "impact weapon",
+      "correct_translations": ["hammer", "war hammer"],
+      "common_mistranslations": ["mallet (too domestic)"],
+      "description": "A heavy, blunt impact weapon. Can be a single large hammer or paired smaller hammers. In wuxia, often wielded by physically powerful characters and associated with brute strength. The meteor hammer (流星锤 liúxīngchuí) is a variant with a weight on a chain.",
+      "translation_rule": "Translate as 'hammer' or 'war hammer'."
+    },
+
+    {
+      "id": "liuxingchui",
+      "chinese_simplified": "流星锤",
+      "chinese_traditional": "流星錘",
+      "pinyin": "liúxīngchuí",
+      "category": "flexible weapon (weighted chain)",
+      "correct_translations": ["meteor hammer"],
+      "common_mistranslations": ["shooting star (too literal and loses the weapon identity)", "flail (different weapon)"],
+      "description": "A weight (iron ball) attached to a rope or chain, swung to strike at range. Can have weights on both ends. A flexible weapon requiring significant skill to avoid self-injury. In wuxia, associated with unorthodox or itinerant fighters.",
+      "translation_rule": "Translate as 'meteor hammer'. This is the established English term in martial arts literature."
+    },
+
+    {
+      "id": "sanjiegun",
+      "chinese_simplified": "三节棍",
+      "chinese_traditional": "三節棍",
+      "pinyin": "sānjiégùn",
+      "category": "flexible weapon (segmented staff)",
+      "correct_translations": ["three-section staff"],
+      "common_mistranslations": ["nunchaku (different weapon — that is 双节棍 shuāngjiégùn, two-section staff)", "three-part staff"],
+      "description": "A staff divided into three equal sections connected by metal rings or rope. Combines the range of a staff with the unpredictability of a flexible weapon. Can be used as a full-length staff (sections aligned) or as a flail-like weapon.",
+      "translation_rule": "Translate as 'three-section staff'."
+    },
+
+    {
+      "id": "shuangjiegun",
+      "chinese_simplified": "双节棍",
+      "chinese_traditional": "雙節棍",
+      "pinyin": "shuāngjiégùn",
+      "category": "flexible weapon (segmented staff, short)",
+      "correct_translations": ["nunchaku", "two-section staff"],
+      "common_mistranslations": ["three-section staff (different weapon)"],
+      "description": "Two short sticks connected by a chain or rope. Popularized globally by Bruce Lee films. The Chinese term literally means 'two-section staff'. While 'nunchaku' is the Japanese-derived English term, the weapon has Chinese origins.",
+      "translation_rule": "Translate as 'nunchaku' (the globally recognized term) or 'two-section staff' (more literal). Either is acceptable."
+    },
+
+    {
+      "id": "shan",
+      "chinese_simplified": "扇",
+      "chinese_traditional": "扇",
+      "pinyin": "shàn",
+      "category": "exotic weapon / concealed weapon",
+      "correct_translations": ["fan", "war fan", "iron fan (if metal)"],
+      "common_mistranslations": ["rarely mistranslated, but sometimes the martial function is lost"],
+      "description": "A folding fan modified for combat. Metal ribs, sharpened edges, or hidden blades are common. In wuxia, the fan is the quintessential weapon of the scholar-fighter — someone who appears non-threatening but is actually deadly. Associated with elegance, intelligence, and deception.",
+      "translation_rule": "Translate as 'fan' when context makes the martial use clear. Add 'war fan' or 'iron fan' (铁扇 tiěshàn) when disambiguation is needed."
+    },
+
+    {
+      "id": "zhua",
+      "chinese_simplified": "抓",
+      "chinese_traditional": "抓",
+      "pinyin": "zhuā",
+      "category": "exotic weapon (clawed)",
+      "correct_translations": ["claw", "talon", "eagle claw"],
+      "common_mistranslations": ["grab (the verb meaning of 抓)"],
+      "description": "A weapon shaped like an animal's claw or talon, mounted on a handle or chain. Used for raking, gripping, and tearing. Associated with eagle claw (鹰爪 yīngzhǎo) martial arts styles.",
+      "translation_rule": "Translate as 'claw' or 'talon'. If on a chain/rope, translate as 'flying claw' (飞爪 fēizhǎo)."
+    },
+
+    {
+      "id": "shuo",
+      "chinese_simplified": "槊",
+      "chinese_traditional": "槊",
+      "pinyin": "shuò",
+      "category": "polearm (heavy lance)",
+      "correct_translations": ["lance", "heavy spear", "cavalry lance"],
+      "common_mistranslations": ["spear (distinct from 枪 qiāng — the 槊 is heavier and specifically for mounted combat)"],
+      "description": "A heavy cavalry lance, longer and more robust than the standard qiāng (spear). Designed for mounted combat and charging. Associated with elite cavalry warriors in historical and wuxia fiction.",
+      "translation_rule": "Translate as 'lance' or 'heavy lance' to distinguish from 枪 (spear)."
+    },
+
+    {
+      "id": "guai",
+      "chinese_simplified": "拐",
+      "chinese_traditional": "拐",
+      "pinyin": "guǎi",
+      "category": "exotic weapon (L-shaped)",
+      "correct_translations": ["crutch", "tonfa", "L-shaped baton"],
+      "common_mistranslations": ["cane (different weapon — see 杖 zhàng)"],
+      "description": "An L-shaped baton weapon. Functionally similar to the Okinawan tonfa. Can be used for striking, blocking, and joint manipulation. Sometimes associated with elderly or disabled martial artists who disguise their weapon as a walking aid.",
+      "translation_rule": "Translate as 'crutch' (traditional) or 'tonfa' (if the reader is likely familiar with Okinawan/Japanese martial arts terminology)."
+    },
+
+    {
+      "id": "tang",
+      "chinese_simplified": "镋",
+      "chinese_traditional": "鎲",
+      "pinyin": "tǎng",
+      "category": "polearm (multi-pronged, heavy)",
+      "correct_translations": ["trident-halberd", "tang (romanized)"],
+      "common_mistranslations": ["trident (close but not identical — 镋 has additional side-blades)"],
+      "description": "A heavy polearm with a central spearhead flanked by two upward-curving blades or prongs, plus additional crescent-shaped guards. Heavier and more complex than a standard trident (叉). Associated with temple guardians and powerful fighters in wuxia fiction.",
+      "translation_rule": "Translate as 'trident-halberd' or romanize as 'tang'. The weapon is sufficiently exotic that romanization may be clearer than an imprecise English equivalent."
+    },
+
+    {
+      "id": "yueyachan",
+      "chinese_simplified": "月牙铲",
+      "chinese_traditional": "月牙鏟",
+      "pinyin": "yuèyáchǎn",
+      "category": "polearm (compound, Buddhist)",
+      "correct_translations": ["monk's spade", "crescent-moon spade"],
+      "common_mistranslations": ["shovel (loses the weapon identity entirely)"],
+      "description": "A polearm with a spade-like blade on one end and a crescent-shaped blade on the other. Strongly associated with Buddhist warrior-monks. The spade end was historically used for burying the dead (a Buddhist duty), while the crescent end served as a weapon. This dual function encodes the Buddhist tension between compassion and martial necessity.",
+      "translation_rule": "Translate as 'monk's spade'. This is the established English term."
+    },
+
+    {
+      "id": "anqi",
+      "chinese_simplified": "暗器",
+      "chinese_traditional": "暗器",
+      "pinyin": "ànqì",
+      "category": "concealed/projectile weapons (category)",
+      "correct_translations": ["hidden weapons", "concealed weapons", "secret weapons"],
+      "common_mistranslations": ["dark weapons (too literal and misleading)"],
+      "description": "A broad CATEGORY, not a single weapon. Encompasses all concealed or projectile weapons: throwing darts (飞镖 fēibiāo), throwing needles (飞针 fēizhēn), sleeve arrows (袖箭 xiùjiàn), flying daggers (飞刀 fēidāo), poison needles, coin projectiles, and elaborately constructed trap weapons. A major element of wuxia fiction — hidden weapon specialists are a recognized martial archetype.",
+      "translation_rule": "Translate as 'hidden weapons' (the category). For specific subtypes, translate individually."
+    },
+
+    {
+      "id": "feibiao",
+      "chinese_simplified": "飞镖",
+      "chinese_traditional": "飛鏢",
+      "pinyin": "fēibiāo",
+      "category": "concealed weapon (projectile)",
+      "correct_translations": ["throwing dart", "dart"],
+      "common_mistranslations": ["shuriken (Japanese term — avoid unless deliberately code-switching)"],
+      "description": "Small metal projectiles designed for throwing. Various shapes: flat, star-shaped, needle-like. A core hidden weapon in wuxia fiction.",
+      "translation_rule": "Translate as 'throwing dart' or simply 'dart'."
+    },
+
+    {
+      "id": "feidao",
+      "chinese_simplified": "飞刀",
+      "chinese_traditional": "飛刀",
+      "pinyin": "fēidāo",
+      "category": "concealed weapon (projectile, single-edged)",
+      "correct_translations": ["throwing knife", "flying knife"],
+      "common_mistranslations": ["flying sword (completely different — 飞剑 fēijiàn is a Daoist magical ability)"],
+      "description": "A small, single-edged blade designed for throwing. In wuxia, often the signature weapon of a specialist. The most famous example is Li Xunhuan's (李寻欢) flying knife in Gu Long's novel 多情剑客无情剑.",
+      "translation_rule": "Translate as 'throwing knife' or 'flying knife'. CRITICAL: Do NOT confuse with 飞剑 (fēijiàn = 'flying sword'), which is a MAGICAL ability in xianxia fiction where a cultivator propels a sword through the air using internal energy."
+    },
+
+    {
+      "id": "feijian",
+      "chinese_simplified": "飞剑",
+      "chinese_traditional": "飛劍",
+      "pinyin": "fēijiàn",
+      "category": "magical ability (NOT a weapon type)",
+      "correct_translations": ["flying sword", "sword flight"],
+      "common_mistranslations": ["flying knife (completely different — see 飞刀)", "throwing sword"],
+      "description": "NOT a thrown weapon. This is a supernatural ability in xianxia/cultivation fiction where a practitioner telekinetically controls a sword, sending it through the air to attack enemies or using it as transportation (riding the flying sword). This is a MAGICAL technique, not a weapon category.",
+      "translation_rule": "Translate as 'flying sword'. Always preserve the supernatural connotation. This is NOT a thrown weapon."
+    },
+
+    {
+      "id": "gong",
+      "chinese_simplified": "弓",
+      "chinese_traditional": "弓",
+      "pinyin": "gōng",
+      "category": "ranged weapon",
+      "correct_translations": ["bow"],
+      "common_mistranslations": ["rarely mistranslated"],
+      "description": "The Chinese composite recurve bow. In wuxia, archery skill is sometimes highlighted but swordsmanship usually takes precedence as a marker of martial prowess.",
+      "translation_rule": "Translate as 'bow'."
+    },
+
+    {
+      "id": "nu",
+      "chinese_simplified": "弩",
+      "chinese_traditional": "弩",
+      "pinyin": "nǔ",
+      "category": "ranged weapon (mechanical)",
+      "correct_translations": ["crossbow"],
+      "common_mistranslations": ["bow (different weapon)"],
+      "description": "The Chinese crossbow. China developed repeating crossbows (诸葛弩 Zhūgě nǔ, attributed to Zhuge Liang) that could fire multiple bolts rapidly. In wuxia, crossbows and crossbow traps are common as ambush weapons or defenses in fortified locations.",
+      "translation_rule": "Translate as 'crossbow'. For 诸葛弩, translate as 'repeating crossbow' or 'Zhuge crossbow'."
+    },
+
+    {
+      "id": "zhang",
+      "chinese_simplified": "杖",
+      "chinese_traditional": "杖",
+      "pinyin": "zhàng",
+      "category": "impact weapon (walking stick/cane)",
+      "correct_translations": ["cane", "walking staff", "walking stick"],
+      "common_mistranslations": ["staff (different weapon — 棍 gùn is the combat staff)", "stick"],
+      "description": "A walking cane or stick used as a weapon. Shorter than a combat staff (棍 gùn). In wuxia, strongly associated with elderly masters or figures who conceal their martial ability behind an appearance of infirmity. A 杖 may conceal a hidden blade (仕女杖 = sword-cane).",
+      "translation_rule": "Translate as 'cane' or 'walking staff'. Distinguish from 棍 (combat staff)."
+    },
+
+    {
+      "id": "suo",
+      "chinese_simplified": "索",
+      "chinese_traditional": "索",
+      "pinyin": "suǒ",
+      "category": "flexible weapon",
+      "correct_translations": ["rope", "lasso", "binding rope"],
+      "common_mistranslations": ["chain (different — 链 liàn is chain)"],
+      "description": "A rope or cord used as a weapon for binding, tripping, or strangling. Sometimes weighted or fitted with hooks. In wuxia/xianxia, magical binding ropes (捆仙索 kùnxiānsuǒ = 'immortal-binding rope') are powerful artifacts.",
+      "translation_rule": "Translate as 'rope' for mundane versions. For magical versions, translate the full name (e.g., 'Immortal-Binding Rope')."
+    },
+
+    {
+      "id": "ruan_bian",
+      "chinese_simplified": "软鞭",
+      "chinese_traditional": "軟鞭",
+      "pinyin": "ruǎnbiān",
+      "category": "flexible weapon",
+      "correct_translations": ["soft whip", "leather whip"],
+      "common_mistranslations": ["chain whip (different — that is 九节鞭)"],
+      "description": "A flexible leather or rope whip, as opposed to the segmented metal chain whip. Used for striking, entangling, and disarming. In wuxia, sometimes associated with femme fatale characters.",
+      "translation_rule": "Translate as 'whip' or 'soft whip'. Distinguish from chain whip (九节鞭)."
+    },
+
+    {
+      "id": "pan_guan_bi",
+      "chinese_simplified": "判官笔",
+      "chinese_traditional": "判官筆",
+      "pinyin": "pànguānbǐ",
+      "category": "exotic weapon (short, paired)",
+      "correct_translations": ["judge's pens", "scholar's pens"],
+      "common_mistranslations": ["pens (loses the weapon identity)"],
+      "description": "Short metal rods resembling oversized writing brushes, typically wielded in pairs. Used for acupressure-point striking, joint manipulation, and close-quarters thrusting. Named after the judge of the underworld (判官). In wuxia, associated with scholarly or judicial characters.",
+      "translation_rule": "Translate as 'judge's pens'. The metaphor is deliberate and should be preserved."
+    },
+
+    {
+      "id": "emei_ci",
+      "chinese_simplified": "峨眉刺",
+      "chinese_traditional": "峨嵋刺",
+      "pinyin": "éméicì",
+      "category": "exotic weapon (short, concealed)",
+      "correct_translations": ["Emei piercers", "Emei daggers", "Emei needles"],
+      "common_mistranslations": ["Emei thorns (too botanical)"],
+      "description": "Slender metal rods with pointed ends, attached to a ring worn on the middle finger, allowing them to spin freely. Named after Mount Emei (峨眉山), a sacred Buddhist mountain and home to the Emei Sect in wuxia fiction. Primarily a concealed weapon, associated with female martial artists in wuxia tradition.",
+      "translation_rule": "Translate as 'Emei piercers' or 'Emei daggers'. Preserve the proper noun 'Emei'."
+    }
+  ],
+
+  "translation_decision_rules": {
+    "description": "Quick-reference rules for the LLM translator when encountering weapon terms.",
+    "rules": [
+      {
+        "rule_id": 1,
+        "rule": "If the character 刀 appears in a martial arts/combat context, translate the weapon as a SABRE variant, not as 'knife' or 'dagger'.",
+        "rationale": "刀 classifies by edge geometry (single-edged), not by size. In combat contexts, it is always a sword-class weapon."
+      },
+      {
+        "rule_id": 2,
+        "rule": "If 短刀 (duǎndāo) appears, translate as 'short sabre', NEVER as 'dagger'.",
+        "rationale": "This is the single most common mistranslation in wuxia. 短 (short) modifies 刀 (sabre). A dagger is 匕首 (bǐshǒu)."
+      },
+      {
+        "rule_id": 3,
+        "rule": "If 枪 appears in a historical/wuxia context, translate as 'spear', not 'gun'.",
+        "rationale": "The modern meaning of 枪 is 'firearm', but in wuxia it always means the martial arts spear."
+      },
+      {
+        "rule_id": 4,
+        "rule": "Distinguish 剑 (jiàn, sword) from 锏 (jiǎn, mace). They are near-homophones with completely different meanings.",
+        "rationale": "Tonal distinction: jiàn (4th tone) = sword; jiǎn (3rd tone) = mace. Check the character, not just the pinyin."
+      },
+      {
+        "rule_id": 5,
+        "rule": "Distinguish 飞刀 (fēidāo, throwing knife) from 飞剑 (fēijiàn, flying sword). The former is a physical projectile; the latter is a supernatural ability.",
+        "rationale": "Confusing these collapses a critical genre distinction between wuxia (martial realism) and xianxia (cultivation fantasy)."
+      },
+      {
+        "rule_id": 6,
+        "rule": "For 鞭 (biān), determine from context whether this is a FLEXIBLE chain whip or a RIGID steel rod. They are entirely different weapons sharing the same character.",
+        "rationale": "Look for descriptive cues: segmented/swinging/wrapping = chain whip; heavy/striking/rigid = steel whip/mace."
+      },
+      {
+        "rule_id": 7,
+        "rule": "Do NOT translate 蝴蝶刀 (húdiédāo) as 'butterfly knife'. Translate as 'butterfly swords'.",
+        "rationale": "In English, 'butterfly knife' exclusively means a balisong (folding knife). 蝴蝶刀 are short single-edged swords wielded in pairs."
+      },
+      {
+        "rule_id": 8,
+        "rule": "When 大刀 (dàdāo) appears, translate as 'great sabre', not 'big knife'.",
+        "rationale": "Component-by-component translation ('big' + 'knife') produces absurd results. 大刀 is a specific weapon type."
+      },
+      {
+        "rule_id": 9,
+        "rule": "Preserve named/legendary weapon names. Translate the name components but keep the full compound as a proper noun.",
+        "rationale": "Named weapons in wuxia are plot-critical objects. 屠龙刀 = 'Dragon-Slaying Sabre', not 'dragon-slaughter knife'. 倚天剑 = 'Heaven-Reliant Sword', not 'leaning-on-sky blade'."
+      },
+      {
+        "rule_id": 10,
+        "rule": "When 长刀 (chángdāo) appears, translate as 'long sabre', NEVER as 'longsword'.",
+        "rationale": "'Longsword' in English implies a European Oakeshott-type double-edged sword. 长刀 is single-edged."
+      },
+      {
+        "rule_id": 11,
+        "rule": "For polearm-class 刀 weapons (关刀, 朴刀), recognize that 刀 describes the BLADE TYPE (single-edged), not the weapon class (polearm). These are polearms with sabre-type blades, not oversized knives.",
+        "rationale": "The dāo in guāndāo means the blade is single-edged; it does not mean the weapon is a knife on a stick."
+      },
+      {
+        "rule_id": 12,
+        "rule": "棍 (gùn) = staff (long combat weapon). 棒 (bàng) = cudgel (shorter, heavier). 杖 (zhàng) = cane/walking staff. These are three distinct weapons, not synonyms.",
+        "rationale": "Collapsing these into 'stick' or 'staff' loses meaningful tactical and character-type information."
+      }
+    ]
+  },
+
+  "common_legendary_weapons_in_wuxia": {
+    "description": "Named weapons that appear frequently in wuxia fiction, particularly in the works of Jin Yong (金庸), Gu Long (古龙), and Liang Yusheng (梁羽生). The translator should preserve these as proper nouns.",
+    "weapons": [
+      {
+        "chinese": "屠龙刀",
+        "pinyin": "Túlóngdāo",
+        "correct_translation": "Dragon-Slaying Sabre",
+        "common_mistranslation": "Dragon-Slaying Knife / Dragon-Slaughter Blade",
+        "source": "Jin Yong, The Heaven Sword and Dragon Saber (倚天屠龙记)"
+      },
+      {
+        "chinese": "倚天剑",
+        "pinyin": "Yǐtiānjiàn",
+        "correct_translation": "Heaven-Reliant Sword",
+        "common_mistranslation": "Heavenly Sword / Sky-Leaning Sword",
+        "source": "Jin Yong, The Heaven Sword and Dragon Saber (倚天屠龙记)"
+      },
+      {
+        "chinese": "玄铁重剑",
+        "pinyin": "Xuántiě zhòngjiàn",
+        "correct_translation": "Heavy Iron Sword",
+        "common_mistranslation": "Black Iron Sword / Dark Steel Sword",
+        "source": "Jin Yong, The Return of the Condor Heroes (神雕侠侣)"
+      },
+      {
+        "chinese": "碧血剑",
+        "pinyin": "Bìxuèjiàn",
+        "correct_translation": "Sword Stained with Royal Blood",
+        "common_mistranslation": "Green Blood Sword / Jade Blood Sword",
+        "source": "Jin Yong, Sword Stained with Royal Blood (碧血剑)"
+      },
+      {
+        "chinese": "小李飞刀",
+        "pinyin": "Xiǎo Lǐ fēidāo",
+        "correct_translation": "Little Li's Flying Knife",
+        "common_mistranslation": "Little Lee's Flying Dagger",
+        "source": "Gu Long, Sentimental Swordsman, Ruthless Sword (多情剑客无情剑)"
+      },
+      {
+        "chinese": "青龙偃月刀",
+        "pinyin": "Qīnglóng yǎnyuèdāo",
+        "correct_translation": "Green Dragon Crescent Blade",
+        "common_mistranslation": "Blue Dragon Moon Knife",
+        "source": "Romance of the Three Kingdoms (三国演义) — Guan Yu's weapon"
+      },
+      {
+        "chinese": "方天画戟",
+        "pinyin": "Fāngtiān huà jǐ",
+        "correct_translation": "Sky Piercer / Fang Tian Hua Ji",
+        "common_mistranslation": "Square Sky Painted Halberd",
+        "source": "Romance of the Three Kingdoms (三国演义) — Lü Bu's weapon"
+      },
+      {
+        "chinese": "金蛇剑",
+        "pinyin": "Jīnshéjiàn",
+        "correct_translation": "Golden Serpent Sword",
+        "common_mistranslation": "Gold Snake Sword",
+        "source": "Jin Yong, Sword Stained with Royal Blood (碧血剑)"
+      },
+      {
+        "chinese": "打狗棒",
+        "pinyin": "Dǎgǒubàng",
+        "correct_translation": "Dog-Beating Staff",
+        "common_mistranslation": "Dog-Hitting Stick",
+        "source": "Jin Yong, multiple novels — symbol of the Beggars' Sect chief"
+      }
+    ]
+  },
+
+  "genre_disambiguation": {
+    "wuxia_vs_xianxia_weapons": {
+      "description": "Weapons and weapon-adjacent terms that mean different things depending on whether the source text is wuxia (martial realism) or xianxia (cultivation fantasy).",
+      "examples": [
+        {
+          "term": "法宝 fǎbǎo",
+          "wuxia_meaning": "precious/powerful weapon (mundane)",
+          "xianxia_meaning": "magical artifact/treasure (supernatural, with active powers)",
+          "translation_note": "In wuxia: 'treasured weapon' or 'prized weapon'. In xianxia: 'magical artifact' or 'dharma treasure'."
+        },
+        {
+          "term": "飞剑 fēijiàn",
+          "wuxia_meaning": "Does not typically appear in wuxia",
+          "xianxia_meaning": "Flying sword — telekinetically controlled sword",
+          "translation_note": "If this appears in what seems like wuxia, it may indicate the text is actually xianxia or has xianxia elements."
+        },
+        {
+          "term": "神兵 shénbīng",
+          "wuxia_meaning": "divine weapon / legendary weapon (metaphorical — an exceptionally fine weapon)",
+          "xianxia_meaning": "divine weapon (literal — a weapon with supernatural properties, possibly sentient)",
+          "translation_note": "In wuxia: 'legendary weapon' or 'peerless weapon'. In xianxia: 'divine weapon' or 'spirit weapon'."
+        }
+      ]
+    }
+  },
+
+  "supplementary_entries": [
+    {
+      "chinese": "紫金刀",
+      "pinyin": "Zǐjīndāo",
+      "recommended_form": "Purple-Gold Sabre",
+      "footnote_template": "Zǐjīndāo — the Purple-Gold Sabre, the personal weapon of Lǐ Zìchéng (李自成, 1606–1645), the rebel king who overthrew the Ming dynasty and briefly seized the throne before falling to the Manchu-Qing conquest.",
+      "category": "weapons",
+      "rationale": "Named legendary weapon in Jin Yong's Flying Fox of Snowy Mountain (雪山飛狐). Central plot device. Never translate 刀 as 'knife'.",
+      "expected_frequency": "MEDIUM"
+    },
+    {
+      "chinese": "單刀",
+      "pinyin": "dāndāo",
+      "recommended_form": "single sabre",
+      "footnote_template": "dāndāo — a single sabre, the standard one-handed single-edged weapon of Chinese martial arts. Distinguished from paired sabres (雙刀 shuāngdāo).",
+      "category": "weapons",
+      "rationale": "Common combat weapon. 單 (single) + 刀 (sabre). Never translate as 'single knife'.",
+      "expected_frequency": "HIGH"
+    },
+    {
+      "chinese": "長劍",
+      "pinyin": "chángjiàn",
+      "recommended_form": "long sword",
+      "footnote_template": "chángjiàn — a long, double-edged straight sword. The standard full-length jiàn.",
+      "category": "weapons",
+      "rationale": "Common combat weapon. 長 (long) + 劍 (sword). Double-edged.",
+      "expected_frequency": "HIGH"
+    },
+    {
+      "chinese": "鋼鞭",
+      "pinyin": "gāngbiān",
+      "recommended_form": "steel whip",
+      "footnote_template": "gāngbiān — a rigid steel rod weapon, used for bludgeoning. Despite the name 'whip' (鞭), this is a solid metal truncheon, not a flexible weapon.",
+      "category": "weapons",
+      "rationale": "A rigid metal weapon. 鋼 (steel) + 鞭 (whip/rod). The 鞭 here refers to the rigid rod variant, not a flexible whip.",
+      "expected_frequency": "MEDIUM"
+    },
+    {
+      "chinese": "鐵鞭",
+      "pinyin": "tiěbiān",
+      "recommended_form": "iron whip",
+      "footnote_template": "tiěbiān — a rigid iron rod weapon. Like the steel whip (鋼鞭), this is a solid metal truncheon despite the name 'whip'.",
+      "category": "weapons",
+      "rationale": "Rigid metal weapon. 鐵 (iron) + 鞭 (whip/rod).",
+      "expected_frequency": "MEDIUM"
+    },
+    {
+      "chinese": "戒刀",
+      "pinyin": "jièdāo",
+      "recommended_form": "monk's sabre",
+      "footnote_template": "jièdāo — a Buddhist monk's sabre, carried by warrior-monks. The name literally means 'precepts sabre' (戒 = Buddhist precepts), reflecting the paradox of monks bearing arms.",
+      "category": "weapons",
+      "rationale": "Buddhist martial weapon. Common in wuxia scenes involving Shaolin or other Buddhist warrior-monks.",
+      "expected_frequency": "MEDIUM"
+    },
+    {
+      "chinese": "鐵拐",
+      "pinyin": "tiěguǎi",
+      "recommended_form": "iron crutch",
+      "footnote_template": "tiěguǎi — an iron crutch weapon. A heavy L-shaped metal baton, sometimes disguised as a walking aid. Associated with elderly masters or disabled fighters concealing their martial ability.",
+      "category": "weapons",
+      "rationale": "Exotic weapon. 鐵 (iron) + 拐 (crutch/tonfa).",
+      "expected_frequency": "LOW"
+    },
+    {
+      "chinese": "軍刀",
+      "pinyin": "jūndāo",
+      "recommended_form": "military sabre",
+      "footnote_template": "jūndāo — a military-issue sabre. Standard sidearm of Chinese soldiers.",
+      "category": "weapons",
+      "rationale": "General military weapon term. 軍 (military) + 刀 (sabre).",
+      "expected_frequency": "MEDIUM"
+    },
+    {
+      "chinese": "寶刀",
+      "pinyin": "bǎodāo",
+      "recommended_form": "treasured sabre",
+      "footnote_template": "bǎodāo — a treasured or precious sabre, typically one of exceptional craftsmanship or legendary provenance.",
+      "category": "weapons",
+      "rationale": "Common literary term for a prized weapon. 寶 (treasure) + 刀 (sabre). Never 'treasured knife'.",
+      "expected_frequency": "MEDIUM"
+    },
+    {
+      "chinese": "寶劍",
+      "pinyin": "bǎojiàn",
+      "recommended_form": "treasured sword",
+      "footnote_template": "bǎojiàn — a treasured or precious sword, one of exceptional quality or legendary origin.",
+      "category": "weapons",
+      "rationale": "Common literary term for a prized double-edged sword. 寶 (treasure) + 劍 (sword).",
+      "expected_frequency": "MEDIUM"
+    },
+    {
+      "chinese": "紫金禪杖",
+      "pinyin": "zǐjīn chánzhàng",
+      "recommended_form": "purple-gold meditation staff",
+      "footnote_template": "zǐjīn chánzhàng — a purple-gold Buddhist meditation staff (禪杖), a ceremonial and martial weapon of high-ranking Buddhist monks.",
+      "category": "weapons",
+      "rationale": "Buddhist weapon. 紫金 (purple-gold, a precious alloy) + 禪杖 (meditation staff).",
+      "expected_frequency": "LOW"
+    },
+    {
+      "chinese": "禪杖",
+      "pinyin": "chánzhàng",
+      "recommended_form": "meditation staff",
+      "footnote_template": "chánzhàng — a Buddhist meditation staff, both a symbol of monastic authority and a formidable weapon in the hands of a warrior-monk. Heavier than a standard staff (棍).",
+      "category": "weapons",
+      "rationale": "Buddhist weapon. 禪 (meditation/Zen) + 杖 (staff). Common in Shaolin-related wuxia.",
+      "expected_frequency": "MEDIUM"
+    },
+    {
+      "chinese": "鏈子錘",
+      "pinyin": "liànzichuí",
+      "recommended_form": "chained hammer",
+      "footnote_template": "liànzichuí — a chained hammer, a heavy iron weight attached to a handle by a chain. A flail-like weapon requiring great strength and skill.",
+      "category": "weapons",
+      "rationale": "Impact weapon on chain. 鏈子 (chain) + 錘 (hammer).",
+      "expected_frequency": "LOW"
+    },
+    {
+      "chinese": "九節鞭",
+      "pinyin": "jiǔjiébiān",
+      "recommended_form": "nine-section chain whip",
+      "footnote_template": "jiǔjiébiān — the nine-section chain whip, a flexible weapon made of connected metal segments. Unpredictable in combat, it can strike from unexpected angles and wrap around opponents' weapons.",
+      "category": "weapons",
+      "rationale": "The canonical flexible 鞭 weapon. 九節 (nine sections) + 鞭 (whip). This is the FLEXIBLE variant of 鞭.",
+      "expected_frequency": "MEDIUM"
+    },
+    {
+      "chinese": "袖箭",
+      "pinyin": "xiùjiàn",
+      "recommended_form": "sleeve arrow",
+      "footnote_template": "xiùjiàn — a small arrow or dart concealed in the sleeve and launched by a spring mechanism. A classic hidden weapon (暗器) in wuxia fiction.",
+      "category": "weapons",
+      "rationale": "Hidden weapon. 袖 (sleeve) + 箭 (arrow). Projectile weapon.",
+      "expected_frequency": "MEDIUM"
+    },
+    {
+      "chinese": "飛針",
+      "pinyin": "fēizhēn",
+      "recommended_form": "flying needle",
+      "footnote_template": "fēizhēn — a throwing needle, a hair-thin concealed projectile. Among the most difficult hidden weapons to detect and defend against.",
+      "category": "weapons",
+      "rationale": "Hidden weapon. 飛 (flying) + 針 (needle).",
+      "expected_frequency": "LOW"
+    },
+    {
+      "chinese": "馬鞭",
+      "pinyin": "mǎbiān",
+      "recommended_form": "riding crop",
+      "footnote_template": "mǎbiān — a horse whip or riding crop. Usually NOT a combat weapon, but sometimes repurposed in mounted combat scenes.",
+      "category": "weapons",
+      "rationale": "Equestrian equipment. 馬 (horse) + 鞭 (whip). This IS a flexible whip, unlike 鋼鞭/鐵鞭.",
+      "expected_frequency": "MEDIUM",
+      "deduplication_strategy": "FIRST_OCCURRENCE_ONLY"
+    }
+  ]
+}
