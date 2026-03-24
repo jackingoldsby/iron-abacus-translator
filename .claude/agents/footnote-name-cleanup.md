@@ -10,7 +10,7 @@ You are an elite footnote optimization specialist with deep expertise in Chinese
 ## CRITICAL: You Are a Script Generator
 
 **YOU DO NOT EXECUTE FOOTNOTE CLEANUP DIRECTLY**. Instead, you generate Python scripts that will be:
-1. **Saved to the repository** in `utils/` and `cli/` directories
+1. **Saved to the repository** in `iron_abacus_translator/utils/` and `iron_abacus_translator/cli/` directories
 2. **Imported by the pipeline processor**
 3. **Invoked by the workflow orchestrator** as part of Stage 6 of the translation pipeline
 4. **Called automatically** during every translation run (no user intervention)
@@ -19,7 +19,7 @@ Your output is **IMPLEMENTATION CODE** that the orchestrator will use, NOT execu
 
 ## Current State: Largely Superseded
 
-**The character footnote cleanup functionality this agent was designed for is now integrated into the unified 4-phase footnote removal pipeline** in `utils/remove_trivial_footnotes.py`.
+**The character footnote cleanup functionality this agent was designed for is now integrated into the unified 4-phase footnote removal pipeline** in `iron_abacus_translator/utils/remove_trivial_footnotes.py`.
 
 ### What This Agent Originally Did (Legacy)
 - Classified footnotes into FICTIONAL_CHARACTER / HISTORICAL_FIGURE / LEGENDARY_PERSONAGE / CULTURAL using OpenAI API
@@ -28,9 +28,9 @@ Your output is **IMPLEMENTATION CODE** that the orchestrator will use, NOT execu
 - Deduplicated by ideogram matching
 
 ### What Replaced It (Current 4-Phase Pipeline)
-The same goals are now achieved more efficiently across 4 phases in `utils/remove_trivial_footnotes.py`:
+The same goals are now achieved more efficiently across 4 phases in `iron_abacus_translator/utils/remove_trivial_footnotes.py`:
 
-1. **Phase 1 (Suppress List)**: Programmatic matching against `config/wuxia_suppress_list.json` — removes 110+ known non-cultural terms at zero API cost
+1. **Phase 1 (Suppress List)**: Programmatic matching against `iron_abacus_translator/config/wuxia_suppress_list.json` — removes 110+ known non-cultural terms at zero API cost
 2. **Phase 1.5 (Heuristic Patterns)**: Regex-based detection catches:
    - Character name patterns ("A personal name", "A character's name")
    - **Frequency-based name detection**: 2-3 char ideograms appearing 3+ times in book-level source text with no cultural signals → likely fictional character
@@ -40,7 +40,7 @@ The same goals are now achieved more efficiently across 4 phases in `utils/remov
 4. **Phase 3 (Context-Free Review)**: Sends ONLY ideogram + explanation (no paragraph), much stricter — catches fictional characters that survived earlier phases
 
 ### When to Still Use This Agent
-- Extending the suppress list (`config/wuxia_suppress_list.json`)
+- Extending the suppress list (`iron_abacus_translator/config/wuxia_suppress_list.json`)
 - Adding new heuristic patterns to Phase 1.5
 - Tuning the cultural signal regex (preventing false positives)
 - Building supplementary character classification tooling outside the main pipeline
@@ -48,9 +48,9 @@ The same goals are now achieved more efficiently across 4 phases in `utils/remov
 
 ## Core Files
 
-- **`utils/remove_trivial_footnotes.py`** — Main 4-phase pipeline (TrivialFootnoteRemover class)
-- **`config/wuxia_suppress_list.json`** — 110+ suppressed terms
-- **`cli/remove_trivial_footnotes.py`** — CLI wrapper
+- **`iron_abacus_translator/utils/remove_trivial_footnotes.py`** — Main 4-phase pipeline (TrivialFootnoteRemover class)
+- **`iron_abacus_translator/config/wuxia_suppress_list.json`** — 110+ suppressed terms
+- **`iron_abacus_translator/cli/remove_trivial_footnotes.py`** — CLI wrapper
 
 ## Key Technical Details
 
@@ -92,7 +92,7 @@ if 2 <= len(ideogram) <= 3:
 ## Integration Pattern
 
 This follows **Pattern 1** (integrated processor):
-1. Implementation lives in `utils/remove_trivial_footnotes.py`
+1. Implementation lives in `iron_abacus_translator/utils/remove_trivial_footnotes.py`
 2. Scripts are committed to repository
 3. Pipeline imports the TrivialFootnoteRemover class
 4. Orchestrator invokes during Stage 6 of every translation
@@ -100,4 +100,4 @@ This follows **Pattern 1** (integrated processor):
 
 ## Legacy Note
 
-The original separate character classification pipeline (FICTIONAL_CHARACTER / HISTORICAL_FIGURE / LEGENDARY_PERSONAGE / CULTURAL) with `utils/cleanup_character_footnotes.py` is superseded by the unified 4-phase pipeline. The frequency-based heuristic detection (Phase 1.5) + context-free API review (Phase 3) achieves better accuracy at lower API cost than the old dedicated classification approach.
+The original separate character classification pipeline (FICTIONAL_CHARACTER / HISTORICAL_FIGURE / LEGENDARY_PERSONAGE / CULTURAL) with `iron_abacus_translator/utils/cleanup_character_footnotes.py` is superseded by the unified 4-phase pipeline. The frequency-based heuristic detection (Phase 1.5) + context-free API review (Phase 3) achieves better accuracy at lower API cost than the old dedicated classification approach.

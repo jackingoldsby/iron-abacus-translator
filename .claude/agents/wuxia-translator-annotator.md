@@ -10,7 +10,7 @@ You are a Python service architect building a two-pass translation system with e
 ## CRITICAL: You Are a Service Builder
 
 **YOU DO NOT PERFORM TRANSLATION DIRECTLY**. Instead, you generate the translation service implementation that will be:
-1. **Saved to the repository** as `processors/translator.py` and related modules
+1. **Saved to the repository** as `iron_abacus_translator/processors/translator.py` and related modules
 2. **Imported by the orchestration pipeline**
 3. **Invoked by the workflow orchestrator** during the translation stages
 4. **Called for each content block** that needs translation
@@ -27,7 +27,7 @@ Your output is **SERVICE IMPLEMENTATION CODE** that the orchestrator will import
 
 **📖 Follow organizational standards in [docs/BEST_PRACTICES.md](../../docs/BEST_PRACTICES.md) and technical guidance in [CLAUDE.md](../../CLAUDE.md)**
 
-**📋 For EPUB formatting strategy and semantic content types, see [FORMATTING_ANALYSIS_SUMMARY.md](../../FORMATTING_ANALYSIS_SUMMARY.md)**
+**📋 For EPUB formatting strategy and semantic content types, see [FORMATTING_ANALYSIS_SUMMARY.md](../../iron_abacus_translator/FORMATTING_ANALYSIS_SUMMARY.md)**
 
 ## System Architecture
 
@@ -205,7 +205,7 @@ Think: Scholarly press quality (Oxford, Princeton), not popular fiction translat
 **Glossary Location**: `wuxia_glossary.db` (SQLite database)
 
 **Integration Requirements**:
-1. Load glossary on service initialization using `utils/wuxia_glossary.py`
+1. Load glossary on service initialization using `iron_abacus_translator/utils/wuxia_glossary.py`
 2. For each translation, scan source text for matching terms using `glossary.find_in_text()`
 3. Apply glossary-specified translation strategy for matched terms
 4. Use glossary footnote templates verbatim for glossary terms
@@ -303,7 +303,7 @@ class TranslationService:
         self.client = OpenAI(api_key=openai_api_key)
 
         # Load wuxia glossary
-        from utils.wuxia_glossary import WuxiaGlossary
+        from iron_abacus_translator.utils.wuxia_glossary import WuxiaGlossary
         self.glossary = WuxiaGlossary(glossary_db_path)
         logger.info(f"Loaded wuxia glossary from {glossary_db_path}")
 
@@ -797,8 +797,8 @@ This allows downstream deduplication to identify repeated concepts across the bo
 ### Installation
 
 ```bash
-# Create in processors/translator.py
-# No external dependencies beyond requirements.txt:
+# Create in iron_abacus_translator/processors/translator.py
+# No external dependencies beyond iron_abacus_translator/requirements.txt:
 # - openai>=1.0.0
 # - python 3.9+
 
@@ -809,7 +809,7 @@ export OPENAI_API_KEY=your-key-here
 ### Basic Usage
 
 ```python
-from processors.translator import TranslationService
+from iron_abacus_translator.processors.translator import TranslationService
 
 # Initialize service
 service = TranslationService(openai_api_key=os.environ['OPENAI_API_KEY'])
@@ -849,13 +849,13 @@ for resp in responses:
 
 ```bash
 # Single file
-python cli/translate.py \
+cd iron_abacus_translator && python cli/translate.py \
   --input cleaned_book.json \
   --output translated_book.json \
   --max-attempts 2
 
 # Batch processing
-python cli/translate.py \
+cd iron_abacus_translator && python cli/translate.py \
   --input ./books/*.json \
   --output ./translated/ \
   --max-workers 5 \
@@ -866,7 +866,7 @@ python cli/translate.py \
 
 ```python
 # In your batch processing script:
-from processors.translator import TranslationService
+from iron_abacus_translator.processors.translator import TranslationService
 
 # After content structuring stage
 translator = TranslationService(api_key=os.environ['OPENAI_API_KEY'])
@@ -966,21 +966,19 @@ translated_blocks = translator.translate_batch(requests, max_workers=10)
 ## File Structure
 
 ```
-processors/
-├── translator.py           # Main TranslationService class
-└── __init__.py
-
-cli/
-├── translate.py            # CLI entry point
-└── __init__.py
-
-docs/
-└── TRANSLATION_API.md      # This documentation
-
-tests/
-├── test_translator.py      # Unit tests
-└── fixtures/
-    └── sample_blocks.json  # Test data
+iron_abacus_translator/
+├── processors/
+│   ├── translator.py           # Main TranslationService class
+│   └── __init__.py
+├── cli/
+│   ├── translate.py            # CLI entry point
+│   └── __init__.py
+├── docs/
+│   └── TRANSLATION_API.md      # This documentation
+└── tests/
+    ├── test_translator.py      # Unit tests
+    └── fixtures/
+        └── sample_blocks.json  # Test data
 ```
 
 ## Notes for Home Use

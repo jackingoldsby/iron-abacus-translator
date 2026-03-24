@@ -35,18 +35,16 @@ node_modules/
 output/
 *.log
 
-# Test files and temporary reports
-test_*.py
-run_*.py
-*_REPORT.md
-*_SUMMARY.md
-*_RESULTS.md
-*_FIX_*.md
-*_VALIDATION_*.md
+# Temporary reports (root-level only)
+/*_REPORT.md
+/*_SUMMARY.md
+/*_RESULTS.md
+/*_FIX_*.md
+/*_VALIDATION_*.md
 review_output/
 logs/
 
-# Database files (data should not be in git)
+# Database files
 *.db
 *.db-journal
 *.sqlite
@@ -54,26 +52,33 @@ logs/
 *.duckdb
 *.duckdb.wal
 
-# CSV data files (too large for git)
+# CSV data files
 works.csv
 *_catalog.csv
 
-# Symlinks (created during setup, not in git)
+# Symlinks
 translation_data
 
+# Stray test/run scripts at iron_abacus root
+iron_abacus_translator/test_*.py
+iron_abacus_translator/run_*.py
+
+# Iron Abacus nested patterns
+iron_abacus_translator/venv/
+iron_abacus_translator/*.egg-info/
+iron_abacus_translator/**/__pycache__/
+iron_abacus_translator/node_modules/
+iron_abacus_translator/translation_data
+iron_abacus_translator/autonomous_test_logs/
+iron_abacus_translator/review_output/
+iron_abacus_translator/logs/
+iron_abacus_translator/output/
+iron_abacus_translator/tests/outputs/
+
 # Data files
-data/analysis/*.json
-data/analysis/*.txt
-data/glossaries/*.csv
-
-# Translation outputs and progress
-translation_data/outputs/
-translation_data/checkpoints/
-translation_data/logs/
-
-# Progress database
-logs/translation/progress.db
-logs/translation/progress.db-*
+iron_abacus_translator/data/analysis/*.json
+iron_abacus_translator/data/analysis/*.txt
+iron_abacus_translator/data/glossaries/*.csv
 
 # Autonomous test logs
 autonomous_test_logs/

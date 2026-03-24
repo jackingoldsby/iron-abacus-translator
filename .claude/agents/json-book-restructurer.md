@@ -69,7 +69,7 @@ class BookStructure:
 - Structural heuristics (TOC = ≥5 lines, 70%+ ≤15 chars)
 - **NEW**: Intro embedded in first chapter detection
 - **CRITICAL**: Inverted structure detection - "intro" that's actually the first chapter of a volume with real chapter inside it
-- **IMPLEMENTED**: See `scripts/fix_embedded_chapter1.py` for reference implementation
+- **IMPLEMENTED**: See `iron_abacus_translator/scripts/fix_embedded_chapter1.py` for reference implementation
 - **IMPORTANT**: This pattern applies to FIRST CHAPTER OF ANY VOLUME, not just Chapter 1
   - Volume 1: Chapter 1 ("一、...") may be embedded
   - Volume 2: Chapter 21 ("廿一、...") may be embedded
@@ -120,7 +120,7 @@ BookStructureAnalyzer (Orchestrator)
 
 ### Script 1: BookStructureAnalyzer (Orchestrator)
 
-**Location**: `processors/book_structure_analyzer.py`
+**Location**: `iron_abacus_translator/processors/book_structure_analyzer.py`
 
 **Class**: `BookStructureAnalyzer`
 
@@ -370,12 +370,12 @@ class BookStructureAnalyzer:
 
 ### Script 2: Structure Handlers (Different Classes for Different Structures)
 
-**Location**: `processors/structure_handlers/`
+**Location**: `iron_abacus_translator/processors/structure_handlers/`
 
 Build separate handler classes for different book structures:
 
 ```python
-# processors/structure_handlers/base.py
+# iron_abacus_translator/processors/structure_handlers/base.py
 class BaseStructureHandler(ABC):
     """Abstract base class for structure handlers."""
 
@@ -389,7 +389,7 @@ class BaseStructureHandler(ABC):
         """Extract structure components specific to this book type."""
         pass
 
-# processors/structure_handlers/chapter_based.py
+# iron_abacus_translator/processors/structure_handlers/chapter_based.py
 class ChapterBasedHandler(BaseStructureHandler):
     """Handles books with 第N章 (chapter) format."""
 
@@ -402,7 +402,7 @@ class ChapterBasedHandler(BaseStructureHandler):
         # Extract chapters using 第N章 regex
         pass
 
-# processors/structure_handlers/episode_based.py
+# iron_abacus_translator/processors/structure_handlers/episode_based.py
 class EpisodeBasedHandler(BaseStructureHandler):
     """Handles books with 第N回 (episode/hui) format."""
 
@@ -414,7 +414,7 @@ class EpisodeBasedHandler(BaseStructureHandler):
         # Extract episodes using 第N回 regex
         pass
 
-# processors/structure_handlers/volume_based.py
+# iron_abacus_translator/processors/structure_handlers/volume_based.py
 class VolumeBasedHandler(BaseStructureHandler):
     """
     Handles multi-volume works with nested structure.
@@ -437,7 +437,7 @@ class VolumeBasedHandler(BaseStructureHandler):
         # Detect if TOC is volume-local or global
         pass
 
-# processors/structure_handlers/modern_novel.py
+# iron_abacus_translator/processors/structure_handlers/modern_novel.py
 class ModernNovelHandler(BaseStructureHandler):
     """Handles modern novels without traditional chapter markers."""
 
@@ -452,7 +452,7 @@ class ModernNovelHandler(BaseStructureHandler):
 
 ### Script 3: AntagonisticValidator (Issue Hunter)
 
-**Location**: `processors/antagonistic_validator.py`
+**Location**: `iron_abacus_translator/processors/antagonistic_validator.py`
 
 **Class**: `AntagonisticValidator`
 
@@ -687,7 +687,7 @@ class AntagonisticValidator:
 
 ### Script 4: AIStructureValidator (AI Layer)
 
-**Location**: `processors/ai_structure_validator.py`
+**Location**: `iron_abacus_translator/processors/ai_structure_validator.py`
 
 **Class**: `AIStructureValidator`
 
@@ -758,7 +758,7 @@ class AIStructureValidator:
 
 ### Script 3: Output Standardizer
 
-**Location**: `processors/json_output_standardizer.py`
+**Location**: `iron_abacus_translator/processors/json_output_standardizer.py`
 
 **Class**: `JSONOutputStandardizer`
 
@@ -910,18 +910,18 @@ Scripts must handle:
 
 ## CLI Interface to Build
 
-**Location**: `cli/clean.py`
+**Location**: `iron_abacus_translator/cli/clean.py`
 
 ```bash
 # Single file processing
-python cli/clean.py \
+python iron_abacus_translator/cli/clean.py \
   --input raw_book.json \
   --output cleaned_book.json \
   --catalog-db wuxia_catalog.db \
   --directory-name wuxia_0117
 
 # Batch processing
-python cli/clean.py \
+python iron_abacus_translator/cli/clean.py \
   --input-dir /path/to/raw_files \
   --output-dir /path/to/cleaned \
   --catalog-db wuxia_catalog.db \
@@ -938,7 +938,7 @@ Build scripts for Stage 3 in 6-stage pipeline:
 5. TOC Restructuring (convert to navigation)
 6. Structure Validation (semantic quality check)
 
-**Output requirements** (for processors/translator.py):
+**Output requirements** (for iron_abacus_translator/processors/translator.py):
 - Clean, standardized JSON structure
 - Validated chapter sequences
 - Properly classified sections
@@ -969,7 +969,7 @@ The project root has a symlink: `translation_data -> /Users/jacki/project_files/
    - Relative path: `PROJECT_ROOT/translation_data/wuxia_catalog.db`
    - Absolute path: `/Users/jacki/project_files/translation_project/wuxia_catalog.db`
    - Contains: work_number, title, author, volume metadata
-   - Use existing `utils/catalog_metadata.py` (CatalogMetadataExtractor)
+   - Use existing `iron_abacus_translator/utils/catalog_metadata.py` (CatalogMetadataExtractor)
 
 2. **Unprocessed Book Files**:
    - Relative path: `PROJECT_ROOT/translation_data/wuxia_individual_files/`
@@ -983,7 +983,7 @@ The project root has a symlink: `translation_data -> /Users/jacki/project_files/
    - Validate AI layer triggers correctly
    - Verify schema v2.0.0 compliance
 
-**Path Construction Pattern** (follow existing scripts/test_file_paths.py):
+**Path Construction Pattern** (follow existing iron_abacus_translator/scripts/test_file_paths.py):
 
 ```python
 from pathlib import Path
@@ -1008,19 +1008,19 @@ source_dir = os.path.join(DEFAULT_PROJECT_BASE, 'wuxia_individual_files')
 
 **BUILD THE FOLLOWING:**
 
-1. **`processors/json_cleaner.py`** - Heuristic cleaning (if not exists or needs update)
+1. **`iron_abacus_translator/processors/json_cleaner.py`** - Heuristic cleaning (if not exists or needs update)
    - Must integrate with CatalogMetadataExtractor
    - Handle absolute paths and symlinks
 
-2. **`processors/structure_validator_ai.py`** - AI validation layer
+2. **`iron_abacus_translator/processors/structure_validator_ai.py`** - AI validation layer
    - Load OpenAI key from environment variable (os.getenv)
 
-3. **`processors/json_output_standardizer.py`** - Schema enforcement
+3. **`iron_abacus_translator/processors/json_output_standardizer.py`** - Schema enforcement
 
-4. **`cli/clean.py`** - Command-line interface
+4. **`iron_abacus_translator/cli/clean.py`** - Command-line interface
    - Default catalog path: `PROJECT_ROOT/translation_data/wuxia_catalog.db`
    - Default source: `PROJECT_ROOT/translation_data/wuxia_individual_files/`
-   - Follow path construction pattern from scripts/test_file_paths.py
+   - Follow path construction pattern from iron_abacus_translator/scripts/test_file_paths.py
 
 5. **Test & Validation Script**: `test_json_cleaner.py`
    - Access SQLite database
@@ -1029,7 +1029,7 @@ source_dir = os.path.join(DEFAULT_PROJECT_BASE, 'wuxia_individual_files')
    - Validate outputs
    - Report success/failure with details
 
-6. **Documentation**: `docs/JSON_CLEANING_API.md`
+6. **Documentation**: `iron_abacus_translator/docs/JSON_CLEANING_API.md`
 
 ## Validation Workflow
 

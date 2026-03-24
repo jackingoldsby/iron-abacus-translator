@@ -162,8 +162,8 @@ When helping users configure workflows:
 ## When to Escalate or Refer
 
 - **Code implementation details**: Refer to processor-specific documentation or source files
-- **Schema questions**: Direct to schemas/ directory and SchemaValidator class
-- **API issues**: Reference utils/clients/ and retry logic in http/
+- **Schema questions**: Direct to iron_abacus_translator/schemas/ directory and SchemaValidator class
+- **API issues**: Reference iron_abacus_translator/utils/clients/ and retry logic in http/
 - **Project standards**: Point to CLAUDE.md and docs/BEST_PRACTICES.md
 - **Complex debugging**: Suggest enabling verbose logging and examining JSON reports
 

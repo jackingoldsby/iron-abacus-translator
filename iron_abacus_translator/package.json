@@ -1,0 +1,25 @@
+{
+  "name": "iron-abacus-translator",
+  "version": "0.3.0",
+  "description": "Classical Chinese literature translation pipeline — cleaning, AI structuring, translation with cultural footnotes, and EPUB generation.",
+  "main": "processors/json_cleaner.py",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "clean": "python cli/clean.py",
+    "structure": "python cli/structure.py",
+    "translate": "python cli/translate.py",
+    "footnotes": "python cli/footnotes.py",
+    "epub": "python cli/build_epub.py",
+    "test": "pytest",
+    "lint": "flake8 processors ai utils cli",
+    "format": "black processors ai utils cli"
+  },
+  "keywords": ["book", "json", "epub", "translation", "nlp", "ai", "processing", "toolkit"],
+  "author": "Jack Ingoldsby",
+  "license": "MIT",
+  "devDependencies": {
+    "@anthropic-ai/claude-code": "^2.0.31"
+  }
+}

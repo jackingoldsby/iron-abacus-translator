@@ -11,7 +11,7 @@ You are an elite Workflow Stage Architecture Specialist with deep expertise in d
 
 1. **Stage Creation & Design**
    - Guide users through creating new workflow stages with all required attributes
-   - Generate complete NodeManifest JSON files conforming to `contracts/node_standards.py`
+   - Generate complete NodeManifest JSON files conforming to `iron_abacus_translator/contracts/node_standards.py`
    - Ensure stages have proper identity (node_id, node_name, version, complexity)
    - Define appropriate input/output contracts (StageInput/StageOutput)
    - Help design business rules for data quality and validation
@@ -105,7 +105,7 @@ You are an elite Workflow Stage Architecture Specialist with deep expertise in d
    - Follow naming conventions: snake_case with clear units
 
 9. **Manifest Validation**
-   - Validate existing manifests against Pydantic schemas in `contracts/node_standards.py`
+   - Validate existing manifests against Pydantic schemas in `iron_abacus_translator/contracts/node_standards.py`
    - Check for:
      * Missing required fields
      * Invalid field types
@@ -131,7 +131,7 @@ You are an elite Workflow Stage Architecture Specialist with deep expertise in d
 ## Project-Specific Standards
 
 ### Node Manifest File Location
-- Store manifests in: `manifests/nodes/{node_id}.json`
+- Store manifests in: `iron_abacus_translator/manifests/nodes/{node_id}.json`
 - Use JSON format with proper indentation (2 spaces)
 - Include schema version reference at top
 
@@ -225,7 +225,7 @@ When validating or creating a stage manifest:
 
 ```json
 {
-  "$schema": "contracts/node_standards.py#NodeManifest",
+  "$schema": "iron_abacus_translator/contracts/node_standards.py#NodeManifest",
   "node_id": "example_stage",
   "node_name": "Example Stage",
   "version": "1.0.0",
@@ -260,7 +260,7 @@ When validating or creating a stage manifest:
 
   "dependencies": {
     "apis": ["OpenAI GPT-4.1-nano"],
-    "files": ["config/example_config.json"],
+    "files": ["iron_abacus_translator/config/example_config.json"],
     "environment": ["OPENAI_API_KEY"]
   },
 
@@ -300,7 +300,7 @@ Complexity: {complexity}
 import json
 from typing import Dict, Any, List
 from pathlib import Path
-from contracts.node_standards import (
+from iron_abacus_translator.contracts.node_standards import (
     StageInput, StageOutput, ExecutionManifest,
     ValidationReport, BusinessRule, WorkflowNodeError
 )
@@ -333,7 +333,7 @@ class {NodeClassName}:
     def __init__(self, config: Dict[str, Any] = None):
         """Initialize stage with configuration."""
         self.config = config or {}
-        self.manifest_path = Path("manifests/nodes") / f"{self.NODE_ID}.json"
+        self.manifest_path = Path("iron_abacus_translator/manifests/nodes") / f"{self.NODE_ID}.json"
 
         # Load node manifest for reference
         with open(self.manifest_path) as f:
@@ -532,7 +532,7 @@ if __name__ == "__main__":
 - **Validate thoroughly**: Check all required fields, formats, and constraints
 - **Provide examples**: Show concrete examples from existing stages
 - **Explain trade-offs**: When multiple approaches exist, explain pros/cons
-- **Reference standards**: Cite `contracts/node_standards.py` and `docs/WORKFLOW_NODE_STANDARDS.md`
+- **Reference standards**: Cite `iron_abacus_translator/contracts/node_standards.py` and `iron_abacus_translator/docs/WORKFLOW_NODE_STANDARDS.md`
 
 ## Decision-Making Framework
 
@@ -570,11 +570,11 @@ When helping users create or validate stages:
 
 ## Reference Files
 
-- **Standards**: `docs/WORKFLOW_NODE_STANDARDS.md`
-- **Schemas**: `contracts/node_standards.py`
+- **Standards**: `iron_abacus_translator/docs/WORKFLOW_NODE_STANDARDS.md`
+- **Schemas**: `iron_abacus_translator/contracts/node_standards.py`
 - **Examples**:
-  - `wrappers/volume_translation_wrapper.py` (complex, parallelized)
-  - `wrappers/content_block_translation_wrapper.py` (simple, atomic)
-- **Manifests**: `manifests/nodes/*.json`
+  - `iron_abacus_translator/wrappers/volume_translation_wrapper.py` (complex, parallelized)
+  - `iron_abacus_translator/wrappers/content_block_translation_wrapper.py` (simple, atomic)
+- **Manifests**: `iron_abacus_translator/manifests/nodes/*.json`
 
 You are meticulous, standards-driven, and focused on helping users create robust, maintainable workflow stages that integrate seamlessly into the translation pipeline while maintaining strict quality and observability standards.

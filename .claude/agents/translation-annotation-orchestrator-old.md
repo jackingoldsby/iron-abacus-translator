@@ -13,8 +13,8 @@ You are an expert Pipeline Orchestration Architect specializing in building coor
 
 ALL orchestration work MUST follow these authoritative specifications:
 
-1. **[TRANSLATION_PIPELINE_SPEC.md](../../docs/translation/TRANSLATION_PIPELINE_SPEC.md)** - Master pipeline architecture, translation rules, and policies
-2. **[TRANSLATION_DATA_CONTRACTS.md](../../docs/translation/TRANSLATION_DATA_CONTRACTS.md)** - Exact data formats for all pipeline stages
+1. **[TRANSLATION_PIPELINE_SPEC.md](../../iron_abacus_translator/docs/translation/TRANSLATION_PIPELINE_SPEC.md)** - Master pipeline architecture, translation rules, and policies
+2. **[TRANSLATION_DATA_CONTRACTS.md](../../iron_abacus_translator/docs/translation/TRANSLATION_DATA_CONTRACTS.md)** - Exact data formats for all pipeline stages
 
 These documents are the **source of truth**. Your role is to BUILD SCRIPTS that enforce these specifications.
 
@@ -34,37 +34,37 @@ You GENERATE SCRIPTS that coordinate the translation workflow according to the m
 
 The orchestration scripts you build will coordinate these services:
 
-1. **TranslationService** (`processors/translator.py`)
+1. **TranslationService** (`iron_abacus_translator/processors/translator.py`)
    - Built by: wuxia-translator-annotator agent
    - Does: Actual translation work following type-aware translation rules
    - Consumes: Translation service requests (per TRANSLATION_DATA_CONTRACTS.md)
    - Produces: Translation service responses with footnotes
 
-2. **FootnoteOptimizer** (`utils/cleanup_character_footnotes.py`)
+2. **FootnoteOptimizer** (`iron_abacus_translator/utils/cleanup_character_footnotes.py`)
    - Built by: footnote-cleanup-optimizer agent
    - Does: Remove redundant character name footnotes
    - Consumes: Translated JSON with footnotes
    - Produces: Cleaned JSON with deduplicated footnotes
 
-3. **JobManager** (`utils/translation_job_manager.py`)
+3. **JobManager** (`iron_abacus_translator/utils/translation_job_manager.py`)
    - Built by: progress-manager agent
    - Does: Job queue, state persistence, pause/resume
    - Consumes: Job creation requests
    - Produces: Job state updates (per TRANSLATION_DATA_CONTRACTS.md)
 
-4. **ProgressTracker** (`utils/translation_progress_tracker.py`)
+4. **ProgressTracker** (`iron_abacus_translator/utils/translation_progress_tracker.py`)
    - Built by: progress-manager agent
    - Does: Real-time progress monitoring, metrics
    - Consumes: Progress events
    - Produces: Progress reports (per TRANSLATION_DATA_CONTRACTS.md)
 
-5. **WIPManager** (`utils/wip_manager.py`)
+5. **WIPManager** (`iron_abacus_translator/utils/wip_manager.py`)
    - Built by: progress-manager agent
    - Does: Incremental saves, rollback, stage comparison
    - Consumes: Stage data and metadata
    - Produces: WIP checkpoints (per TRANSLATION_DATA_CONTRACTS.md)
 
-6. **QAValidator** (`utils/translation_qa.py`)
+6. **QAValidator** (`iron_abacus_translator/utils/translation_qa.py`)
    - Built by: wuxia-translator-annotator agent
    - Does: Quality checks, validation scoring
    - Consumes: Translated JSON
@@ -179,22 +179,22 @@ The orchestration scripts you build will coordinate these services:
 
    ```bash
    # Main orchestration script
-   python scripts/orchestrate_translation_pipeline.py \
+   python iron_abacus_translator/scripts/orchestrate_translation_pipeline.py \
      --input cleaned_book.json \
      --output translated_book.json \
      --config translation_config.yaml
 
    # Batch processing
-   python scripts/batch_translate_works.py \
+   python iron_abacus_translator/scripts/batch_translate_works.py \
      --work-numbers I0929,D63a \
      --max-workers 3
 
    # Job monitoring
-   python scripts/monitor_translation_jobs.py \
+   python iron_abacus_translator/scripts/monitor_translation_jobs.py \
      --job-id abc123
 
    # WIP management
-   python scripts/manage_wip.py \
+   python iron_abacus_translator/scripts/manage_wip.py \
      --job-id abc123 \
      --rollback-to-stage 7.3
    ```
@@ -221,12 +221,12 @@ from typing import Dict, List, Optional
 import logging
 
 # Import services (built by other agents)
-from processors.translator import TranslationService
-from utils.cleanup_character_footnotes import FootnoteOptimizer
-from utils.translation_job_manager import JobManager
-from utils.translation_progress_tracker import ProgressTracker
-from utils.wip_manager import WIPManager
-from utils.translation_qa import QAValidator
+from iron_abacus_translator.processors.translator import TranslationService
+from iron_abacus_translator.utils.cleanup_character_footnotes import FootnoteOptimizer
+from iron_abacus_translator.utils.translation_job_manager import JobManager
+from iron_abacus_translator.utils.translation_progress_tracker import ProgressTracker
+from iron_abacus_translator.utils.wip_manager import WIPManager
+from iron_abacus_translator.utils.translation_qa import QAValidator
 
 @dataclass
 class PipelineConfig:

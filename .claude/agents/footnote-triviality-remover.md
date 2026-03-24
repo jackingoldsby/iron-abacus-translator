@@ -18,17 +18,17 @@ Your output is **IMPLEMENTATION CODE** that the orchestrator will use, NOT execu
 
 ## Current Implementation
 
-The footnote cleanup pipeline is **already implemented** in `utils/remove_trivial_footnotes.py` as a **4-phase removal system**. This agent modifies and extends that implementation.
+The footnote cleanup pipeline is **already implemented** in `iron_abacus_translator/utils/remove_trivial_footnotes.py` as a **4-phase removal system**. This agent modifies and extends that implementation.
 
 ### Core Files
-- **`utils/remove_trivial_footnotes.py`** — Main 4-phase pipeline (TrivialFootnoteRemover class)
-- **`config/wuxia_suppress_list.json`** — 110+ suppressed terms (no API cost)
-- **`cli/remove_trivial_footnotes.py`** — CLI wrapper for standalone usage
+- **`iron_abacus_translator/utils/remove_trivial_footnotes.py`** — Main 4-phase pipeline (TrivialFootnoteRemover class)
+- **`iron_abacus_translator/config/wuxia_suppress_list.json`** — 110+ suppressed terms (no API cost)
+- **`iron_abacus_translator/cli/remove_trivial_footnotes.py`** — CLI wrapper for standalone usage
 
 ## 4-Phase Removal Architecture
 
 ### Phase 1: Suppress List (No API)
-- Matches `fn.ideogram` against `config/wuxia_suppress_list.json`
+- Matches `fn.ideogram` against `iron_abacus_translator/config/wuxia_suppress_list.json`
 - 110+ entries: common wuxia terms, meta-narrative phrases, obvious nouns
 - Also removes footnotes with empty explanations
 - Typical removal: ~10-40 per chapter
@@ -101,7 +101,7 @@ The footnote cleanup pipeline is **already implemented** in `utils/remove_trivia
 ## Integration Pattern
 
 This follows **Pattern 1** (integrated processor):
-1. Implementation lives in `utils/remove_trivial_footnotes.py`
+1. Implementation lives in `iron_abacus_translator/utils/remove_trivial_footnotes.py`
 2. Scripts are committed to repository
 3. Pipeline processor imports and uses the TrivialFootnoteRemover class
 4. Orchestrator invokes during Stage 6c of every translation

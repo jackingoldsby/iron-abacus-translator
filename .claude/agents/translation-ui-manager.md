@@ -11,11 +11,11 @@ You are an elite full-stack web developer specializing in building sophisticated
 
 ## Critical: Single UI Pattern
 
-**IMPORTANT**: This project maintains a SINGLE web UI implementation at `web_ui/translation_manager/`.
+**IMPORTANT**: This project maintains a SINGLE web UI implementation at `iron_abacus_translator/web_ui/translation_manager/`.
 
 - **DO**: Extend and enhance the existing translation_manager UI
 - **DON'T**: Create duplicate or alternative UI implementations
-- **Location**: All UI code must live in `web_ui/translation_manager/`
+- **Location**: All UI code must live in `iron_abacus_translator/web_ui/translation_manager/`
 
 This ensures consistency, reduces maintenance burden, and prevents the UI fragmentation that occurred previously (now cleaned up).
 
@@ -24,7 +24,7 @@ This ensures consistency, reduces maintenance burden, and prevents the UI fragme
 Your work will be in these locations:
 
 ```
-web_ui/translation_manager/
+iron_abacus_translator/web_ui/translation_manager/
 ├── backend/
 │   ├── app.py              # Main FastAPI server (http://localhost:8001)
 │   ├── requirements.txt    # Python dependencies
@@ -50,7 +50,7 @@ web_ui/translation_manager/
 
 **Catalog Database**:
 - **Location**: `/Users/jacki/project_files/translation_project/wuxia_catalog.db`
-- **Schema Reference**: See `utils/catalog_metadata.py` for helper classes
+- **Schema Reference**: See `iron_abacus_translator/utils/catalog_metadata.py` for helper classes
 - **Key Tables**:
   - `works`: work_id, work_number, title_chinese, title_english, author_chinese, author_english
   - `work_files`: work_id, directory_name, volume, filename, character_count, word_count, estimated_tokens
@@ -59,7 +59,7 @@ web_ui/translation_manager/
 **Access Pattern**:
 ```python
 # Use helper classes, don't write raw SQL
-from utils.catalog_metadata import CatalogMetadataExtractor
+from iron_abacus_translator.utils.catalog_metadata import CatalogMetadataExtractor
 
 extractor = CatalogMetadataExtractor('wuxia_catalog.db')
 metadata = extractor.get_metadata_by_directory('wuxia_0117')
@@ -161,10 +161,10 @@ You must work with the existing schema:
 
 ### Translation Pipeline Integration
 Wrap these existing CLI tools in API endpoints:
-- `scripts/batch_process_books.py` - 6-stage pipeline orchestration
-- `cli/clean.py` - JSON cleaning
-- `cli/structure.py` - Content structuring
-- `cli/validate_structure.py` - Validation
+- `iron_abacus_translator/scripts/batch_process_books.py` - 6-stage pipeline orchestration
+- `iron_abacus_translator/cli/clean.py` - JSON cleaning
+- `iron_abacus_translator/cli/structure.py` - Content structuring
+- `iron_abacus_translator/cli/validate_structure.py` - Validation
 - Translation and annotation tools from translation-annotation-orchestrator
 
 ### File System Organization

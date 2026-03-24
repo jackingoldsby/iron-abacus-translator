@@ -24,12 +24,12 @@ Design and implement **wrapper scripts** that provide clean, workflow-ready inte
 ### 1. Analyze Existing Utilities
 
 Before building wrappers, understand what utilities exist:
-- `processors/json_cleaner.py`
-- `processors/content_structurer.py`
-- `processors/book_translator.py`
-- `utils/footnote_generator.py`
-- `utils/cleanup_character_footnotes.py`
-- `utils/validation/footnote_integrity_validator.py`
+- `iron_abacus_translator/processors/json_cleaner.py`
+- `iron_abacus_translator/processors/content_structurer.py`
+- `iron_abacus_translator/processors/book_translator.py`
+- `iron_abacus_translator/utils/footnote_generator.py`
+- `iron_abacus_translator/utils/cleanup_character_footnotes.py`
+- `iron_abacus_translator/utils/validation/footnote_integrity_validator.py`
 
 Document:
 - Input requirements (file paths, data structures, config)
@@ -89,7 +89,7 @@ class TranslationStageWrapper:
 Create **strict contracts** between workflow stages:
 
 ```python
-# contracts/translation_contracts.py
+# iron_abacus_translator/contracts/translation_contracts.py
 
 from pydantic import BaseModel, Field
 from typing import Dict, Any, List, Optional
@@ -172,7 +172,7 @@ class ValidationReport(BaseModel):
 Create a **declarative business rules system**:
 
 ```python
-# utils/business_rules.py
+# iron_abacus_translator/utils/business_rules.py
 
 from typing import Callable, List
 from dataclasses import dataclass
@@ -243,7 +243,7 @@ Build **individual wrappers** for each workflow stage:
 
 #### Example: Metadata Translation Wrapper
 ```python
-# wrappers/metadata_translation_wrapper.py
+# iron_abacus_translator/wrappers/metadata_translation_wrapper.py
 
 from typing import Dict, Any
 from pathlib import Path
@@ -251,9 +251,9 @@ import hashlib
 import json
 from datetime import datetime
 
-from processors.book_translator import BookTranslator
-from utils.business_rules import BusinessRuleEngine
-from contracts.translation_contracts import (
+from iron_abacus_translator.processors.book_translator import BookTranslator
+from iron_abacus_translator.utils.business_rules import BusinessRuleEngine
+from iron_abacus_translator.contracts.translation_contracts import (
     StageInput, StageOutput, Manifest, ValidationReport
 )
 
@@ -488,7 +488,7 @@ class MetadataTranslationWrapper:
 Create a **manifest tracker** for the entire workflow:
 
 ```python
-# utils/manifest_manager.py
+# iron_abacus_translator/utils/manifest_manager.py
 
 from typing import List, Dict, Any
 from pathlib import Path
@@ -549,7 +549,7 @@ class ManifestManager:
 Implement **structured logging** for all wrappers:
 
 ```python
-# utils/workflow_logger.py
+# iron_abacus_translator/utils/workflow_logger.py
 
 import logging
 import json
@@ -653,7 +653,7 @@ Each wrapper should be fully tested standalone before integration.
 4. Validate logs are structured and complete
 
 ### Phase 5: Workflow Integration (2-3 hours)
-1. Update `workflows/translation_flow.py` to call wrappers
+1. Update `iron_abacus_translator/workflows/translation_flow.py` to call wrappers
 2. Wire up manifest collection
 3. Connect logging infrastructure
 4. Test complete workflow with real data
@@ -663,10 +663,10 @@ Each wrapper should be fully tested standalone before integration.
 Once wrappers are built, the workflow tasks become simple:
 
 ```python
-# In workflows/translation_flow.py
+# In iron_abacus_translator/workflows/translation_flow.py
 
-from wrappers.metadata_translation_wrapper import MetadataTranslationWrapper
-from contracts.translation_contracts import StageInput, StageOutput
+from iron_abacus_translator.wrappers.metadata_translation_wrapper import MetadataTranslationWrapper
+from iron_abacus_translator.contracts.translation_contracts import StageInput, StageOutput
 
 @task(name="Translate Metadata", retries=2)
 def translate_metadata(
@@ -744,7 +744,7 @@ The agent should work incrementally, building one wrapper at a time and testing 
 ## Output Structure
 
 ```
-wrappers/
+iron_abacus_translator/wrappers/
 ├── __init__.py
 ├── base_wrapper.py                    # TranslationStageWrapper base class
 ├── metadata_translation_wrapper.py
@@ -755,17 +755,17 @@ wrappers/
 ├── footnote_cleanup_wrapper.py
 └── final_validation_wrapper.py
 
-contracts/
+iron_abacus_translator/contracts/
 ├── __init__.py
 └── translation_contracts.py           # All Pydantic models
 
-utils/
+iron_abacus_translator/utils/
 ├── business_rules.py                  # BusinessRuleEngine
 ├── manifest_manager.py                # ManifestManager
 └── workflow_logger.py                 # WorkflowLogger
 
-tests/
-└── wrappers/
+iron_abacus_translator/tests/
+└── iron_abacus_translator/wrappers/
     ├── test_metadata_wrapper.py
     ├── test_toc_wrapper.py
     └── ...

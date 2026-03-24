@@ -19,7 +19,7 @@ This follows **Pattern 2** (script generator for manual review).
 
 ## Current State: Partly Superseded
 
-**Basic deduplication is now integrated into the 4-phase footnote removal pipeline** in `utils/remove_trivial_footnotes.py`. This agent is still useful for advanced cross-volume deduplication scenarios.
+**Basic deduplication is now integrated into the 4-phase footnote removal pipeline** in `iron_abacus_translator/utils/remove_trivial_footnotes.py`. This agent is still useful for advanced cross-volume deduplication scenarios.
 
 ### What's Now Built-In (No Longer Needs This Agent)
 The unified 4-phase pipeline handles these automatically:
@@ -38,11 +38,11 @@ This agent generates custom scripts for scenarios the built-in pipeline doesn't 
 
 ## 4-Phase Pipeline Reference
 
-The built-in pipeline in `utils/remove_trivial_footnotes.py` already handles:
+The built-in pipeline in `iron_abacus_translator/utils/remove_trivial_footnotes.py` already handles:
 
 | Phase | What It Does | API Cost |
 |-------|-------------|----------|
-| Phase 1 | Suppress list matching (`config/wuxia_suppress_list.json`, 110+ terms) | None |
+| Phase 1 | Suppress list matching (`iron_abacus_translator/config/wuxia_suppress_list.json`, 110+ terms) | None |
 | Phase 1.5 | Heuristic patterns (char names, frequency, trivial actions, short non-cultural) | None |
 | Phase 2 | AI scoring with paragraph context + ideogram deduplication | GPT-4.1-nano |
 | Phase 3 | Context-free review by unique ideogram across entire work | GPT-4.1-nano |

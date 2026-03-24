@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.venv
+venv/
+
+# Environment
+.env
+.env.*
+!.env.example
+env.yml
+env_creds.yml
+
+# IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Caches
+.cache/
+.mypy_cache/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+
+# Output
+output/
+*.log
+
+# Test outputs
+tests/outputs/
+
+# Test files and temporary reports
+test_*.py
+run_*.py
+*_REPORT.md
+*_SUMMARY.md
+*_RESULTS.md
+*_FIX_*.md
+*_VALIDATION_*.md
+review_output/
+logs/
+
+# Database files (data should not be in git)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.duckdb
+*.duckdb.wal
+
+# CSV data files (too large for git)
+works.csv
+*_catalog.csv
+
+# Symlinks (created during setup, not in git)
+translation_data
+
+# Data files
+data/analysis/*.json
+data/analysis/*.txt
+data/glossaries/*.csv
+
+# Translation outputs and progress
+translation_data/outputs/
+translation_data/checkpoints/
+translation_data/logs/
+
+# Progress database
+logs/translation/progress.db
+logs/translation/progress.db-*
+
+# Autonomous test logs
+autonomous_test_logs/
