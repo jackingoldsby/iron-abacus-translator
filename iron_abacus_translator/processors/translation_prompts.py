@@ -29,10 +29,10 @@ from typing import List, Optional, Set
 _logger = logging.getLogger(__name__)
 
 # =============================================================================
-# MECHANICAL RULES (appended to every prompt — output format, markers, etc.)
+# MECHANICAL RULES — GPT variant (full prescriptive ruleset)
 # =============================================================================
 
-_MECHANICAL_RULES = """
+_MECHANICAL_RULES_GPT = """
 **HARD CONSTRAINTS (apply to ALL translations):**
 
 1. **ZERO Chinese characters in output** — the text must contain NO ideograms (漢字). Render every term as English, pinyin, or both. No exceptions. Scan your output before returning.
@@ -181,6 +181,97 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
 """
 
 # =============================================================================
+# MECHANICAL RULES — DeepSeek variant (lighter, trust-based)
+# =============================================================================
+
+_MECHANICAL_RULES_DEEPSEEK = """
+**HARD CONSTRAINTS (apply to ALL translations):**
+
+You have excellent Classical Chinese comprehension. Use it to produce **elevated, literary English prose** — not plain modern English. Your register should match the translators John Minford, David Hawkes, and Anna Holmwood: formal, rhythmic, precise, with the weight and gravity of the original. Narrative voice should feel like a scholarly historical novel, not a light-novel summary.
+
+- **Never compress. Every clause earns its place.** If the source has three clauses, your English must have at least three. Temporal markers (此時, 當下, 忽然) set the scene — translate them, do not drop them. Atmospheric verbs (漸增, 陣陣) convey gradation — use vivid English equivalents, not flat adjectives. Commands (命人, 叫) are active — keep them active. Sensory states (靜聽, 凝視, 屏息) describe HOW characters perceive — "listened in rapt silence" not "listened quietly." Every modifier in the source should appear in your English.
+
+  **Register example — aim for the BETTER version:**
+  Source: 此時山上寒氣漸增，于管家命人在爐中加柴添火。各人靜聽寶樹說話。
+  FLAT (avoid): "The chill deepened. Steward Yú ordered firewood added. Everyone listened as Bǎoshù spoke."
+  BETTER (aim here): "At this moment the chill upon the mountain grew steadily more biting. Yú Guǎnjiā commanded his men to add wood and stoke the fire within the brazier. All present fell silent, their ears attuned to the words of Bǎoshù *Dàshī*."
+- Let sentences breathe. Vary cadence. Use subordinate clauses, inversions, and periodic structure where the Chinese warrants it.
+- Dialogue must reflect social register: a sworn brother challenges differently from a servant reporting news. Preserve jiānghú formality — 討教 is "seek instruction," not "want to learn."
+- Action prose should be muscular and specific — physical biomechanics, not vague gestures. Name weapons and techniques precisely.
+- Landscape and atmosphere passages carry thematic weight. Do NOT compress them into summary.
+
+Translate techniques, weapons, and cultural concepts using your deep knowledge of wuxia literature and Chinese history.
+
+1. **ZERO Chinese characters in output.** Render every term as English, pinyin, or both. Scan your output before returning.
+
+2. **Pinyin with tone diacritics on every syllable.** Use standard diacritics: ā á ǎ à, ē é ě è, ī í ǐ ì, ō ó ǒ ò, ū ú ǔ ù, ǖ ǘ ǚ ǜ. Each name/term must be spelled identically every time.
+
+3. **Maintain consistent tense in narrative voice.** Do not drift between past and present within a paragraph. Direct speech and proverbs are exempt.
+
+4. **Italics (*asterisks*)** — ONLY for untranslated foreign terms/concepts. NEVER italicize character names or place names.
+
+5. **Footnote only what genuinely needs explanation.**
+   - **FIRST OCCURRENCE ONLY** — if you already footnoted a term in this block, do not footnote it again. One footnote per term, ever.
+   - NEVER footnote: fictional character names, common nouns, emotions, anything the English already conveys, anything in the SUPPRESSED TERMS list
+   - NEVER create footnotes that spoil/foreshadow plot events or explain symbolism
+
+5a. **NAME ACCURACY — non-negotiable.** Every personal name must match the source characters exactly. If uncertain, transliterate faithfully and say so.
+
+5b. **GENDER PRONOUNS — match 他/她/它 accurately.** Many key wuxia characters are women. Track each character's gender throughout.
+
+5c. **HONORIFICS — transliterate as italicized pinyin and footnote on first occurrence.** E.g. "Ruǎn *Shīxiōng*", "Miáo *Gūniáng*". The personal name stays roman; only the honorific is italicized.
+
+6. **Footnote markers** — CRITICAL:
+   - Every footnote MUST have a [N] marker in annotated_content_text
+   - Place [1], [2], [3] IMMEDIATELY after the footnoted term, OUTSIDE any quotes
+   - Sequential from [1]. VERIFY: count your footnotes, count your markers — they must match.
+
+7. **Footnote style — concise philological depth:**
+   When you DO footnote, write with scholarly precision — register, connotation, cultural context. Not dictionary definitions.
+   - Keep explanations to 1-2 sentences MAX. State the fact, not its narrative significance.
+   - NEVER interpret the story: no "underscoring the gravity", no "indicating the importance of"
+   - Explain WHAT the term IS. Never explain what it MEANS IN THIS SCENE.
+
+{suppress_list_section}
+
+**DENSITY:** Follow the density guidance in the genre/author section above. Default: however many genuinely add value.
+
+**Output Requirements:**
+
+Return ONLY valid JSON in this exact format (no markdown, no explanation):
+
+{{
+  "content_text_id": <original_id>,
+  "content_source_text": "<original_chinese_text>",
+  "translated_annotated_content": {{
+    "annotated_content_text": "<full_english_translation_with_inline_markers>",
+    "content_footnotes": [
+      {{
+        "footnote_key": 1,
+        "footnote_details": {{
+          "footnote_ideogram": "<chinese_characters>",
+          "footnote_pinyin": "<romanized_pronunciation>",
+          "footnote_explanation": "<philological_and_contextual_explanation>"
+        }}
+      }}
+    ],
+    "content_type": "<narrative|dialogue|verse|document|descriptive|thought>"
+  }}
+}}
+
+**Content Type Classification:**
+- `narrative`: Storytelling, scene-setting, action sequences
+- `dialogue`: Character speech and conversation
+- `verse`: Poetry, songs, or verse passages
+- `document`: Letters, proclamations, written texts within the story
+- `descriptive`: Pure description of settings, characters, or objects
+- `thought`: Internal monologue or character reflection
+"""
+
+# Backward compatibility alias
+_MECHANICAL_RULES = _MECHANICAL_RULES_GPT
+
+# =============================================================================
 # PROMPT REGISTRY — each entry is a complete, self-contained creative brief
 # =============================================================================
 
@@ -219,7 +310,7 @@ Liang writes classical, elegant prose closer to traditional Chinese literary fic
 
 **VERSE:** Preserve meter, parallelism, and allusion. These are literary set-pieces, not filler.
 
-**Quality benchmark:** Oxford World's Classics — the prose of a scholarly historical novel, the footnotes of a philologist.""" + _MECHANICAL_RULES
+**Quality benchmark:** Oxford World's Classics — the prose of a scholarly historical novel, the footnotes of a philologist."""
 
 # ---------------------------------------------------------------------------
 # 金庸 — Jīn Yōng
@@ -253,7 +344,7 @@ Jin Yong writes epic, psychologically rich, structurally sophisticated fiction. 
 - Honorifics on first use: explain the social hierarchy they encode
 - Acupoints and meridian concepts
 
-**Quality benchmark:** The translation should feel like reading Patrick O'Brian — you learn real things about a real culture while being swept along by a great story.""" + _MECHANICAL_RULES
+**Quality benchmark:** The translation should feel like reading Patrick O'Brian — you learn real things about a real culture while being swept along by a great story."""
 
 # ---------------------------------------------------------------------------
 # 古龍 — Gǔ Lóng
@@ -288,7 +379,7 @@ Gu Long shattered wuxia conventions. His prose is radically different from Jin Y
 - Technique names only when the source explicitly names one. Do NOT capitalize generic actions.
 - Internal energy concepts: translate simply. "His inner force" not elaborate meridian descriptions.
 
-**Quality benchmark:** The translation should read like a Cormac McCarthy novel set in ancient China — every word earns its place, the violence is sudden, and the beauty is hard-won.""" + _MECHANICAL_RULES
+**Quality benchmark:** The translation should read like a Cormac McCarthy novel set in ancient China — every word earns its place, the violence is sudden, and the beauty is hard-won."""
 
 # ---------------------------------------------------------------------------
 # 黃易 — Huáng Yì
@@ -317,7 +408,7 @@ Huang Yi writes at the intersection of martial arts, metaphysics, and sensuality
 - Philosophical terms: keep pinyin + English — "*Dào* (the Way)", "*wúwéi* (non-action)"
 - Internal energy: translate with precision appropriate to the metaphysical system Huang Yi builds
 
-**Quality benchmark:** The translation should feel like literary speculative fiction — Ursula K. Le Guin's philosophical depth with the kinetic energy of a modern thriller.""" + _MECHANICAL_RULES
+**Quality benchmark:** The translation should feel like literary speculative fiction — Ursula K. Le Guin's philosophical depth with the kinetic energy of a modern thriller."""
 
 # ---------------------------------------------------------------------------
 # 雲中岳 — Yún Zhōngyuè
@@ -337,7 +428,7 @@ Yun Zhongyue was a trained martial artist who brought real combat knowledge to h
 
 **TERMINOLOGY:** Translate martial arts with biomechanical precision. Name real techniques accurately. Government titles must be period-correct.
 
-**Quality benchmark:** Bernard Cornwell's Sharpe — you learn real history and real combat from every page.""" + _MECHANICAL_RULES
+**Quality benchmark:** Bernard Cornwell's Sharpe — you learn real history and real combat from every page."""
 
 # ---------------------------------------------------------------------------
 # 倪匡 — Ní Kuāng
@@ -355,7 +446,7 @@ Ni Kuang was primarily a sci-fi writer (the Wisely series) whose wuxia crackles 
 
 **WHAT TO FOOTNOTE:** Sparingly. His writing is meant to be immediately accessible. Only footnote genuine cultural references a Western reader couldn't infer. Zero footnotes per block is often correct.
 
-**Quality benchmark:** Roger Zelazny's Amber — speculative, entertaining, unpretentious, and never boring.""" + _MECHANICAL_RULES
+**Quality benchmark:** Roger Zelazny's Amber — speculative, entertaining, unpretentious, and never boring."""
 
 # ---------------------------------------------------------------------------
 # 獨孤紅 — Dúgū Hóng
@@ -375,7 +466,7 @@ Dugu Hong sets his fiction in the Ming-Qing imperial court, combining palace int
 
 **TERMINOLOGY:** Imperial titles must be precise — 太監 "eunuch", 錦衣衛 "Embroidered Guard". Distinguish court ranks carefully.
 
-**Quality benchmark:** Alexandre Dumas — court intrigue, swashbuckling heroes, and romance with aristocratic polish.""" + _MECHANICAL_RULES
+**Quality benchmark:** Alexandre Dumas — court intrigue, swashbuckling heroes, and romance with aristocratic polish."""
 
 # ---------------------------------------------------------------------------
 # 諸葛青雲 — Zhūgě Qīngyún
@@ -393,7 +484,7 @@ Zhuge Qingyun was trained by Huanzhu Louzhu himself, and his prose is the most l
 
 **WHAT TO FOOTNOTE:** Classical literary allusions (heavily), poetic references, cultural practices, historical figures. His writing demands more footnotes than most — the allusions are load-bearing.
 
-**Quality benchmark:** Lord Dunsany or William Morris — mythic, archaic, deliberately beautiful prose where the language itself is the primary pleasure.""" + _MECHANICAL_RULES
+**Quality benchmark:** Lord Dunsany or William Morris — mythic, archaic, deliberately beautiful prose where the language itself is the primary pleasure."""
 
 # ---------------------------------------------------------------------------
 # 黃鷹 — Huáng Yīng
@@ -412,7 +503,7 @@ Huang Ying came from screenwriting and blended wuxia with ghost stories, superna
 
 **WHAT TO FOOTNOTE:** Chinese supernatural beings and folklore (殭屍, 鬼, etc.), Daoist ritual/exorcism practices, feng shui concepts when plot-relevant.
 
-**Quality benchmark:** Jim Butcher's Dresden Files — supernatural detective fiction, fast-paced, dark, and entertaining.""" + _MECHANICAL_RULES
+**Quality benchmark:** Jim Butcher's Dresden Files — supernatural detective fiction, fast-paced, dark, and entertaining."""
 
 # ---------------------------------------------------------------------------
 # 東方玉 — Dōngfāng Yù
@@ -430,7 +521,7 @@ Dongfang Yu was a classical literature graduate who wrote reliable, engaging wux
 
 **WHAT TO FOOTNOTE:** Standard wuxia cultural references — martial arts terms, sect names, honorifics on first use. Normal density.
 
-**Quality benchmark:** David Gemmell — professional, readable heroic adventure. The goal is a satisfying genre experience, not a literary experiment.""" + _MECHANICAL_RULES
+**Quality benchmark:** David Gemmell — professional, readable heroic adventure. The goal is a satisfying genre experience, not a literary experiment."""
 
 # ---------------------------------------------------------------------------
 # 司馬翎 — Sīmǎ Líng
@@ -450,7 +541,7 @@ Sima Ling was one of Taiwan's "Four Wuxia Kings" and the founder of the "Compreh
 
 **TERMINOLOGY:** His martial arts vocabulary is philosophically loaded — translate with attention to the conceptual framework, not just the physical action.
 
-**Quality benchmark:** Gene Wolfe — intellectually demanding fiction that rewards close reading and refuses easy moral categories.""" + _MECHANICAL_RULES
+**Quality benchmark:** Gene Wolfe — intellectually demanding fiction that rewards close reading and refuses easy moral categories."""
 
 # ---------------------------------------------------------------------------
 # 臥龍生 — Wòlóng Shēng
@@ -470,7 +561,7 @@ Wolong Sheng created the "Nine Great Sects" framework and the concept of a unifi
 
 **TERMINOLOGY:** Sect names, rank titles, and organizational terminology MUST be consistent throughout — create a terminology and stick to it.
 
-**Quality benchmark:** Robert Jordan — epic, factional, world-building genre fiction where the political architecture matters as much as the swordplay.""" + _MECHANICAL_RULES
+**Quality benchmark:** Robert Jordan — epic, factional, world-building genre fiction where the political architecture matters as much as the swordplay."""
 
 # ---------------------------------------------------------------------------
 # 柳殘陽 — Liǔ Cányáng
@@ -489,7 +580,7 @@ Liu Canyang was a former gang member whose wuxia is the genre's grimdark. Jin Yo
 
 **WHAT TO FOOTNOTE:** Sparingly. His world is stripped-down by design. Only genuine cultural references. Match his sparse prose with sparse annotation.
 
-**Quality benchmark:** James Ellroy's LA Confidential — hard, fast, violent, morally compromised, and electrifying.""" + _MECHANICAL_RULES
+**Quality benchmark:** James Ellroy's LA Confidential — hard, fast, violent, morally compromised, and electrifying."""
 
 # ---------------------------------------------------------------------------
 # 慕容美 — Mùróng Měi
@@ -508,7 +599,7 @@ Murong Mei was known as the "Poetic and Picturesque" (詩情畫意) school — h
 
 **WHAT TO FOOTNOTE:** Classical verse references, literary allusions, cultural practices related to poetry/art/music, historical references.
 
-**Quality benchmark:** Guy Gavriel Kay — literary fantasy where beauty, emotion, and history are inseparable from the adventure.""" + _MECHANICAL_RULES
+**Quality benchmark:** Guy Gavriel Kay — literary fantasy where beauty, emotion, and history are inseparable from the adventure."""
 
 # ---------------------------------------------------------------------------
 # 司馬紫煙 — Sīmǎ Zǐyān
@@ -526,7 +617,7 @@ Sima Ziyan began as a ghostwriter for Zhuge Qingyun but developed his own voice 
 
 **WHAT TO FOOTNOTE:** Historical references (strong scholarly depth), cultural practices, period-specific details.
 
-**Quality benchmark:** Umberto Eco's The Name of the Rose — intellectual mystery wrapped in historical fiction with well-drawn, thinking characters.""" + _MECHANICAL_RULES
+**Quality benchmark:** Umberto Eco's The Name of the Rose — intellectual mystery wrapped in historical fiction with well-drawn, thinking characters."""
 
 # ---------------------------------------------------------------------------
 # 蕭玉寒 — Xiāo Yùhán
@@ -544,7 +635,7 @@ Xiao Yuhan's major work fuses Three Kingdoms history with wuxia, feng shui, and 
 
 **WHAT TO FOOTNOTE:** Three Kingdoms historical context, feng shui and mystical concepts, real historical events that differ from the fictional retelling.
 
-**Quality benchmark:** Mary Stewart's Merlin trilogy — history and the supernatural woven together so seamlessly you can't separate them.""" + _MECHANICAL_RULES
+**Quality benchmark:** Mary Stewart's Merlin trilogy — history and the supernatural woven together so seamlessly you can't separate them."""
 
 # ---------------------------------------------------------------------------
 # 王度廬 — Wáng Dùlú
@@ -563,7 +654,7 @@ Wang Dulu wrote the Crane-Iron Pentalogy (including Crouching Tiger, Hidden Drag
 
 **WHAT TO FOOTNOTE:** Historical references, martial arts terms on first use, cultural practices around honor/duty conventions.
 
-**Quality benchmark:** Kazuo Ishiguro's Remains of the Day — devastation through restraint, where what is NOT said breaks the reader's heart.""" + _MECHANICAL_RULES
+**Quality benchmark:** Kazuo Ishiguro's Remains of the Day — devastation through restraint, where what is NOT said breaks the reader's heart."""
 
 # ---------------------------------------------------------------------------
 # 溫瑞安 — Wēn Ruì'ān
@@ -582,7 +673,7 @@ Wen Ruian was a poet before becoming a novelist, and he deliberately shattered c
 
 **WHAT TO FOOTNOTE:** Song Dynasty political structures, poetic allusions, philosophical references.
 
-**Quality benchmark:** Cormac McCarthy's Blood Meridian — every sentence is both narrative and poetry, the violence is transcendent, and the form is inseparable from the meaning.""" + _MECHANICAL_RULES
+**Quality benchmark:** Cormac McCarthy's Blood Meridian — every sentence is both narrative and poetry, the violence is transcendent, and the form is inseparable from the meaning."""
 
 # ---------------------------------------------------------------------------
 # 還珠樓主 — Huánzhū Lóuzhǔ
@@ -603,7 +694,7 @@ Huanzhu Louzhu wrote the Shushan Swordsman series, the foundational work from wh
 
 **TERMINOLOGY:** Cultivation ranks, immortal titles, and cosmological terms need consistent, precise translation. Establish a terminology system and maintain it.
 
-**Quality benchmark:** Anthony C. Yu's Journey to the West — monumental, scholarly, archaic, and alive with the strangeness of a cosmology wholly unlike the Western one.""" + _MECHANICAL_RULES
+**Quality benchmark:** Anthony C. Yu's Journey to the West — monumental, scholarly, archaic, and alive with the strangeness of a cosmology wholly unlike the Western one."""
 
 # ---------------------------------------------------------------------------
 # "wuxia" — generic fallback for unknown wuxia authors
@@ -648,7 +739,7 @@ Wuxia characters inhabit a world of codes, honor, and ritual speech. Their langu
 
 **FOOTNOTE DENSITY — BE CONSERVATIVE.** Wuxia readers need fewer footnotes. The martial arts world is internally consistent and most concepts are conveyed by the translation itself. Footnote only genuinely unfamiliar cultural/historical content. Zero footnotes in a block is perfectly fine.
 
-**Quality benchmark:** Oxford World's Classics or Penguin Classics — scholarly, literary, pleasurable to read.""" + _MECHANICAL_RULES
+**Quality benchmark:** Oxford World's Classics or Penguin Classics — scholarly, literary, pleasurable to read."""
 
 # ---------------------------------------------------------------------------
 # "classical" — mythology, historical fiction, court drama, shenmo
@@ -706,21 +797,23 @@ Classical Chinese literature is dense with mythology, court hierarchy, and histo
 
 **Italics:** *Dào* (the Way), *tiānmìng* (Mandate of Heaven), *xiān* (immortal), *yāo* (demon/monster)
 
-**Quality benchmark:** Moss Roberts's Three Kingdoms or Anthony Yu's Journey to the West — scholarly, monumental, alive.""" + _MECHANICAL_RULES
+**Quality benchmark:** Moss Roberts's Three Kingdoms or Anthony Yu's Journey to the West — scholarly, monumental, alive."""
 
 
 # =============================================================================
 # BACKWARD COMPATIBILITY
 # =============================================================================
 
-# Legacy constants — kept so existing imports don't break
-TRANSLATION_SYSTEM_PROMPT = PROMPT_REGISTRY["wuxia"]
+# Legacy constants — kept so existing imports don't break.
+# These include _MECHANICAL_RULES_GPT appended, matching old behavior where
+# each registry entry had `+ _MECHANICAL_RULES` baked in.
+TRANSLATION_SYSTEM_PROMPT = PROMPT_REGISTRY["wuxia"] + _MECHANICAL_RULES_GPT
 GENRE_PROMPTS = {
-    "wuxia": PROMPT_REGISTRY["wuxia"],
-    "classical": PROMPT_REGISTRY["classical"],
+    "wuxia": PROMPT_REGISTRY["wuxia"] + _MECHANICAL_RULES_GPT,
+    "classical": PROMPT_REGISTRY["classical"] + _MECHANICAL_RULES_GPT,
 }
 AUTHOR_STYLES = {
-    k: v for k, v in PROMPT_REGISTRY.items()
+    k: v + _MECHANICAL_RULES_GPT for k, v in PROMPT_REGISTRY.items()
     if k not in ("wuxia", "classical")
 }
 
@@ -839,17 +932,21 @@ def build_system_prompt(
     already_footnoted_context: str = "",
     genre: str = "wuxia",
     author: str = None,
+    provider: str = None,
 ) -> str:
     """
     Build the complete system prompt with suppress list injected.
 
     Resolution: author → genre → "wuxia" default.
+    Mechanical rules variant selected by provider (deepseek → lighter rules).
 
     Args:
         suppress_list_path: Path to suppress list JSON (uses default if None).
         already_footnoted_context: Already-footnoted terms (from accumulator).
         genre: Genre fallback key ("wuxia" or "classical").
         author: Author key (author_chinese). Takes priority over genre.
+        provider: LLM provider ("openai", "deepseek", "anthropic", etc.).
+            DeepSeek gets lighter mechanical rules; all others get full GPT rules.
 
     Returns:
         Complete system prompt string ready for API call.
@@ -861,11 +958,21 @@ def build_system_prompt(
     if not get_author_key(author):
         key = genre if genre in PROMPT_REGISTRY else "wuxia"
 
+    # Select mechanical rules based on provider
+    if provider == "deepseek":
+        rules = _MECHANICAL_RULES_DEEPSEEK
+    else:
+        rules = _MECHANICAL_RULES_GPT  # default for openai, anthropic, unknown
+
     template = PROMPT_REGISTRY.get(key, PROMPT_REGISTRY["wuxia"])
-    prompt = template.replace("{suppress_list_section}", suppress_section)
+    # Append mechanical rules, then inject suppress list into the combined text
+    prompt = (template + rules).replace("{suppress_list_section}", suppress_section)
 
     if already_footnoted_context:
         prompt += f"\n\n{already_footnoted_context}"
+
+    _logger.info(f"Built system prompt: key={key}, provider={provider or 'default'}, "
+                 f"rules={'deepseek' if provider == 'deepseek' else 'gpt'}")
 
     return prompt
 

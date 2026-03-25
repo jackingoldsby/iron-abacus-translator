@@ -64,14 +64,18 @@ class LLMClient(Protocol):
 class OpenAILLMClient:
     """LLM client wrapping OpenAI's chat completions API."""
 
-    def __init__(self, model: str = "gpt-4.1-nano", api_key: Optional[str] = None):
+    def __init__(self, model: str = "gpt-4.1-nano", api_key: Optional[str] = None, base_url: Optional[str] = None, provider: str = "openai"):
         from openai import OpenAI
         self.model = model
         self.default_model = model
+        self.provider = provider
         key = api_key or os.getenv("OPENAI_API_KEY")
         if not key:
-            raise RuntimeError("OPENAI_API_KEY not set")
-        self._client = OpenAI(api_key=key)
+            raise RuntimeError("No API key provided and OPENAI_API_KEY not set")
+        kwargs = {"api_key": key}
+        if base_url:
+            kwargs["base_url"] = base_url
+        self._client = OpenAI(**kwargs)
 
     def chat(self, request: LLMRequest) -> LLMResponse:
         model = request.model or self.default_model
@@ -122,10 +126,11 @@ class OpenAILLMClient:
 class AnthropicLLMClient:
     """LLM client wrapping Anthropic's messages API."""
 
-    def __init__(self, model: str = "claude-sonnet-4-20250514", api_key: Optional[str] = None):
+    def __init__(self, model: str = "claude-sonnet-4-20250514", api_key: Optional[str] = None, provider: str = "anthropic"):
         from anthropic import Anthropic
         self.model = model
         self.default_model = model
+        self.provider = provider
         key = api_key or os.getenv("ANTHROPIC_API_KEY")
         if not key:
             raise RuntimeError("ANTHROPIC_API_KEY not set")

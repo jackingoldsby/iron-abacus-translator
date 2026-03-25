@@ -249,7 +249,8 @@ class TranslationService:
         # Initialize LLM client — model resolved by factory if not explicit
         self.llm = llm_client or get_llm_client(component="translator", model=model)
         self.model = self.llm.model
-        logger.info(f"Initialized TranslationService with model={self.model}, temperature={temperature}")
+        self.provider = getattr(self.llm, 'provider', None)
+        logger.info(f"Initialized TranslationService with model={self.model}, provider={self.provider}, temperature={temperature}")
 
         # Initialize wuxia glossary
         if glossary_path is None:
@@ -424,7 +425,7 @@ class TranslationService:
         try:
             response = self.llm.chat(LLMRequest(
                 messages=[
-                    {"role": "system", "content": build_system_prompt()},
+                    {"role": "system", "content": build_system_prompt(provider=self.provider)},
                     {"role": "user", "content": user_message}
                 ],
                 model=self.model,

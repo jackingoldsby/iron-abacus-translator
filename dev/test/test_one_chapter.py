@@ -10,6 +10,7 @@ Usage:
     python scripts/test_one_chapter.py D58 --chapter 1 --max-workers 4 --model gpt-4.1-nano
 """
 
+import os
 import sys
 import json
 import argparse
@@ -73,9 +74,15 @@ Examples:
     )
 
     parser.add_argument(
+        '--provider',
+        default=None,
+        help='LLM provider: openai, deepseek, anthropic (default: from env)'
+    )
+
+    parser.add_argument(
         '--model',
         default='gpt-4.1-nano',
-        help='OpenAI model to use (default: gpt-4.1-nano)'
+        help='LLM model to use (default: gpt-4.1-nano)'
     )
 
     parser.add_argument(
@@ -98,6 +105,10 @@ Examples:
         level=logging.DEBUG if args.verbose else logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
+
+    # Set provider env var if specified (before any config/factory init)
+    if args.provider:
+        os.environ['LLM_PROVIDER'] = args.provider
 
     # Load API credentials
     try:
@@ -151,14 +162,16 @@ Examples:
             epub_path = eb._english_epub_path(
                 {'meta': _meta}, volume_info.translated_json_path.parent
             )
-            # Swap .epub → _chN.json
+            # Swap .epub → _chN[_model].json
             stem = epub_path.stem
-            volume_info.translated_json_path = epub_path.with_name(f"{stem}_ch{args.chapter}.json")
+            model_tag = f"_{args.model}" if args.model else ""
+            volume_info.translated_json_path = epub_path.with_name(f"{stem}_ch{args.chapter}{model_tag}.json")
         except Exception as e:
             logger.warning(f"Could not resolve English filename: {e}")
             stem = volume_info.translated_json_path.stem
+            model_tag = f"_{args.model}" if args.model else ""
             volume_info.translated_json_path = (
-                volume_info.translated_json_path.parent / f"{stem}_ch{args.chapter}.json"
+                volume_info.translated_json_path.parent / f"{stem}_ch{args.chapter}{model_tag}.json"
             )
 
     if not volume_info.cleaned_json_path or not volume_info.cleaned_json_path.exists():

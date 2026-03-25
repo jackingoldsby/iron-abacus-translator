@@ -110,6 +110,7 @@ class ContentBlockTranslationWrapper:
         # Initialize LLM client — model resolved by factory if not explicit
         self.llm = llm_client or get_llm_client(component="translator", model=model)
         self.model = self.llm.model
+        self.provider = getattr(self.llm, 'provider', None)
 
         # Initialize glossary
         if glossary_path is None:
@@ -120,13 +121,14 @@ class ContentBlockTranslationWrapper:
             logger.warning(f"Glossary not found at {glossary_path}")
             self.glossary = None
 
-        # Build base system prompt (with suppress list)
+        # Build base system prompt (with suppress list + provider-specific rules)
         self._base_system_prompt = build_system_prompt(
-            suppress_list_path=suppress_list_path
+            suppress_list_path=suppress_list_path,
+            provider=self.provider,
         )
 
         logger.info(
-            f"Initialized wrapper: model={model}, "
+            f"Initialized wrapper: model={model}, provider={self.provider}, "
             f"suppress_list={len(self._suppress_ideograms)} terms, "
             f"accumulator={self.accumulator}"
         )
@@ -168,10 +170,11 @@ class ContentBlockTranslationWrapper:
         # Build already-footnoted context for prompt
         already_context = self._build_already_footnoted_context()
 
-        # Build complete system prompt
+        # Build complete system prompt (with provider-specific rules)
         system_prompt = build_system_prompt(
             suppress_list_path=self.suppress_list_path,
             already_footnoted_context=already_context,
+            provider=self.provider,
         )
 
         # Build user message

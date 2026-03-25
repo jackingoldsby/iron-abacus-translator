@@ -7,8 +7,11 @@ Env var hierarchy (first match wins):
     Provider: explicit arg > {COMPONENT}_LLM_PROVIDER > LLM_PROVIDER > "openai"
     Model:    explicit arg > {COMPONENT}_LLM_MODEL > provider default
 
+Supported providers: openai, anthropic, deepseek (+ any OpenAI-compatible with {PROVIDER}_BASE_URL)
+
 Examples:
     LLM_PROVIDER=anthropic                        # Global switch
+    LLM_PROVIDER=deepseek                         # Use DeepSeek
     TRANSLATOR_LLM_PROVIDER=anthropic              # Just translation uses Claude
     TRANSLATOR_LLM_MODEL=claude-sonnet-4-20250514  # Specific model
     CLEANUP_LLM_PROVIDER=openai                    # Cleanup stays on GPT
@@ -27,6 +30,17 @@ logger = logging.getLogger(__name__)
 _PROVIDER_DEFAULTS = {
     "openai": "gpt-4.1-nano",
     "anthropic": "claude-sonnet-4-20250514",
+    "deepseek": "deepseek-chat",
+}
+
+_PROVIDER_BASE_URLS = {
+    "deepseek": "https://api.deepseek.com",
+}
+
+_PROVIDER_API_KEY_ENV = {
+    "openai": "OPENAI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+    "deepseek": "DEEPSEEK_API_KEY",
 }
 
 # Component-specific model defaults (overrides provider default)
@@ -37,6 +51,9 @@ _COMPONENT_MODEL_DEFAULTS = {
     },
     "anthropic": {
         "translator": "claude-sonnet-4-20250514",
+    },
+    "deepseek": {
+        "translator": "deepseek-chat",
     },
 }
 
@@ -93,11 +110,24 @@ def get_llm_client(
     )
 
     if resolved_provider == "anthropic":
-        return AnthropicLLMClient(model=resolved_model, api_key=api_key)
+        return AnthropicLLMClient(model=resolved_model, api_key=api_key, provider=resolved_provider)
     elif resolved_provider == "openai":
-        return OpenAILLMClient(model=resolved_model, api_key=api_key)
+        return OpenAILLMClient(model=resolved_model, api_key=api_key, provider=resolved_provider)
     else:
-        raise ValueError(
-            f"Unknown LLM provider: {resolved_provider!r}. "
-            f"Supported: openai, anthropic"
-        )
+        # OpenAI-compatible providers (deepseek, local endpoints, etc.)
+        base_url = _PROVIDER_BASE_URLS.get(resolved_provider)
+        if base_url is None:
+            # Check for custom base URL via env var
+            base_url = os.getenv(f"{resolved_provider.upper()}_BASE_URL")
+        if base_url is None:
+            raise ValueError(
+                f"Unknown LLM provider: {resolved_provider!r}. "
+                f"Supported: openai, anthropic, deepseek (or set {resolved_provider.upper()}_BASE_URL)"
+            )
+        # Resolve API key from provider-specific env var
+        if api_key is None:
+            env_key = _PROVIDER_API_KEY_ENV.get(
+                resolved_provider, f"{resolved_provider.upper()}_API_KEY"
+            )
+            api_key = os.getenv(env_key)
+        return OpenAILLMClient(model=resolved_model, api_key=api_key, base_url=base_url, provider=resolved_provider)

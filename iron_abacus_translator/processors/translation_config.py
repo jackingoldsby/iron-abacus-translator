@@ -36,6 +36,7 @@ class TranslationConfig:
     """Configuration for translation pipeline"""
 
     # API Configuration
+    provider: Optional[str] = None  # None = use env default (openai, anthropic, deepseek)
     model: str = "gpt-4.1-mini"
     temperature: float = 0.3
     max_retries: int = 3

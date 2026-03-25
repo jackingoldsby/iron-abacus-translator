@@ -19,6 +19,7 @@ Usage:
     python scripts/orchestrate_translation_pipeline.py D1379 --start-stage 1 --end-stage 6
 """
 
+import os
 import sys
 import json
 import re
@@ -1055,6 +1056,11 @@ def main():
         help="Parallel workers for body translation (default: 5)",
     )
     parser.add_argument(
+        "--provider",
+        default=None,
+        help="LLM provider: openai, deepseek, anthropic (default: from env)",
+    )
+    parser.add_argument(
         "--model",
         default=None,
         help="LLM model override (default: resolved by factory — mini for translation, nano for cleanup)",
@@ -1066,6 +1072,10 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # Set provider env var if specified (before any config/factory init)
+    if args.provider:
+        os.environ['LLM_PROVIDER'] = args.provider
 
     config = OrchestrationConfig(
         start_stage=args.start_stage,
