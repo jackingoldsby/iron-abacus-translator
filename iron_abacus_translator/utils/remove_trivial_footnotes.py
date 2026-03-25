@@ -905,6 +905,11 @@ Return valid JSON as: {"verdicts": [...]}"""
             r"(?i)personal\s+identity\s+into\s+a\s+(mythic|heroic)",
             r"(?i)^an?\s+(esteemed|renowned|skilled|fearsome|formidable)\s+(martial|warrior|fighter|swordsman)",
             r"(?i)(protagonist|antagonist|challenger)\s+within\s+the\s+ji[aā]ngh[uú]",
+            # Dramatis personae: character introductions via sobriquet/honorific
+            r"(?i)(known\s+by\s+(the\s+)?(honorific|sobriquet|nickname|alias|epithet|title)|known\s+as\s+['\"])",
+            r"(?i)^['\"]?[A-Z][\w-]+['\"]?\s+is\s+the\s+(martial\s+)?sobriquet\b",
+            r"(?i)sobriquet\s+of\s+",
+            r"(?i)^a\s+(female|male)\s+(fighter|warrior|swordsman|swordswoman)\s+known\b",
         ]
         _char_re = [re.compile(p) for p in _CHAR_NAME_PATTERNS]
 
@@ -1000,7 +1005,6 @@ Return valid JSON as: {"verdicts": [...]}"""
         # the ideogram looks like a character name
         _HISTORICAL_SIGNALS = re.compile(
             r"(?i)(dynasty|emperor|reign|historical|real|actual|famous|"
-            r"renowned|celebrated|notable|legendary|"
             r"\d{3,4}\s*[-–]\s*\d{3,4}|"
             r"\bBCE\b|\bCE\b|\bAD\b|\bBC\b|"
             r"\bqing\b|\bming\b|\bsong\b|\btang\b|\byuan\b|\bjin\b|\bsui\b|"

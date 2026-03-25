@@ -499,6 +499,12 @@ class BodyTranslationProcessor(StageProcessor):
         total_footnotes = 0
         errors = []
 
+        if self.config.enable_progress_tracking:
+            progress_dir = self.config.log_dir / work_number / "stage_1_progress"
+            progress_dir.mkdir(parents=True, exist_ok=True)
+            chapters_summary = []
+            stage_start = datetime.now()
+
         for ch_idx, chapter in enumerate(chapters):
             ch_num = ch_idx + 1
             content_blocks = chapter.get("content_blocks", [])
@@ -508,6 +514,9 @@ class BodyTranslationProcessor(StageProcessor):
                 f"  Chapter {ch_num}/{len(chapters)}: "
                 f"{len(translatable)}/{len(content_blocks)} translatable blocks"
             )
+
+            if self.config.enable_progress_tracking:
+                ch_start_time = datetime.now()
 
             # Translate blocks in parallel within chapter
             results_map = {}
@@ -565,6 +574,55 @@ class BodyTranslationProcessor(StageProcessor):
 
             # Rate limiting between chapters
             time.sleep(self.config.rate_limit_delay)
+
+            # --- Per-chapter progress ---
+            if self.config.enable_progress_tracking:
+                ch_end_time = datetime.now()
+                ch_duration = (ch_end_time - ch_start_time).total_seconds()
+                ch_successful = sum(1 for b in content_blocks if b.get("translated_content"))
+                ch_footnotes = sum(len(b.get("footnotes", [])) for b in content_blocks)
+
+                ch_progress = {
+                    "chapter": ch_num,
+                    "total_chapters": len(chapters),
+                    "title": chapter.get("title", ""),
+                    "translatable_blocks": len(translatable),
+                    "successful_blocks": ch_successful,
+                    "footnotes_generated": ch_footnotes,
+                    "duration_seconds": round(ch_duration, 1),
+                    "completed_at": ch_end_time.isoformat(),
+                }
+
+                # Per-chapter file
+                ch_file = progress_dir / f"chapter_{ch_num:02d}_of_{len(chapters):02d}.json"
+                with open(ch_file, "w") as f:
+                    json.dump(ch_progress, f, indent=2, ensure_ascii=False)
+
+                # Rolling summary
+                chapters_summary.append(ch_progress)
+                elapsed = (ch_end_time - stage_start).total_seconds()
+                avg_per_ch = elapsed / len(chapters_summary)
+                remaining = avg_per_ch * (len(chapters) - len(chapters_summary))
+
+                summary = {
+                    "work_number": work_number,
+                    "stage": "body_translation",
+                    "chapters_completed": len(chapters_summary),
+                    "total_chapters": len(chapters),
+                    "percent_complete": round(100 * len(chapters_summary) / len(chapters)),
+                    "elapsed_seconds": round(elapsed, 1),
+                    "estimated_remaining_seconds": round(remaining, 1),
+                    "chapters": chapters_summary,
+                }
+                summary_file = self.config.log_dir / work_number / "stage_1_progress.json"
+                with open(summary_file, "w") as f:
+                    json.dump(summary, f, indent=2, ensure_ascii=False)
+
+                logger.info(
+                    f"  Chapter {ch_num}/{len(chapters)} done: "
+                    f"{ch_successful} blocks, {ch_footnotes} footnotes, "
+                    f"{ch_duration:.1f}s — ETA {remaining:.0f}s remaining"
+                )
 
         logger.info(
             f"  Body translation complete: {successful_blocks}/{total_blocks} blocks, "
