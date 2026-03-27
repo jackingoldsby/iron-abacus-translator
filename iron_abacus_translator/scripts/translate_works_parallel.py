@@ -128,7 +128,8 @@ def translate_single_work(
             logger.info(f"[{work_number}] Processing volume {vol_label}...")
 
         try:
-            runner = build_pipeline(config)
+            db = ProgressDB(connect_per_write=True)
+            runner = build_pipeline(config, db)
             result = runner.run(
                 work_id=work_number,
                 volume=vol,

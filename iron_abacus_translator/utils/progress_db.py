@@ -27,6 +27,7 @@ import os
 import re
 import shutil
 import tempfile
+import time
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from pathlib import Path
@@ -99,7 +100,8 @@ class ProgressDB:
 
     _CONNECT_TIMEOUT_S = 10
 
-    def __init__(self, db_path: Optional[Path] = None, read_only: bool = False):
+    def __init__(self, db_path: Optional[Path] = None, read_only: bool = False,
+                 connect_per_write: bool = False):
         try:
             import duckdb
         except ImportError:
@@ -108,12 +110,30 @@ class ProgressDB:
         self.db_path = Path(db_path) if db_path else _DEFAULT_DB_PATH
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.read_only = read_only
+        self._connect_per_write = connect_per_write
+        self._read_conn = None  # lazy read connection for connect_per_write mode
 
-        if read_only:
+        if connect_per_write:
+            # Init schema with a short-lived connection, then release.
+            # Retry on write-write conflict (parallel workers racing to create schema).
+            for attempt in range(3):
+                conn = duckdb.connect(str(self.db_path))
+                try:
+                    self._conn = conn
+                    self._init_schema()
+                    break
+                except Exception as e:
+                    if "write-write conflict" in str(e) and attempt < 2:
+                        time.sleep(0.05 * (attempt + 1))
+                        continue
+                    raise
+                finally:
+                    conn.close()
+                    self._conn = None
+        elif read_only:
             self._conn = self._connect_read_only(duckdb)
         else:
             self._conn = self._connect_with_recovery(duckdb)
-        if not read_only:
             self._init_schema()
 
     def _connect_with_recovery(self, duckdb):
@@ -242,6 +262,16 @@ class ProgressDB:
             shutil.copy2(self.db_path, self._tmp_path)
             return duckdb.connect(str(self._tmp_path), read_only=True)
 
+    def _get_read_conn(self):
+        """Return a connection suitable for reads. In connect_per_write mode,
+        lazily open and cache a read-only connection."""
+        if self._connect_per_write:
+            if self._read_conn is None:
+                import duckdb
+                self._read_conn = duckdb.connect(str(self.db_path), read_only=True)
+            return self._read_conn
+        return self._conn
+
     def _init_schema(self):
         """Create the events table if it doesn't exist."""
         self._conn.execute("""
@@ -276,8 +306,15 @@ class ProgressDB:
         """Append a progress event."""
         if self.read_only:
             raise RuntimeError("Cannot emit events on a read-only ProgressDB")
+        if self._connect_per_write:
+            self._emit_with_retry(event)
+        else:
+            self._do_insert(self._conn, event)
+
+    def _do_insert(self, conn, event: ProgressEvent):
+        """Execute the INSERT for a single event."""
         meta_json = json.dumps(event.metadata) if event.metadata else None
-        self._conn.execute("""
+        conn.execute("""
             INSERT INTO pipeline_events
                 (run_id, work_id, volume, stage, chapter_num, block_id,
                  event_type, status, metadata)
@@ -288,11 +325,34 @@ class ProgressDB:
             event.event_type, event.status, meta_json,
         ])
 
+    def _emit_with_retry(self, event: ProgressEvent, max_retries: int = 5):
+        """Emit with a short-lived connection and exponential backoff retry."""
+        import duckdb
+        for attempt in range(max_retries):
+            try:
+                conn = duckdb.connect(str(self.db_path))
+                try:
+                    self._do_insert(conn, event)
+                finally:
+                    conn.close()
+                return
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    logger.error(f"Progress emit failed after {max_retries} retries: {e}")
+                    return  # Don't crash pipeline over progress tracking
+                delay = 0.1 * (2 ** attempt)  # 0.1, 0.2, 0.4, 0.8, 1.6s
+                logger.debug(
+                    f"Progress DB contention (attempt {attempt + 1}), "
+                    f"retrying in {delay:.1f}s"
+                )
+                time.sleep(delay)
+
     def query_work(self, work_id: str, run_id: Optional[str] = None) -> WorkProgress:
         """Aggregate work-level progress from events."""
+        conn = self._get_read_conn()
         # Find the latest run_id if not specified
         if run_id is None:
-            row = self._conn.execute("""
+            row = conn.execute("""
                 SELECT run_id FROM pipeline_events
                 WHERE work_id = ?
                 ORDER BY created_at DESC
@@ -303,13 +363,13 @@ class ProgressDB:
             run_id = row[0]
 
         # Count total events
-        total = self._conn.execute("""
+        total = conn.execute("""
             SELECT COUNT(*) FROM pipeline_events
             WHERE work_id = ? AND run_id = ?
         """, [work_id, run_id]).fetchone()[0]
 
         # Get stage-level summary
-        stage_rows = self._conn.execute("""
+        stage_rows = conn.execute("""
             SELECT
                 stage,
                 MIN(CASE WHEN event_type = 'stage_start' THEN created_at END) as started_at,
@@ -376,8 +436,9 @@ class ProgressDB:
     def query_stage(self, work_id: str, stage: str,
                     run_id: Optional[str] = None) -> StageProgress:
         """Per-chapter breakdown within a stage."""
+        conn = self._get_read_conn()
         if run_id is None:
-            row = self._conn.execute("""
+            row = conn.execute("""
                 SELECT run_id FROM pipeline_events
                 WHERE work_id = ? AND stage = ?
                 ORDER BY created_at DESC LIMIT 1
@@ -386,7 +447,7 @@ class ProgressDB:
                 return StageProgress(stage=stage, status="not_started")
             run_id = row[0]
 
-        row = self._conn.execute("""
+        row = conn.execute("""
             SELECT
                 MIN(CASE WHEN event_type = 'stage_start' THEN created_at END),
                 MAX(CASE WHEN event_type = 'stage_end' THEN created_at END),
@@ -420,8 +481,9 @@ class ProgressDB:
     def query_chapters(self, work_id: str, stage: str,
                        run_id: Optional[str] = None) -> List[ChapterProgress]:
         """Per-chapter breakdown within a stage."""
+        conn = self._get_read_conn()
         if run_id is None:
-            row = self._conn.execute("""
+            row = conn.execute("""
                 SELECT run_id FROM pipeline_events
                 WHERE work_id = ? AND stage = ?
                 ORDER BY created_at DESC LIMIT 1
@@ -430,7 +492,7 @@ class ProgressDB:
                 return []
             run_id = row[0]
 
-        rows = self._conn.execute("""
+        rows = conn.execute("""
             SELECT
                 chapter_num,
                 MIN(CASE WHEN event_type = 'chapter_start' THEN created_at END) as started,
@@ -464,7 +526,7 @@ class ProgressDB:
 
     def get_latest_state(self, work_id: str) -> Dict[str, Any]:
         """What's the last completed stage? Used for auto-resume."""
-        row = self._conn.execute("""
+        row = self._get_read_conn().execute("""
             SELECT run_id, stage, status, created_at
             FROM pipeline_events
             WHERE work_id = ? AND event_type = 'stage_end' AND status = 'completed'
@@ -489,7 +551,7 @@ class ProgressDB:
 
     def get_run_ids(self, work_id: str, limit: int = 10) -> List[Dict[str, Any]]:
         """List recent run IDs for a work."""
-        rows = self._conn.execute("""
+        rows = self._get_read_conn().execute("""
             SELECT
                 run_id,
                 MIN(created_at) as started,
@@ -514,7 +576,13 @@ class ProgressDB:
 
     def close(self):
         """Close the database connection."""
-        self._conn.close()
+        if self._connect_per_write:
+            # Only close the cached read connection if it exists
+            if self._read_conn is not None:
+                self._read_conn.close()
+                self._read_conn = None
+        else:
+            self._conn.close()
         # Clean up temp copy if we made one for read-only mode
         tmp = getattr(self, '_tmp_path', None)
         if tmp and tmp.exists():
