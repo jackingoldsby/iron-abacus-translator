@@ -178,25 +178,22 @@ The orchestration scripts you build will coordinate these services:
    Generate command-line interfaces for:
 
    ```bash
-   # Main orchestration script
-   python iron_abacus_translator/scripts/orchestrate_translation_pipeline.py \
-     --input cleaned_book.json \
-     --output translated_book.json \
-     --config translation_config.yaml
+   # DAG-driven pipeline runner
+   cd iron_abacus_translator
+   python -m cli.run_pipeline D1379
+   python -m cli.run_pipeline D1379 --resume
+   python -m cli.run_pipeline D1379 --from cleanup_6a
+   python -m cli.run_pipeline D1379 --provider deepseek --workers 10
 
-   # Batch processing
-   python iron_abacus_translator/scripts/batch_translate_works.py \
-     --work-numbers I0929,D63a \
-     --max-workers 3
+   # Parallel multi-work runner
+   python scripts/translate_works_parallel.py D55 D1379 I1046 --max-parallel 5
 
-   # Job monitoring
-   python iron_abacus_translator/scripts/monitor_translation_jobs.py \
-     --job-id abc123
+   # Progress monitoring
+   python -m cli.run_pipeline D1379 --status
+   python -m cli.run_pipeline D1379 --status --detail chapter
 
-   # WIP management
-   python iron_abacus_translator/scripts/manage_wip.py \
-     --job-id abc123 \
-     --rollback-to-stage 7.3
+   # Show DAG structure
+   python -m cli.run_pipeline --dag
    ```
 
 8. **Integrate with Web UI** (built by translation-ui-manager):

@@ -3,7 +3,7 @@
 Parallel Work Runner for Translation Pipeline
 
 CLI for ad-hoc translation runs of selected works, typically 5-6 in parallel.
-Each work runs its own orchestrator instance. Multi-volume works share
+Each work runs its own DAG pipeline instance. Multi-volume works share
 an accumulator across volumes (sequential within work).
 
 Usage:
@@ -30,11 +30,8 @@ from threading import Lock
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.footnote_context import FootnoteContextAccumulator
-from scripts.orchestrate_translation_pipeline import (
-    TranslationPipeline,
-    OrchestrationConfig,
-)
+from scripts.pipeline_runner import build_pipeline, RunnerConfig
+from utils.progress_db import ProgressDB
 
 logging.basicConfig(
     level=logging.INFO,
@@ -82,40 +79,28 @@ def _find_volumes(source_dir: Path, work_number: str) -> List[Optional[str]]:
 
 def translate_single_work(
     work_number: str,
-    config: OrchestrationConfig,
+    config: RunnerConfig,
     resume: bool = False,
     volume: Optional[str] = None,
+    from_node: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Translate a single work (all volumes sequentially).
 
-    Multi-volume works share an accumulator across volumes so that
-    a term footnoted in Vol 1 Ch 3 isn't re-footnoted in Vol 2 Ch 22.
+    Multi-volume works are processed sequentially so that footnote
+    deduplication carries across volumes.
 
     Args:
         work_number: Work number (e.g., "D1379")
-        config: Orchestration config
+        config: Runner config
         resume: Whether to resume from checkpoint
         volume: Specific volume to translate (None = all volumes)
+        from_node: Start from this DAG node (skip predecessors)
 
     Returns:
         Result dict with per-volume results
     """
     start_time = datetime.now()
-    pipeline = TranslationPipeline(config)
-
-    # Create shared accumulator for multi-volume works
-    accumulator = FootnoteContextAccumulator()
-
-    # Load saved accumulator state if resuming
-    checkpoint_dir = config.log_dir / "checkpoints"
-    acc_path = checkpoint_dir / f"{work_number}_footnote_context.json"
-    if resume and acc_path.exists():
-        accumulator = FootnoteContextAccumulator.load(acc_path)
-        logger.info(
-            f"[{work_number}] Loaded accumulator: "
-            f"{accumulator.total_registered} terms"
-        )
 
     # Determine volumes to process
     if volume:
@@ -143,16 +128,14 @@ def translate_single_work(
             logger.info(f"[{work_number}] Processing volume {vol_label}...")
 
         try:
-            result = pipeline.run(
-                work_number=work_number,
+            runner = build_pipeline(config)
+            result = runner.run(
+                work_id=work_number,
                 volume=vol,
                 resume=resume,
-                accumulator=accumulator,
+                from_node=from_node,
             )
             volume_results.append(result)
-
-            # Save accumulator state between volumes
-            accumulator.save(acc_path)
 
         except Exception as e:
             logger.error(f"[{work_number}] Volume {vol_label} failed: {e}")
@@ -172,7 +155,7 @@ def translate_single_work(
         status = "SUCCESS" if all_success else "PARTIAL"
         logger.info(
             f"[{work_number}] {status}: {len(volumes)} volumes in "
-            f"{duration/60:.1f} min, {accumulator.total_registered} unique terms"
+            f"{duration/60:.1f} min"
         )
 
     return {
@@ -181,7 +164,6 @@ def translate_single_work(
         "volumes": len(volumes),
         "volume_results": volume_results,
         "duration_seconds": duration,
-        "accumulator_terms": accumulator.total_registered,
     }
 
 
@@ -209,51 +191,47 @@ def main():
         help="Translate specific volume only (e.g., a)",
     )
     parser.add_argument(
+        "--from-node",
+        help="Start from this DAG node (e.g., cleanup_6a)",
+    )
+    parser.add_argument(
         "--max-workers",
         type=int, default=5,
         help="Parallel workers per work for body translation (default: 5)",
     )
     parser.add_argument(
         "--model",
-        default="gpt-4.1-nano",
-        help="OpenAI model (default: gpt-4.1-nano)",
+        help="Translation model (default from env config)",
+    )
+    parser.add_argument(
+        "--provider",
+        help="Translation provider (e.g., deepseek, openai)",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Don't write output files",
     )
-    parser.add_argument(
-        "--start-stage",
-        type=int, default=1,
-        help="Start from this stage (1-7, default: 1)",
-    )
-    parser.add_argument(
-        "--end-stage",
-        type=int, default=7,
-        help="End at this stage (1-7, default: 7)",
-    )
 
     args = parser.parse_args()
 
-    config = OrchestrationConfig(
-        start_stage=args.start_stage,
-        end_stage=args.end_stage,
+    config = RunnerConfig(
         dry_run=args.dry_run,
         max_workers=args.max_workers,
         model=args.model,
-        max_concurrent_chapters=args.max_workers,
+        provider=args.provider,
     )
 
     work_numbers = args.work_numbers
     max_parallel = args.max_parallel
 
     print(f"\n{'='*60}")
-    print(f"Parallel Translation Runner")
+    print(f"Parallel Translation Runner (DAG)")
     print(f"{'='*60}")
     print(f"Works: {', '.join(work_numbers)}")
     print(f"Max parallel: {max_parallel}")
-    print(f"Model: {args.model}")
+    print(f"Model: {config.model or '(env default)'}")
+    print(f"Provider: {config.provider or '(env default)'}")
     print(f"Resume: {args.resume}")
     print(f"{'='*60}\n")
 
@@ -268,6 +246,7 @@ def main():
                 config=config,
                 resume=args.resume,
                 volume=args.volume,
+                from_node=args.from_node,
             ): wn
             for wn in work_numbers
         }
@@ -302,8 +281,7 @@ def main():
         wn = result.get("work_number", "?")
         status = "OK" if result.get("success") else "FAILED"
         duration = result.get("duration_seconds", 0)
-        terms = result.get("accumulator_terms", 0)
-        print(f"  {wn}: {status} ({duration/60:.1f} min, {terms} terms)")
+        print(f"  {wn}: {status} ({duration/60:.1f} min)")
         if not result.get("success") and result.get("error"):
             print(f"    Error: {result['error']}")
 

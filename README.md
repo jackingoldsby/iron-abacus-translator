@@ -18,7 +18,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Translate a work
-python scripts/orchestrate_translation_pipeline.py D1379
+python -m cli.run_pipeline D1379
 
 # Run tests
 pytest tests/test_sanity.py

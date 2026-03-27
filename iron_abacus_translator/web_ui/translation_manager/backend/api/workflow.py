@@ -254,64 +254,50 @@ async def start_workflow(request: WorkflowStartRequest):
             template_data = json.load(f)
             workflow_name = template_data.get("name", "Unknown Workflow")
 
-        # Import workflow (avoid circular import at module level)
-        from workflows.translation_flow import translation_workflow
-        from scripts.orchestrate_translation_pipeline import OrchestrationConfig
+        # Import DAG pipeline runner (avoid circular import at module level)
+        from scripts.pipeline_runner import build_pipeline, RunnerConfig
 
-        # Create config
-        config = OrchestrationConfig(**request.config) if request.config else OrchestrationConfig()
+        # Create config from request
+        runner_config = RunnerConfig(**request.config) if request.config else RunnerConfig()
 
-        # Start workflow using Prefect's run_deployment or direct flow execution
-        # Since we don't have a deployment, we'll use a background task
-        import asyncio
+        # Build and run pipeline in background thread
         from concurrent.futures import ThreadPoolExecutor
 
-        # Run the flow in the background using a thread pool
         executor = ThreadPoolExecutor(max_workers=1)
 
-        def run_workflow_sync():
-            """Run workflow synchronously - Prefect will track it"""
+        def run_pipeline_sync():
+            """Run DAG pipeline synchronously in background thread"""
             try:
-                result = translation_workflow(
-                    work_id=request.work_id,
+                runner = build_pipeline(runner_config)
+                result = runner.run(
+                    request.work_id,
                     volume=request.volume,
-                    config=config,
                     resume=request.resume,
-                    workflow_id=request.workflow_id,
-                    workflow_name=workflow_name
                 )
-                logger.info(f"Workflow completed for {request.work_id}")
+                logger.info(f"Pipeline completed for {request.work_id}")
                 return result
             except Exception as e:
-                logger.error(f"Workflow error for {request.work_id}: {e}", exc_info=True)
+                logger.error(f"Pipeline error for {request.work_id}: {e}", exc_info=True)
                 raise
 
         # Submit to executor (non-blocking)
-        future = executor.submit(run_workflow_sync)
+        future = executor.submit(run_pipeline_sync)
 
-        # Wait briefly to get the flow run ID
-        await asyncio.sleep(0.5)
+        logger.info(f"Started pipeline ({workflow_name}) for work {request.work_id}")
 
-        # Get the most recent flow run for this work_id
-        async with get_client() as client:
-            # Query recent flow runs
-            flow_runs = await client.read_flow_runs(
-                flow_filter=FlowFilter(name={"any_": ["Translation Pipeline"]}),
-                sort=FlowRunSort.START_TIME_DESC,
-                limit=1
-            )
-
-            if not flow_runs:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Failed to start workflow - no flow run created"
-                )
-
-            flow_run = flow_runs[0]
-            logger.info(f"Started workflow {flow_run.id} ({workflow_name}) for work {request.work_id}")
-
-            # Return initial status
-            return await extract_workflow_status(flow_run)
+        # Return initial status — the DAG runner tracks progress in DuckDB,
+        # so the /status endpoint can query it directly.
+        return WorkflowStatus(
+            flow_run_id=f"dag-{request.work_id}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+            workflow_id=request.workflow_id,
+            workflow_name=workflow_name,
+            work_id=request.work_id,
+            volume=request.volume,
+            status="running",
+            start_time=datetime.now(timezone.utc).isoformat(),
+            overall_progress_pct=0.0,
+            stages=[],
+        )
 
     except HTTPException:
         raise
@@ -956,7 +942,7 @@ async def get_work_id_from_flow_run(flow_run_id: str) -> str:
         raise HTTPException(404, "Work ID not found in flow run parameters")
 
 
-# Pipeline stage configuration (matches orchestrate_translation_pipeline.py)
+# Pipeline stage configuration (matches translation_pipeline_dag.py)
 PIPELINE_STAGES = {
     1: {"name": "body", "dir": "stage_1_body"},
     2: {"name": "metadata", "dir": "stage_2_metadata"},

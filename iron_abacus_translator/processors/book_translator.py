@@ -353,7 +353,7 @@ class BookTranslator:
             for i, block in enumerate(translatable_blocks)
         }
 
-        with ThreadPoolExecutor(max_workers=self.config.max_concurrent_chapters) as executor:
+        with ThreadPoolExecutor(max_workers=self.config.max_workers) as executor:
             # Submit all translation tasks
             future_to_block = {
                 executor.submit(

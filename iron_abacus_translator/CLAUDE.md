@@ -43,9 +43,9 @@ python cli/structure.py --input cleaned.json --output structured.json --max-work
 python cli/validate_structure.py --input cleaned.json --output validation_report.json
 
 # Translation orchestration (7-stage pipeline with footnote cleanup)
-python scripts/orchestrate_translation_pipeline.py D1379  # Translate work D1379
-python scripts/orchestrate_translation_pipeline.py D1379 --volume a  # Specific volume
-python scripts/orchestrate_translation_pipeline.py D1379 --resume  # Resume from checkpoint
+python -m cli.run_pipeline D1379  # Translate work D1379
+python -m cli.run_pipeline D1379 --volume a  # Specific volume
+python -m cli.run_pipeline D1379 --resume  # Resume from checkpoint
 
 # Standalone footnote cleanup (if needed separately)
 python cli/cleanup_character_footnotes.py --input translated.json --output-dir ./cleaned
@@ -131,7 +131,9 @@ utils/
 └── http_legacy/                 [LEGACY] HTTP with retry logic (deprecated)
 
 scripts/
-├── batch_process_books.py   [IMPLEMENTED] 8-stage pipeline with metadata enrichment
+├── pipeline_runner.py       [IMPLEMENTED] DAG-driven translation pipeline runner
+├── translate_works_parallel.py [IMPLEMENTED] Parallel multi-work runner
+├── batch_process_books.py   [IMPLEMENTED] 8-stage cleaning pipeline with metadata enrichment
 └── fix_embedded_chapter1.py [IMPLEMENTED] Standalone embedded chapter extractor
 
 ai/
@@ -141,7 +143,7 @@ cli/
 ├── clean.py                 [IMPLEMENTED] CLI for json_cleaner
 ├── structure.py             [IMPLEMENTED] CLI for content_structurer
 ├── validate_structure.py    [IMPLEMENTED] CLI for structure_validator
-├── translate.py             [IMPLEMENTED] CLI for translator (use orchestrate_translation_pipeline.py for production)
+├── translate.py             [IMPLEMENTED] CLI for translator (use pipeline_runner.py for production)
 ├── cleanup_character_footnotes.py [IMPLEMENTED] CLI for character footnote cleanup
 └── build_epub.py            [PLACEHOLDER] CLI for epub_builder
 ```
@@ -234,7 +236,7 @@ VALIDATED JSON (ready for translation)
 ```
 CLEANED & VALIDATED JSON
    ↓
-scripts/orchestrate_translation_pipeline.py
+scripts/pipeline_runner.py
    ↓
 [Stage 1] METADATA Translation
    → Translate title, author, publisher
@@ -349,19 +351,25 @@ FINAL EPUB FILE
 **Basic Usage**:
 ```bash
 # Translate single work
-python scripts/orchestrate_translation_pipeline.py D1379
+python -m cli.run_pipeline D1379
 
 # Translate specific volume
-python scripts/orchestrate_translation_pipeline.py I1046 --volume a
+python -m cli.run_pipeline I1046 --volume a
 
 # Resume from checkpoint (if interrupted)
-python scripts/orchestrate_translation_pipeline.py D1379 --resume
+python -m cli.run_pipeline D1379 --resume
 
-# Process specific stages only
-python scripts/orchestrate_translation_pipeline.py D1379 --start-stage 4 --end-stage 6
+# Start from a specific DAG node (skip predecessors)
+python -m cli.run_pipeline D1379 --from cleanup_6a
 
 # Dry run (no file writes)
-python scripts/orchestrate_translation_pipeline.py D1379 --dry-run
+python -m cli.run_pipeline D1379 --dry-run
+
+# Show pipeline DAG structure
+python -m cli.run_pipeline --dag
+
+# Show progress status
+python -m cli.run_pipeline D1379 --status
 ```
 
 **Output Structure**:

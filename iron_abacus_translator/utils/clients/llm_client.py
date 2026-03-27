@@ -64,25 +64,72 @@ class LLMClient(Protocol):
 class OpenAILLMClient:
     """LLM client wrapping OpenAI's chat completions API."""
 
+    # Default timeouts by usage pattern (seconds)
+    DEFAULT_TIMEOUT = 120
+    CLEANUP_TIMEOUT = 60
+    MAX_RETRIES = 3
+
     def __init__(self, model: str = "gpt-4.1-nano", api_key: Optional[str] = None, base_url: Optional[str] = None, provider: str = "openai"):
         from openai import OpenAI
         self.model = model
         self.default_model = model
         self.provider = provider
-        key = api_key or os.getenv("OPENAI_API_KEY")
+        self.base_url = base_url
+        if api_key:
+            key = api_key
+        elif provider == "openai":
+            key = os.getenv("OPENAI_API_KEY")
+        else:
+            # For non-OpenAI providers (deepseek, etc.), try provider-specific key first
+            key = os.getenv(f"{provider.upper()}_API_KEY") or os.getenv("OPENAI_API_KEY")
         if not key:
-            raise RuntimeError("No API key provided and OPENAI_API_KEY not set")
-        kwargs = {"api_key": key}
+            raise RuntimeError(f"No API key provided and {provider.upper()}_API_KEY not set")
+        self._api_key_suffix = key[-4:] if len(key) >= 4 else "????"
+        kwargs = {"api_key": key, "timeout": self.DEFAULT_TIMEOUT}
         if base_url:
             kwargs["base_url"] = base_url
         self._client = OpenAI(**kwargs)
 
+    @property
+    def key_suffix(self) -> str:
+        """Last 4 chars of the API key (for diagnostics)."""
+        return self._api_key_suffix
+
+    def verify(self) -> bool:
+        """Test API connectivity with a minimal call. Returns True on success, raises on failure."""
+        import time as _time
+        target = self.base_url or "api.openai.com"
+        logger.info(f"  Verifying {self.provider} API (key=...{self._api_key_suffix}, endpoint={target})")
+        t0 = _time.monotonic()
+        try:
+            self._client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": "ping"}],
+                max_tokens=1,
+                timeout=15,
+            )
+            elapsed = _time.monotonic() - t0
+            logger.info(f"  {self.provider} OK ({elapsed:.1f}s)")
+            return True
+        except Exception as e:
+            elapsed = _time.monotonic() - t0
+            err_type = type(e).__name__
+            raise RuntimeError(
+                f"Authentication failed for {self.provider} "
+                f"(key=...{self._api_key_suffix}, endpoint={target}): "
+                f"{err_type}: {e}"
+            ) from e
+
     def chat(self, request: LLMRequest) -> LLMResponse:
+        import time as _time
+
         model = request.model or self.default_model
+        timeout = request.timeout or self.DEFAULT_TIMEOUT
 
         params: Dict[str, Any] = {
             "model": model,
             "messages": request.messages,
+            "timeout": timeout,
         }
 
         # gpt-4.1-nano doesn't support custom temperature
@@ -95,28 +142,51 @@ class OpenAILLMClient:
         if request.json_mode:
             params["response_format"] = {"type": "json_object"}
 
-        if request.timeout is not None:
-            params["timeout"] = request.timeout
-
-        resp = self._client.chat.completions.create(**params)
-        text = resp.choices[0].message.content or ""
-
-        usage = {}
-        if resp.usage:
-            usage = {
-                "prompt_tokens": resp.usage.prompt_tokens,
-                "completion_tokens": resp.usage.completion_tokens,
-                "total_tokens": resp.usage.total_tokens,
-            }
-
-        parsed = None
-        if request.json_mode:
+        last_error = None
+        for attempt in range(1, self.MAX_RETRIES + 1):
+            t0 = _time.monotonic()
             try:
-                parsed = json.loads(text)
-            except json.JSONDecodeError:
-                logger.warning("JSON mode requested but response is not valid JSON")
+                resp = self._client.chat.completions.create(**params)
+                text = resp.choices[0].message.content or ""
 
-        return LLMResponse(text=text, parsed=parsed, model=model, usage=usage)
+                usage = {}
+                if resp.usage:
+                    usage = {
+                        "prompt_tokens": resp.usage.prompt_tokens,
+                        "completion_tokens": resp.usage.completion_tokens,
+                        "total_tokens": resp.usage.total_tokens,
+                    }
+
+                parsed = None
+                if request.json_mode:
+                    try:
+                        parsed = json.loads(text)
+                    except json.JSONDecodeError:
+                        logger.warning("JSON mode requested but response is not valid JSON")
+
+                return LLMResponse(text=text, parsed=parsed, model=model, usage=usage)
+
+            except Exception as e:
+                elapsed = _time.monotonic() - t0
+                err_type = type(e).__name__
+                is_timeout = "timeout" in err_type.lower() or "timed out" in str(e).lower()
+
+                if is_timeout:
+                    logger.warning(
+                        f"[{self.provider}] Timeout on attempt {attempt}/{self.MAX_RETRIES} "
+                        f"({elapsed:.1f}s, model={model})"
+                    )
+                else:
+                    logger.warning(
+                        f"[{self.provider}] Error on attempt {attempt}/{self.MAX_RETRIES}: "
+                        f"{err_type}: {e} ({elapsed:.1f}s)"
+                    )
+
+                last_error = e
+                if attempt < self.MAX_RETRIES:
+                    _time.sleep(min(2 ** attempt, 8))
+
+        raise last_error
 
 
 # ---------------------------------------------------------------------------
@@ -126,6 +196,9 @@ class OpenAILLMClient:
 class AnthropicLLMClient:
     """LLM client wrapping Anthropic's messages API."""
 
+    DEFAULT_TIMEOUT = 120
+    MAX_RETRIES = 3
+
     def __init__(self, model: str = "claude-sonnet-4-20250514", api_key: Optional[str] = None, provider: str = "anthropic"):
         from anthropic import Anthropic
         self.model = model
@@ -134,10 +207,43 @@ class AnthropicLLMClient:
         key = api_key or os.getenv("ANTHROPIC_API_KEY")
         if not key:
             raise RuntimeError("ANTHROPIC_API_KEY not set")
-        self._client = Anthropic(api_key=key)
+        self._api_key_suffix = key[-4:] if len(key) >= 4 else "????"
+        self._client = Anthropic(api_key=key, timeout=self.DEFAULT_TIMEOUT)
+
+    @property
+    def key_suffix(self) -> str:
+        """Last 4 chars of the API key (for diagnostics)."""
+        return self._api_key_suffix
+
+    def verify(self) -> bool:
+        """Test API connectivity with a minimal call. Returns True on success, raises on failure."""
+        import time as _time
+        logger.info(f"  Verifying {self.provider} API (key=...{self._api_key_suffix})")
+        t0 = _time.monotonic()
+        try:
+            self._client.messages.create(
+                model=self.model,
+                messages=[{"role": "user", "content": "ping"}],
+                max_tokens=1,
+                timeout=15,
+            )
+            elapsed = _time.monotonic() - t0
+            logger.info(f"  {self.provider} OK ({elapsed:.1f}s)")
+            return True
+        except Exception as e:
+            elapsed = _time.monotonic() - t0
+            err_type = type(e).__name__
+            raise RuntimeError(
+                f"Authentication failed for {self.provider} "
+                f"(key=...{self._api_key_suffix}): "
+                f"{err_type}: {e}"
+            ) from e
 
     def chat(self, request: LLMRequest) -> LLMResponse:
+        import time as _time
+
         model = request.model or self.default_model
+        timeout = request.timeout or self.DEFAULT_TIMEOUT
 
         # Anthropic requires system message to be separate
         system_text = ""
@@ -156,6 +262,7 @@ class AnthropicLLMClient:
             "model": model,
             "messages": messages,
             "max_tokens": request.max_tokens or 4096,
+            "timeout": timeout,
         }
 
         if system_text:
@@ -164,28 +271,54 @@ class AnthropicLLMClient:
         if request.temperature is not None:
             params["temperature"] = request.temperature
 
-        resp = self._client.messages.create(**params)
-        text = resp.content[0].text
-
-        # If we used prefill, prepend the opening brace
-        if request.json_mode and messages and messages[-1]["role"] == "assistant":
-            text = "{" + text
-
-        usage = {}
-        if resp.usage:
-            usage = {
-                "input_tokens": resp.usage.input_tokens,
-                "output_tokens": resp.usage.output_tokens,
-            }
-
-        parsed = None
-        if request.json_mode:
+        last_error = None
+        for attempt in range(1, self.MAX_RETRIES + 1):
+            t0 = _time.monotonic()
             try:
-                parsed = json.loads(text)
-            except json.JSONDecodeError:
-                logger.warning("JSON mode requested but response is not valid JSON")
+                resp = self._client.messages.create(**params)
+                text = resp.content[0].text
 
-        return LLMResponse(text=text, parsed=parsed, model=model, usage=usage)
+                # If we used prefill, prepend the opening brace
+                if request.json_mode and messages and messages[-1]["role"] == "assistant":
+                    text = "{" + text
+
+                usage = {}
+                if resp.usage:
+                    usage = {
+                        "input_tokens": resp.usage.input_tokens,
+                        "output_tokens": resp.usage.output_tokens,
+                    }
+
+                parsed = None
+                if request.json_mode:
+                    try:
+                        parsed = json.loads(text)
+                    except json.JSONDecodeError:
+                        logger.warning("JSON mode requested but response is not valid JSON")
+
+                return LLMResponse(text=text, parsed=parsed, model=model, usage=usage)
+
+            except Exception as e:
+                elapsed = _time.monotonic() - t0
+                err_type = type(e).__name__
+                is_timeout = "timeout" in err_type.lower() or "timed out" in str(e).lower()
+
+                if is_timeout:
+                    logger.warning(
+                        f"[{self.provider}] Timeout on attempt {attempt}/{self.MAX_RETRIES} "
+                        f"({elapsed:.1f}s, model={model})"
+                    )
+                else:
+                    logger.warning(
+                        f"[{self.provider}] Error on attempt {attempt}/{self.MAX_RETRIES}: "
+                        f"{err_type}: {e} ({elapsed:.1f}s)"
+                    )
+
+                last_error = e
+                if attempt < self.MAX_RETRIES:
+                    _time.sleep(min(2 ** attempt, 8))
+
+        raise last_error
 
 
 # ---------------------------------------------------------------------------

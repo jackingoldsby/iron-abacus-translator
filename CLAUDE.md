@@ -50,9 +50,10 @@ All pipeline commands must run from within the iron_abacus_translator directory:
 ```bash
 cd iron_abacus_translator
 
-# Translation orchestration
-python scripts/orchestrate_translation_pipeline.py D1379
-python scripts/orchestrate_translation_pipeline.py D1379 --resume
+# Translation orchestration (DAG pipeline)
+python -m cli.run_pipeline D1379
+python -m cli.run_pipeline D1379 --resume
+python -m cli.run_pipeline D1379 --from cleanup_6a
 
 # Batch processing
 python scripts/batch_process_books.py --source-dir /path/to/source --output-dir /path/to/output --catalog-path /path/to/catalog.duckdb

@@ -354,7 +354,7 @@ Examples:
         model=args.model,
         dry_run=args.dry_run,
         skip_completed=args.resume,
-        max_concurrent_chapters=args.max_workers,
+        max_workers=args.max_workers,
         verbose=args.verbose
     )
 

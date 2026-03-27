@@ -40,10 +40,11 @@ python scripts/batch_process_books.py \
   --output-dir ./output \
   --catalog-path ./catalog.db
 
-# 3. Translation (8-stage pipeline with footnotes)
-python scripts/translate_work.py D1379
-python scripts/translate_work.py D1379 --volume a    # specific volume
-python scripts/translate_work.py D1379 --resume       # resume from checkpoint
+# 3. Translation (DAG pipeline with footnotes)
+python -m cli.run_pipeline D1379
+python -m cli.run_pipeline D1379 --volume a        # specific volume
+python -m cli.run_pipeline D1379 --resume           # resume from checkpoint
+python -m cli.run_pipeline D1379 --from cleanup_6a  # start from specific node
 
 # 4. Discovery UI (Streamlit)
 streamlit run app_discover.py

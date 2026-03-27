@@ -259,17 +259,58 @@ section.glossary h2 {
   color: #888;
 }
 
+/* === Dramatis Personae === */
+section.dramatis-personae {
+  page-break-before: always;
+}
+
+section.dramatis-personae h2 {
+  text-align: center;
+  margin-bottom: 1em;
+}
+
+.dp-group {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.dp-group h3 {
+  font-size: 1.1em;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 0.3em;
+}
+
+.dp-entry {
+  margin: 0.6em 0;
+  padding-left: 1em;
+  text-indent: -1em;
+}
+
+.dp-entry .dp-ideogram {
+  font-size: 0.9em;
+  color: #888;
+}
+
+.dp-entry .dp-first-appearance {
+  font-style: italic;
+  font-size: 0.85em;
+  color: #888;
+}
+
 /* === Table of Contents === */
-nav#toc ol {
-  list-style-type: none;
+nav ol {
+  list-style-type: none !important;
   padding-left: 0;
+  margin-left: 0;
 }
 
-nav#toc li {
-  margin: 0.4em 0;
+nav li {
+  margin: 0.3em 0;
+  list-style: none !important;
+  font-size: 0.9em;
 }
 
-nav#toc a {
+nav a {
   text-decoration: none;
   color: inherit;
 }

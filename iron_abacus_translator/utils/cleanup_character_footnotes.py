@@ -34,8 +34,8 @@ from utils.clients import get_llm_client, LLMRequest
 
 
 def get_openai_client():
-    """Get LLM client from environment config."""
-    return get_llm_client(component="cleanup")
+    """Get OpenAI client for cleanup (always uses OpenAI, even when translation provider differs)."""
+    return get_llm_client(component="cleanup", provider="openai")
 
 
 # Configure logging

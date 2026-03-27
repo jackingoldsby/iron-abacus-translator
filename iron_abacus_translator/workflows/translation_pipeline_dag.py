@@ -34,11 +34,11 @@ independent and can run in parallel.
                           |
                +----------+----------+
                |          |          |
-         +-----v---+ +---v----+ +--v------+
-         |CLEANUP  | |CLEANUP | |CLEANUP  |
-         |  6a     |>|  6b    |>|  6c     |
-         +---------+ +--------+ +---------+
-                                     |
+         +-----v---+ +---v----+ +--v------+ +---v------+
+         |CLEANUP  | |CLEANUP | |CLEANUP  | |CLEANUP   |
+         |  6a     |>|  6b    |>|  6c     |>|6d DRAMAT.|
+         +---------+ +--------+ +---------+ +----------+
+                                                  |
                    +------v------+
                    | QG: Post-   |
                    |  Cleanup    |
@@ -138,6 +138,13 @@ def create_v2_pipeline_dag() -> DAGDefinition:
     ))
 
     dag.add_node(DAGNode(
+        id="cleanup_6d_dramatis",
+        display_name="Dramatis Personae",
+        node_type=NodeType.TASK,
+        metadata={"icon": "users", "color": "#FF5722", "description": "Harvest character footnotes into Dramatis Personae"},
+    ))
+
+    dag.add_node(DAGNode(
         id="qg_post_cleanup",
         display_name="Post-Cleanup Gate",
         node_type=NodeType.QUALITY_GATE,
@@ -148,14 +155,14 @@ def create_v2_pipeline_dag() -> DAGDefinition:
         id="validation",
         display_name="Final Validation",
         node_type=NodeType.TASK,
-        metadata={"icon": "check-circle", "color": "#4CAF50", "description": "Verify translation completeness and quality"},
+        metadata={"icon": "check-circle", "color": "#4CAF50", "description": "Verify translation completeness and quality", "is_terminal": False},
     ))
 
     dag.add_node(DAGNode(
         id="epub_build",
         display_name="EPUB Build",
         node_type=NodeType.TASK,
-        metadata={"icon": "book-open", "color": "#009688", "description": "Generate final EPUB file"},
+        metadata={"icon": "book-open", "color": "#009688", "description": "Generate final EPUB file", "is_terminal": True},
     ))
 
     # --- Edges ---
@@ -180,8 +187,9 @@ def create_v2_pipeline_dag() -> DAGDefinition:
     dag.add_edge("cleanup_6a", "cleanup_6b", EdgeType.DEPENDENCY)
     dag.add_edge("cleanup_6b", "cleanup_6c", EdgeType.DEPENDENCY)
 
-    # Cleanup -> post-cleanup quality gate
-    dag.add_edge("cleanup_6c", "qg_post_cleanup", EdgeType.QUALITY_GATE)
+    # Cleanup -> dramatis personae -> post-cleanup quality gate
+    dag.add_edge("cleanup_6c", "cleanup_6d_dramatis", EdgeType.DEPENDENCY)
+    dag.add_edge("cleanup_6d_dramatis", "qg_post_cleanup", EdgeType.QUALITY_GATE)
 
     # Post-cleanup -> validation -> epub
     dag.add_edge("qg_post_cleanup", "validation", EdgeType.DEPENDENCY)

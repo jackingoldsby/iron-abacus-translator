@@ -27,14 +27,22 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 from tenacity import (
+    before_sleep_log,
     retry,
+    retry_if_not_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 from tqdm import tqdm
 
 from utils.clients import get_llm_client, LLMRequest
+
+try:
+    from openai import BadRequestError as OpenAIBadRequestError
+except ImportError:
+    # Sentinel that will never match if openai isn't installed
+    class OpenAIBadRequestError(Exception):  # type: ignore[no-redef]
+        pass
 
 # Configure logging
 logging.basicConfig(
@@ -45,8 +53,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_openai_client():
-    """Get LLM client from environment config."""
-    return get_llm_client(component="cleanup")
+    """Get OpenAI client for cleanup (always uses OpenAI, even when translation provider differs)."""
+    return get_llm_client(component="cleanup", provider="openai")
 
 
 # ---------------------------------------------------------------------------
@@ -69,13 +77,14 @@ class TrivialityScore(BaseModel):
 
 class TrivialityConfig(BaseModel):
     """Configuration for triviality removal."""
-    model: str = "gpt-4.1-nano"
+    model: Optional[str] = None  # None = use client's default model
     temperature: float = Field(default=0.1, ge=0.0, le=2.0)
     batch_size: int = Field(default=10, gt=0)
     triviality_threshold: int = Field(default=50, ge=0, le=100)
     cultural_threshold: int = Field(default=50, ge=0, le=100)
     create_backup: bool = True
     max_retries: int = Field(default=3, ge=1)
+    max_workers: int = Field(default=5, ge=1)  # Parallel workers for batch scoring
 
 
 class TrivialityResult(BaseModel):
@@ -84,6 +93,7 @@ class TrivialityResult(BaseModel):
     analyzed_count: int = 0
     removed_count: int = 0
     duplicate_count: int = 0
+    condensed_count: int = 0
     preserved_count: int = 0
     avg_triviality_removed: float = 0.0
     avg_cultural_preserved: float = 0.0
@@ -99,6 +109,7 @@ class TrivialityResult(BaseModel):
                 "analyzed_count": self.analyzed_count,
                 "removed_count": self.removed_count,
                 "duplicate_count": self.duplicate_count,
+                "condensed_count": self.condensed_count,
                 "preserved_count": self.preserved_count,
                 "removal_rate": (
                     f"{self.removed_count / self.total_footnotes * 100:.1f}%"
@@ -283,12 +294,20 @@ MUST PRESERVE (triviality < 30, cultural 60+):
 - "Manjusri Bodhisattva, who symbolizes wisdom in Mahayana Buddhism" → triviality: 15, cultural: 90
 - "Zhèngtǒng era (1436-1449), the reign of Emperor Yīngzōng before his capture" → triviality: 10, cultural: 95
 - "Post roads (驛道): the imperial relay system connecting major cities" → triviality: 20, cultural: 75
+- "A four-character chengyu from the Warring States period meaning reckless courage" → triviality: 20, cultural: 70
+- "A jianghu convention: the host must offer three cups before stating business" → triviality: 25, cultural: 65
+- "An allusion to Zhūgě Liàng's Empty Fort Strategy from the Three Kingdoms era" → triviality: 10, cultural: 85
 
-BORDERLINE (use strict judgment — when in doubt, REMOVE):
-- "Buddhist lanterns symbolize enlightenment" → triviality: 50, cultural: 45 → REMOVE (vague)
+BORDERLINE — PRESERVE idioms, wuxia conventions, and historical references:
+- "Buddhist lanterns symbolize enlightenment" → triviality: 40, cultural: 55 → KEEP (Buddhist cultural context)
 - "A phrase describing splendid temple architecture" → triviality: 70, cultural: 20 → REMOVE (just description)
+- "A four-character idiom meaning to seize an opportunity" → triviality: 35, cultural: 60 → KEEP (chengyu)
+- "A jianghu convention where the challenged must accept or lose face" → triviality: 20, cultural: 75 → KEEP (wuxia world-building)
+- "An allusion to the Warring States period" → triviality: 15, cultural: 80 → KEEP (historical)
 
-**DEFAULT STANCE: REMOVE unless the footnote clearly passes the cultural enrichment test.**
+**DEFAULT STANCE: REMOVE pure translations, character names, emotions, and obvious descriptions. But PRESERVE idioms (chengyu), wuxia/jianghu conventions, martial arts terminology, and historical/cultural allusions — these enrich the reader's understanding of the genre.**
+
+**REDUNDANCY: If two footnotes in this batch explain the SAME concept and one ideogram contains the other, REMOVE the one that adds less. E.g. 師兄 ("senior martial brother") and 殷師兄 ("Senior Martial Brother Yīn") — the second just prepends a surname, so REMOVE it. But 太極 and 太極拳, or 少林 and 少林寺, explain DIFFERENT things and should both be kept if culturally valuable.**
 
 For each footnote, return a JSON object with:
 - footnote_index: (0-based index in the batch)
@@ -299,15 +318,17 @@ For each footnote, return a JSON object with:
 
 Return as: {"assessments": [...]}"""
 
-    def __init__(self, config: TrivialityConfig):
+    def __init__(self, config: TrivialityConfig, client=None):
         """Initialize the 4-phase trivial footnote remover.
 
         Args:
             config: TrivialityConfig controlling thresholds, batch size,
                     suppress-list path, and phase toggles.
+            client: Optional pre-configured LLMClient. If None, creates one
+                    via get_llm_client(component="cleanup").
         """
         self.config = config
-        self.client = get_openai_client()
+        self.client = client or get_openai_client()
         self.result = TrivialityResult()
         # Ideograms whose first-occurrence footnote is protected from removal
         # because the term appears as italicized pinyin in the translated text
@@ -407,7 +428,8 @@ Return as: {"assessments": [...]}"""
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type(Exception),
+        retry=retry_if_not_exception_type(OpenAIBadRequestError),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
     )
     def score_footnotes_batch(
         self, footnotes: List[Dict[str, Any]]
@@ -423,15 +445,22 @@ Return as: {"assessments": [...]}"""
                 f"Context: {fn['context_snippet'][:200]}\n\n"
             )
 
-        response = self.client.chat(LLMRequest(
-            messages=[
-                {"role": "system", "content": self.SYSTEM_PROMPT},
-                {"role": "user", "content": user_content},
-            ],
-            model=self.config.model,
-            temperature=self.config.temperature,
-            json_mode=True,
-        ))
+        try:
+            response = self.client.chat(LLMRequest(
+                messages=[
+                    {"role": "system", "content": self.SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content},
+                ],
+                model=self.config.model,
+                temperature=self.config.temperature,
+                json_mode=True,
+            ))
+        except Exception as e:
+            err_body = getattr(e, 'body', None) or getattr(e, 'message', str(e))
+            logger.error(
+                f"API error in score_footnotes_batch ({type(e).__name__}): {err_body}"
+            )
+            raise
 
         result_data = response.parsed
         assessments = result_data.get("assessments", [])
@@ -472,42 +501,55 @@ Return as: {"assessments": [...]}"""
     def score_all_footnotes(
         self, footnotes: List[Dict[str, Any]]
     ) -> Dict[str, TrivialityScore]:
-        """Score all footnotes in batches. Returns mapping of block_id:key -> score."""
+        """Score all footnotes in parallel batches. Returns mapping of block_id:key -> score."""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
         scores = {}
-        total_batches = (
-            (len(footnotes) + self.config.batch_size - 1) // self.config.batch_size
-        )
+        batches = []
+        for i in range(0, len(footnotes), self.config.batch_size):
+            batches.append((i // self.config.batch_size + 1, footnotes[i : i + self.config.batch_size]))
 
-        with tqdm(total=len(footnotes), desc="Scoring footnotes") as pbar:
-            for i in range(0, len(footnotes), self.config.batch_size):
-                batch = footnotes[i : i + self.config.batch_size]
-                batch_num = i // self.config.batch_size + 1
-                logger.info(f"Scoring batch {batch_num}/{total_batches}")
+        total_batches = len(batches)
+        logger.info(f"Scoring {len(footnotes)} footnotes in {total_batches} batches with {self.config.max_workers} workers")
 
-                try:
-                    batch_scores = self.score_footnotes_batch(batch)
-                    for fn, score in zip(batch, batch_scores):
-                        key = f"{fn['block_id']}:{fn.get('key', 0)}"
+        def _score_batch(batch_num, batch):
+            """Score a single batch, return list of (key, score) pairs."""
+            results = []
+            try:
+                batch_scores = self.score_footnotes_batch(batch)
+                for fn, score in zip(batch, batch_scores):
+                    key = f"{fn['block_id']}:{fn.get('key', 0)}"
+                    results.append((key, score))
+            except Exception as e:
+                logger.error(f"Failed to score batch {batch_num}: {e}")
+                for fn in batch:
+                    key = f"{fn['block_id']}:{fn.get('key', 0)}"
+                    fallback = TrivialityScore(
+                        footnote_key=fn.get("key", 0),
+                        ideogram=fn["ideogram"],
+                        explanation=fn["explanation"],
+                        triviality_score=0,
+                        cultural_specificity_score=100,
+                        should_remove=False,
+                        reasoning=f"Preserved due to scoring error: {e}",
+                    )
+                    results.append((key, fallback))
+            return results
+
+        with ThreadPoolExecutor(max_workers=self.config.max_workers) as executor:
+            futures = {
+                executor.submit(_score_batch, batch_num, batch): batch
+                for batch_num, batch in batches
+            }
+
+            with tqdm(total=len(footnotes), desc="Scoring footnotes") as pbar:
+                for future in as_completed(futures):
+                    batch = futures[future]
+                    results = future.result()
+                    for key, score in results:
                         scores[key] = score
                         self.result.scores.append(score)
-                except Exception as e:
-                    logger.error(f"Failed to score batch {batch_num}: {e}")
-                    # Preserve on failure
-                    for fn in batch:
-                        key = f"{fn['block_id']}:{fn.get('key', 0)}"
-                        fallback = TrivialityScore(
-                            footnote_key=fn.get("key", 0),
-                            ideogram=fn["ideogram"],
-                            explanation=fn["explanation"],
-                            triviality_score=0,
-                            cultural_specificity_score=100,
-                            should_remove=False,
-                            reasoning=f"Preserved due to scoring error: {e}",
-                        )
-                        scores[key] = fallback
-                        self.result.scores.append(fallback)
-
-                pbar.update(len(batch))
+                    pbar.update(len(batch))
 
         self.result.analyzed_count = len(scores)
         return scores
@@ -520,13 +562,14 @@ Return as: {"assessments": [...]}"""
           (trust the model's judgment over cultural score)
         - If triviality >= 80 regardless of should_remove → remove
           (catch cases where model was inconsistent)
-        - Only preserve if cultural_specificity is very high (>= 80)
-          AND triviality is moderate (< 70)
+        - Preserve if cultural_specificity >= 60 AND model didn't
+          flag for removal — gives idioms, wuxia conventions, and
+          historical references a better chance of surviving
         """
         if score.triviality_score >= 80:
-            # Very trivial — only preserve if genuinely high cultural value
+            # Very trivial — but preserve if meaningful cultural value
             # AND model didn't flag for removal
-            if score.cultural_specificity_score >= 80 and not score.should_remove:
+            if score.cultural_specificity_score >= 60 and not score.should_remove:
                 return False
             return True
         if score.should_remove and score.triviality_score >= self.config.triviality_threshold:
@@ -556,7 +599,177 @@ Return as: {"assessments": [...]}"""
         chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
 
         # Track ideograms across the entire work for deduplication
-        seen_ideograms: set = set()
+        seen_ideograms: Dict[str, str] = {}  # ideogram → explanation
+        # Cache LLM-confirmed variant decisions to avoid redundant API calls
+        _variant_cache: Dict[Tuple[str, str], bool] = {}
+        # Initialize DeepSeek client for variant condensation
+        _deepseek_client = None
+        try:
+            _deepseek_client = get_llm_client(provider="deepseek")
+        except Exception as e:
+            logger.warning(f"Could not initialize DeepSeek client for variant condensation: {e}")
+        # Cache condensation decisions by (seen_ideogram, current_ideogram)
+        _condensation_cache: Dict[Tuple[str, str], Dict[str, str]] = {}
+
+        def _llm_confirm_variant(ideogram: str, seen: str) -> bool:
+            """Ask the LLM whether two ideograms refer to the same entity.
+
+            Only called when the heuristic substring match is ambiguous
+            (suffix adds ≥2 characters, e.g. 天山 vs 天山派). Cheap nano
+            call — single yes/no question, max 20 tokens output.
+            """
+            pair_key = (min(ideogram, seen), max(ideogram, seen))
+            if pair_key in _variant_cache:
+                return _variant_cache[pair_key]
+
+            try:
+                request = LLMRequest(
+                    messages=[
+                        {"role": "system", "content": (
+                            "You are a Classical Chinese / wuxia terminology expert. "
+                            "Answer ONLY with a JSON object."
+                        )},
+                        {"role": "user", "content": (
+                            f"In a wuxia novel footnote context, would a reader who has already "
+                            f"seen a footnote for '{seen}' need a separate footnote for "
+                            f"'{ideogram}'? Or do they refer to the same entity/concept?\n\n"
+                            f"Reply: {{\"same_entity\": true/false}}"
+                        )},
+                    ],
+                    json_mode=True,
+                    max_tokens=20,
+                    temperature=0.0,
+                )
+                resp = self.client.chat(request)
+                result = resp.parsed.get("same_entity", False) if resp.parsed else False
+            except Exception as e:
+                logger.warning(f"Variant check failed for '{ideogram}'/'{seen}': {e}, keeping both")
+                result = False
+
+            _variant_cache[pair_key] = result
+            if result:
+                logger.debug(f"LLM confirmed variant: '{ideogram}' ≈ '{seen}'")
+            else:
+                logger.debug(f"LLM says distinct: '{ideogram}' ≠ '{seen}'")
+            return result
+
+        def _is_variant_of_seen(ideogram: str) -> Optional[str]:
+            """Check if ideogram is a variant of an already-seen ideogram.
+
+            Returns the matching seen ideogram if found, None otherwise.
+
+            Catches cases like 康熙/康熙皇帝/康熙十三年 where the same entity
+            gets footnoted in different surface forms. Only matches when the
+            shared root is ≥2 Chinese characters to avoid false positives
+            (e.g. 刀 should NOT match 刀法 — different concepts).
+
+            When the suffix difference is ≥2 characters (ambiguous cases like
+            天山 vs 天山派), an LLM nano call confirms the match.
+            """
+            if len(ideogram) < 2:
+                return None
+            for seen in seen_ideograms:
+                if len(seen) < 2:
+                    continue
+                # Check if one contains the other
+                if ideogram in seen or seen in ideogram:
+                    root = ideogram if len(ideogram) <= len(seen) else seen
+                    longer = seen if len(ideogram) <= len(seen) else ideogram
+                    if len(root) < 2:
+                        continue
+                    suffix_len = len(longer) - len(root)
+                    # 1-char suffix: high confidence (皇帝→帝, 派, 寺 are titles/suffixes)
+                    if suffix_len <= 1:
+                        return seen
+                    # ≥2-char suffix: ambiguous, ask LLM to confirm
+                    if _llm_confirm_variant(ideogram, seen):
+                        return seen
+            return None
+
+        def _condense_variant_footnote(
+            current_ideogram: str,
+            current_explanation: str,
+            seen_ideogram: str,
+            seen_explanation: str,
+        ) -> Dict[str, str]:
+            """Ask DeepSeek whether a variant footnote is redundant or can be condensed.
+
+            Returns {"action": "remove"} or {"action": "condense", "condensed": "..."}.
+            Falls back to remove on error (safe default).
+            """
+            cache_key = (seen_ideogram, current_ideogram)
+            if cache_key in _condensation_cache:
+                return _condensation_cache[cache_key]
+
+            if not _deepseek_client:
+                result = {"action": "remove"}
+                _condensation_cache[cache_key] = result
+                return result
+
+            system_msg = (
+                "You are a sinologist editing footnotes for a scholarly English translation "
+                "of Classical Chinese wuxia fiction. Your task: given a footnote the reader "
+                "has already seen and a new variant footnote, determine whether the variant "
+                "adds genuinely new information or is redundant."
+            )
+
+            user_msg = (
+                f"The reader has already seen this footnote:\n"
+                f"  Term: {seen_ideogram}\n"
+                f"  Explanation: {seen_explanation}\n\n"
+                f"Now they encounter a related term with this footnote:\n"
+                f"  Term: {current_ideogram}\n"
+                f"  Explanation: {current_explanation}\n\n"
+                f'If the new footnote is fully redundant (repeats what the reader already knows), return:\n'
+                f'  {{"action": "remove"}}\n\n'
+                f"If it contains ANY new factual information not covered by the first footnote, "
+                f"rewrite it to contain ONLY the new information. Keep the scholarly register. "
+                f"Do not repeat the entity's identity — the reader already knows it.\n\n"
+                f"Examples of good condensation:\n"
+                f'- First: "The Kangxi Emperor (r. 1661–1722), personal name Xuanye, was the fourth emperor of the Qing dynasty and one of the longest-reigning emperors in Chinese history."\n'
+                f"  Variant term: 康熙十三年\n"
+                f'  Variant explanation repeats the bio + adds "corresponding to 1674 CE"\n'
+                f'  → {{"action": "condense", "condensed": "The thirteenth year of the Kangxi reign, corresponding to 1674 CE."}}\n\n'
+                f'- First: "Qīngliáng Temple (清涼寺), an ancient Buddhist monastery on Mount Wutai (五台山), one of the Four Sacred Buddhist Mountains of China."\n'
+                f"  Variant term: 清涼寺文殊菩薩\n"
+                f"  Variant explanation repeats the temple info + adds details about Mañjuśrī bodhisattva\n"
+                f'  → {{"action": "condense", "condensed": "Mañjuśrī (文殊菩薩), the bodhisattva of wisdom, to whom Qīngliáng Temple is dedicated. Depicted wielding a flaming sword that cuts through ignorance."}}\n\n'
+                f'- First: "The Kangxi Emperor (r. 1661–1722), fourth emperor of the Qing dynasty."\n'
+                f"  Variant term: 康熙\n"
+                f'  Variant explanation: "Kangxi (康熙), the Kangxi Emperor, who reigned from 1661 to 1722 as the fourth Qing emperor."\n'
+                f'  → {{"action": "remove"}}\n\n'
+                f"Return ONLY the JSON object, no other text."
+            )
+
+            try:
+                request = LLMRequest(
+                    messages=[
+                        {"role": "system", "content": system_msg},
+                        {"role": "user", "content": user_msg},
+                    ],
+                    json_mode=True,
+                    max_tokens=300,
+                    temperature=0.1,
+                )
+                resp = _deepseek_client.chat(request)
+                parsed = resp.parsed if resp.parsed else {}
+                action = parsed.get("action", "remove")
+                if action == "condense" and parsed.get("condensed"):
+                    result = {"action": "condense", "condensed": parsed["condensed"]}
+                else:
+                    result = {"action": "remove"}
+            except Exception as e:
+                logger.warning(
+                    f"Variant condensation failed for '{current_ideogram}' "
+                    f"(seen: '{seen_ideogram}'): {e} — falling back to remove"
+                )
+                result = {"action": "remove"}
+
+            _condensation_cache[cache_key] = result
+            logger.debug(
+                f"Variant condensation: '{current_ideogram}' vs '{seen_ideogram}' → {result['action']}"
+            )
+            return result
 
         for chapter in tqdm(chapters, desc="Removing trivial footnotes"):
             for block in chapter.get("content_blocks", []):
@@ -577,21 +790,63 @@ Return as: {"assessments": [...]}"""
                     if ideogram in self._protected_ideograms and ideogram not in seen_ideograms:
                         filtered.append(fn)
                         self.result.preserved_count += 1
-                        seen_ideograms.add(ideogram)
+                        seen_ideograms[ideogram] = fn.get("explanation", "")
                         continue
 
-                    # Dedup: remove if this ideogram was already footnoted
-                    if ideogram and ideogram in seen_ideograms:
-                        removed_keys.add(fn.get("key"))
-                        self.result.removed_footnotes.append({
-                            "ideogram": ideogram,
-                            "explanation": fn.get("explanation", ""),
-                            "type": "DUPLICATE",
-                            "reasoning": f"Duplicate: '{ideogram}' already footnoted earlier in work",
-                            "block_id": block_id,
-                        })
-                        self.result.removed_count += 1
-                        self.result.duplicate_count += 1
+                    # Dedup: remove if this ideogram (or a variant) was already footnoted
+                    matched_seen = _is_variant_of_seen(ideogram) if ideogram else None
+                    if ideogram and (ideogram in seen_ideograms or matched_seen):
+                        match_info = matched_seen or ideogram
+                        # Exact duplicate — always remove
+                        if ideogram in seen_ideograms and not matched_seen:
+                            removed_keys.add(fn.get("key"))
+                            self.result.removed_footnotes.append({
+                                "ideogram": ideogram,
+                                "explanation": fn.get("explanation", ""),
+                                "type": "DUPLICATE",
+                                "reasoning": f"Duplicate: '{ideogram}' already footnoted earlier in work",
+                                "block_id": block_id,
+                            })
+                            self.result.removed_count += 1
+                            self.result.duplicate_count += 1
+                            continue
+
+                        # Variant match — ask DeepSeek whether to condense or remove
+                        seen_explanation = seen_ideograms.get(match_info, "")
+                        current_explanation = fn.get("explanation", "")
+                        decision = _condense_variant_footnote(
+                            ideogram, current_explanation, match_info, seen_explanation
+                        )
+
+                        if decision["action"] == "condense":
+                            fn["explanation"] = decision["condensed"]
+                            filtered.append(fn)
+                            self.result.preserved_count += 1
+                            self.result.condensed_count += 1
+                            seen_ideograms[ideogram] = decision["condensed"]
+                            self.result.removed_footnotes.append({
+                                "ideogram": ideogram,
+                                "explanation": current_explanation,
+                                "type": "CONDENSED",
+                                "condensed_to": decision["condensed"],
+                                "reasoning": f"Variant of '{match_info}': condensed to new information only",
+                                "block_id": block_id,
+                            })
+                            logger.info(
+                                f"CONDENSED variant '{ideogram}' (of '{match_info}'): "
+                                f"{decision['condensed'][:80]}..."
+                            )
+                        else:
+                            removed_keys.add(fn.get("key"))
+                            self.result.removed_footnotes.append({
+                                "ideogram": ideogram,
+                                "explanation": current_explanation,
+                                "type": "DUPLICATE",
+                                "reasoning": f"Variant of '{match_info}': fully redundant, removed",
+                                "block_id": block_id,
+                            })
+                            self.result.removed_count += 1
+                            self.result.duplicate_count += 1
                         continue
 
                     # Triviality: remove if scored trivial
@@ -611,7 +866,7 @@ Return as: {"assessments": [...]}"""
                         self.result.preserved_count += 1
                         # Mark this ideogram as seen
                         if ideogram:
-                            seen_ideograms.add(ideogram)
+                            seen_ideograms[ideogram] = fn.get("explanation", "")
 
                 # Renumber kept footnotes
                 old_to_new = {}
@@ -648,7 +903,7 @@ Return as: {"assessments": [...]}"""
 
         return data
 
-    PHASE3_PROMPT = """You are a ruthless footnote editor for a translated Chinese wuxia novel. You will receive a list of footnotes (Chinese term + English explanation). For EACH one, decide: REMOVE or KEEP.
+    PHASE3_PROMPT = """You are a footnote editor for a translated Chinese wuxia novel. You will receive a list of footnotes (Chinese term + English explanation). For EACH one, decide: REMOVE or KEEP.
 
 REMOVE if the explanation:
 - Just translates the Chinese into English (e.g., 駿馬 = "a fine steed" — the reader already sees "horse" in the English text)
@@ -656,11 +911,10 @@ REMOVE if the explanation:
 - Explains a universal emotion, action, or body language (e.g., "sighing deeply", "shaking one's head", "cry of pain")
 - Describes something obvious (e.g., "a mountain", "pine branches", "the sleeve of a garment")
 - Is meta-narrative (e.g., "next chapter to be unfolded", "what happens next")
-- Provides no genuinely specific cultural information
 
 KEEP if the explanation:
 - Names a REAL historical person with dates or context
-- Explains a specific martial arts technique, form, school, or named move (e.g., "Thousand-Pound Fist", "Bird Flip", "Whirlwind Palm")
+- Explains a specific martial arts technique, form, school, or named move
 - Names or describes acupoints, pressure points, or meridian concepts
 - Describes a real Buddhist/Taoist/Confucian concept
 - Identifies a real geographic location with historical significance
@@ -668,8 +922,15 @@ KEEP if the explanation:
 - Provides specific historical context (dynasty names, political events, reign periods)
 - Explains traditional medicine, qi cultivation, internal energy, or acupuncture concepts
 - Describes a named weapon, lightness skill, grappling technique, or martial style
+- Explains a Chinese idiom (chengyu), proverb, or literary allusion — these carry cultural weight even if short
+- Describes jianghu conventions, sect hierarchies, sworn brotherhood customs, or wuxia social codes
+- Alludes to classical Chinese texts, poems, or philosophical works
 
-DEFAULT: When in doubt, REMOVE. The reader is intelligent. Only KEEP footnotes that teach something a well-read English speaker genuinely would not know.
+DEFAULT for character names: REMOVE. Fictional dramatis personae do not need footnotes.
+DEFAULT for idioms, wuxia conventions, and historical references: KEEP. These enrich the reader's understanding of the genre and culture.
+DEFAULT for everything else: When in doubt, REMOVE.
+
+REDUNDANCY RULE: If two footnotes in this batch explain the SAME concept and one ideogram contains the other, REMOVE the one that adds less. E.g. 師兄 ("senior martial brother") and 殷師兄 ("Senior Martial Brother Yīn") — the second just prepends a surname, so REMOVE it. But 太極 and 太極拳, or 少林 and 少林寺, explain DIFFERENT things and should both be kept if culturally valuable.
 
 For each footnote, return a JSON object: {"index": N, "verdict": "REMOVE" or "KEEP", "reason": "brief"}
 Return valid JSON as: {"verdicts": [...]}"""
@@ -677,7 +938,8 @@ Return valid JSON as: {"verdicts": [...]}"""
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type(Exception),
+        retry=retry_if_not_exception_type(OpenAIBadRequestError),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
     )
     def _review_batch(self, batch: List[Dict[str, str]]) -> List[Dict]:
         """Send a batch of ideogram+explanation pairs for context-free review."""
@@ -687,15 +949,22 @@ Return valid JSON as: {"verdicts": [...]}"""
                 f"[{idx}] {fn['ideogram']}: {fn['explanation']}\n"
             )
 
-        response = self.client.chat(LLMRequest(
-            messages=[
-                {"role": "system", "content": self.PHASE3_PROMPT},
-                {"role": "user", "content": user_content},
-            ],
-            model=self.config.model,
-            temperature=0.1,  # Very low for consistency
-            json_mode=True,
-        ))
+        try:
+            response = self.client.chat(LLMRequest(
+                messages=[
+                    {"role": "system", "content": self.PHASE3_PROMPT},
+                    {"role": "user", "content": user_content},
+                ],
+                model=self.config.model,
+                temperature=0.1,  # Very low for consistency
+                json_mode=True,
+            ))
+        except Exception as e:
+            err_body = getattr(e, 'body', None) or getattr(e, 'message', str(e))
+            logger.error(
+                f"API error in _review_batch ({type(e).__name__}): {err_body}"
+            )
+            raise
         return response.parsed.get("verdicts", [])
 
     def review_survivors_by_ideogram(self, data: Dict[str, Any]) -> int:
@@ -953,8 +1222,59 @@ Return valid JSON as: {"verdicts": [...]}"""
             r"acupoint|pressure\s+point|vital\s+point|meridian\s+system|"
             r"internal\s+(energy|skill|cultivation|style)|neigong|"
             r"acrobatic\s+technique|"
-            r"poison|antidote|venom)"
+            r"poison|antidote|venom|"
+            # Idioms, proverbs, and four-character chengyu
+            r"idiom|proverb|chengyu|four.character|saying\s+from|"
+            r"allusion\s+to|allude|originat(es?|ing)\s+from|"
+            r"classic(al)?\s+(expression|phrase|idiom)|"
+            # Jianghu conventions and wuxia world-building
+            r"ji[aā]ngh[uú]|wulin|martial\s+world|"
+            r"sworn\s+(brother|sister|oath)|blood\s+oath|"
+            r"code\s+of\s+(honor|chivalry)|xia|"
+            r"sect|clan|faction|martial\s+alliance|"
+            r"challenge\s+(letter|match)|duel\s+convention|"
+            r"poison\s+(art|master|sect)|hidden\s+weapon|"
+            r"inn\s+custom|escort\s+(agency|bureau)|"
+            r"beggar.?s?\s+(clan|sect|guild)|"
+            # Historical / geographic context
+            r"warring\s+states|spring\s+and\s+autumn|"
+            r"great\s+wall|silk\s+road|grand\s+canal|"
+            r"forbidden\s+city|shaolin|wudang|emei|kunlun|"
+            r"mount\s+hua|mount\s+song|"
+            r"battle\s+of|siege\s+of|"
+            r"rebellion|uprising|invasion)"
         )
+
+        # Stricter signals that justify keeping a bare place-name footnote
+        # (generic "historically significant" is NOT enough)
+        _GEO_PRESERVE_SIGNALS = re.compile(
+            r"(?i)(martial\s+arts|wuxia|jianghu|"
+            r"dynasty|emperor|reign|battle\s+of|siege\s+of|"
+            r"shaolin|wudang|emei|kunlun|"
+            r"temple|monastery|sacred|pilgrimage|"
+            r"rebellion|uprising|capital\s+of|"
+            r"birthplace|cradle|origin\s+of|"
+            r"sect|school\s+of|style\s+of|"
+            r"silk\s+road|grand\s+canal|great\s+wall|"
+            r"political|strateg(ic|y)|power\s+base|stronghold|"
+            r"border|frontier|pass\b|garrison|"
+            r"produces?|product(ion|s)\s+of|"
+            r"steel|iron(work|smith|monger)?|silk|porcelain|ceramic|tea|wine|"
+            r"sword|blade|weapon|spear|sabre|"
+            r"horse|breed|cavalry|mount(ed|s)|"
+            r"accent|dialect|speech\s+pattern|"
+            r"scholar|education|academ|examin|imperial\s+exam|"
+            r"refine(d|ment)|cultured|literati|gentry|"
+            r"cuisine|cook(ing|ery)|dish|recipe|"
+            r"custom|tradition|reputation|prestige)"
+        )
+
+        # Bare geographic descriptions (province/city with no scene-specific history)
+        _BARE_GEO_PATTERNS = [
+            r"(?i)^[A-Z]\w+\s+province\s+in\s+(northern|southern|eastern|western|central|northeast|northwest)\s+china",
+            r"(?i)^a\s+(province|city|town|village|region|prefecture)\s+in\s+(northern|southern|eastern|western|central|northeast|northwest|modern[- ]day)?\s*china",
+        ]
+        _bare_geo_re = [re.compile(p) for p in _BARE_GEO_PATTERNS]
 
         # Patterns indicating trivial emotion/action/description explanations
         _TRIVIAL_PATTERNS = [
@@ -1070,6 +1390,20 @@ Return valid JSON as: {"verdicts": [...]}"""
                                     remove = True
                                     reason = "HEURISTIC_FREQ_NAME"
 
+                    # Check bare geographic descriptions (province/city)
+                    # Only remove if the explanation is purely geographic
+                    # with no specific martial/historical/cultural content.
+                    # Use a stricter signal check — "historically significant"
+                    # alone doesn't count; need actual martial arts, dynasty,
+                    # temple, or battle context to justify a bare place name.
+                    if not remove:
+                        for pat in _bare_geo_re:
+                            if pat.search(explanation):
+                                if not _GEO_PRESERVE_SIGNALS.search(explanation):
+                                    remove = True
+                                    reason = "HEURISTIC_BARE_GEO"
+                                break
+
                     # Check trivial emotion/action patterns
                     if not remove:
                         for pat in _trivial_re:
@@ -1082,7 +1416,9 @@ Return valid JSON as: {"verdicts": [...]}"""
 
                     # Check short explanations with no cultural signals
                     # (likely just translations or obvious descriptions)
-                    if not remove and len(explanation) < 80:
+                    # Threshold 120 chars — short idiom/wuxia explanations
+                    # often run 80-120 chars and deserve a chance
+                    if not remove and len(explanation) < 120:
                         if not _CULTURAL_SIGNALS.search(explanation):
                             # Short explanation with no cultural content
                             remove = True
@@ -1199,6 +1535,11 @@ Return valid JSON as: {"verdicts": [...]}"""
             if intra_deduped:
                 logger.info(f"Removed {intra_deduped} intra-block duplicate footnotes")
 
+            # Anchor footnotes to first occurrence of their ideogram
+            anchored = _anchor_footnotes_to_first_occurrence(data)
+            if anchored:
+                logger.info(f"Relocated {anchored} footnotes to first-occurrence blocks")
+
             # Reposition misplaced markers to be adjacent to their term
             # Footnotes whose term can't be found in the text are removed
             repos_count, unanchored_count = _reposition_markers(data)
@@ -1292,6 +1633,121 @@ def _dedup_intra_block(data: Dict[str, Any]) -> int:
                     )
 
     return removed_total
+
+
+def _anchor_footnotes_to_first_occurrence(data: Dict[str, Any]) -> int:
+    """
+    Relocate footnotes to the block where their ideogram first appears.
+
+    After the 4-phase cleanup, a surviving footnote may sit on a later
+    occurrence of its ideogram because earlier phases removed the copy that
+    was at the first occurrence.  This pass moves each such footnote to the
+    earliest block whose Chinese source (`content`) contains the ideogram.
+
+    Returns the number of footnotes relocated.
+    """
+    chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+    relocated = 0
+
+    for chapter in chapters:
+        blocks = chapter.get("content_blocks", [])
+        if not blocks:
+            continue
+
+        # 1. Collect surviving footnotes keyed by ideogram → (block_idx, fn)
+        ideogram_locations: Dict[str, List[Tuple[int, Dict]]] = defaultdict(list)
+        for bi, block in enumerate(blocks):
+            for fn in block.get("footnotes", []):
+                ideo = fn.get("ideogram", "")
+                if ideo:
+                    ideogram_locations[ideo].append((bi, fn))
+
+        # 2. For each ideogram, find its first occurrence in Chinese source
+        for ideogram, occurrences in ideogram_locations.items():
+            if len(occurrences) == 0:
+                continue
+
+            # Find earliest block index whose source contains this ideogram
+            first_block_idx = None
+            for bi, block in enumerate(blocks):
+                source = block.get("content", "")
+                if ideogram in source:
+                    first_block_idx = bi
+                    break
+
+            if first_block_idx is None:
+                continue  # ideogram not in any source text — leave as-is
+
+            # Check if the footnote is already at the first occurrence
+            current_block_idx = occurrences[0][0]  # first surviving footnote
+            if current_block_idx == first_block_idx:
+                continue  # already correct
+
+            # 3. Relocate: remove from current block, add to first-occurrence block
+            fn_to_move = occurrences[0][1]
+            current_block = blocks[current_block_idx]
+            target_block = blocks[first_block_idx]
+
+            # Remove from current block's footnotes list
+            old_key = fn_to_move.get("key")
+            current_block["footnotes"] = [
+                f for f in current_block.get("footnotes", [])
+                if f is not fn_to_move
+            ]
+
+            # Remove marker from current block's translated_content
+            translated = current_block.get("translated_content", "")
+            if translated and old_key is not None:
+                current_block["translated_content"] = re.sub(
+                    rf"\[{old_key}\]", "", translated
+                )
+
+            # Add to target block's footnotes (will be repositioned/renumbered later)
+            if "footnotes" not in target_block:
+                target_block["footnotes"] = []
+            # Assign a temporary key — renumbering fixes it later
+            fn_to_move["key"] = len(target_block["footnotes"]) + 1
+            target_block["footnotes"].append(fn_to_move)
+
+            # Insert marker in target block's translated_content
+            target_text = target_block.get("translated_content", "")
+            if target_text:
+                pinyin = fn_to_move.get("pinyin", "").strip()
+                explanation = fn_to_move.get("explanation", "").strip()
+                source_text = target_block.get("content", "")
+                clean_target = re.sub(r"\[\d+\]", "", target_text)
+                start, end = _find_term_in_text(
+                    clean_target, pinyin, explanation,
+                    ideogram=ideogram, source_text=source_text,
+                )
+                marker = f"[{fn_to_move['key']}]"
+                if end != -1:
+                    # Insert marker after the found term
+                    target_block["translated_content"] = (
+                        target_text[:end] + marker + target_text[end:]
+                    )
+                else:
+                    # Fallback: append marker at end of last sentence
+                    last_period = max(
+                        target_text.rfind("."),
+                        target_text.rfind("!"),
+                        target_text.rfind("?"),
+                    )
+                    if last_period != -1:
+                        insert_at = last_period + 1
+                        target_block["translated_content"] = (
+                            target_text[:insert_at] + marker + target_text[insert_at:]
+                        )
+                    else:
+                        target_block["translated_content"] = target_text + marker
+
+            relocated += 1
+            logger.info(
+                f"Relocated footnote '{ideogram}' from block {current_block.get('id', current_block_idx)} "
+                f"to block {target_block.get('id', first_block_idx)} (first occurrence)"
+            )
+
+    return relocated
 
 
 def _renumber_chapter_continuous(data: Dict[str, Any]) -> None:
@@ -1630,6 +2086,79 @@ def _sanitize_orphan_markers(data: Dict[str, Any]) -> int:
                 block["translated_content"] = re.sub(r"\[(\d+)\]", _strip, text)
                 blocks_fixed += 1
     return blocks_fixed
+
+
+def _italicize_pinyin_in_footnotes(data: Dict[str, Any]) -> int:
+    """Wrap bare pinyin terms in footnote explanations with *italic* markers.
+
+    Scans body text for italicized pinyin terms (e.g. *jiānghú*, *wǔlín*),
+    then finds bare (unitalicized) occurrences of those same terms inside
+    footnote explanations and wraps them in * ... *.
+
+    This ensures consistency: if the body text italicizes a term, the
+    footnotes should too.
+
+    Returns the number of footnotes modified.
+    """
+    chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+
+    # Step 1: Collect all italicized pinyin terms from body text
+    italic_re = re.compile(
+        r"\*([a-zA-Zàáèéìíòóùúǎǐǒǔāēīōūüǖǘǚǜ][a-zA-Zàáèéìíòóùúǎǐǒǔāēīōūüǖǘǚǜ]+)\*"
+    )
+    italic_terms: set = set()
+    for chapter in chapters:
+        for block in chapter.get("content_blocks", []):
+            text = block.get("translated_content", "")
+            if text:
+                for m in italic_re.finditer(text):
+                    italic_terms.add(m.group(1))
+
+    if not italic_terms:
+        return 0
+
+    # Filter out onomatopoeia / non-pinyin (heuristic: if it's a common
+    # English word, skip it)
+    _ENGLISH_WORDS = {
+        "hiss", "whoosh", "thwack", "crash", "bang", "clang", "slash",
+        "crack", "snap", "thud", "swish", "whack", "smack", "clap",
+    }
+    pinyin_terms = italic_terms - _ENGLISH_WORDS
+    if not pinyin_terms:
+        return 0
+
+    # Step 2: Build a regex that matches any of these terms NOT already
+    # wrapped in asterisks. Uses negative lookbehind/lookahead for *.
+    # Sort longest-first so longer terms match before shorter substrings.
+    sorted_terms = sorted(pinyin_terms, key=len, reverse=True)
+    pattern = re.compile(
+        r"(?<!\*)\b(" + "|".join(re.escape(t) for t in sorted_terms) + r")\b(?!\*)"
+    )
+
+    # Step 3: Apply to all footnote explanations
+    modified = 0
+    for chapter in chapters:
+        for block in chapter.get("content_blocks", []):
+            for fn in block.get("footnotes", []):
+                explanation = fn.get("explanation", "")
+                if not explanation:
+                    continue
+                new_explanation = pattern.sub(r"*\1*", explanation)
+                if new_explanation != explanation:
+                    fn["explanation"] = new_explanation
+                    modified += 1
+
+    # Also apply to dramatis personae explanations
+    for entry in data.get("dramatis_personae", []):
+        explanation = entry.get("explanation", "")
+        if not explanation:
+            continue
+        new_explanation = pattern.sub(r"*\1*", explanation)
+        if new_explanation != explanation:
+            entry["explanation"] = new_explanation
+            modified += 1
+
+    return modified
 
 
 def _ai_verify_marker_positions(data: Dict[str, Any], client) -> int:

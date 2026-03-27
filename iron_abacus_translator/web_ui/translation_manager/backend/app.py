@@ -215,6 +215,13 @@ try:
 except ImportError as e:
     logger.warning(f"Could not load DAG router: {e}")
 
+# Include pipeline progress router
+try:
+    from web_ui.translation_manager.backend.api.progress import router as progress_router
+    app.include_router(progress_router)
+except ImportError as e:
+    logger.warning(f"Could not load progress router: {e}")
+
 
 # Database helpers
 def get_db_connection():

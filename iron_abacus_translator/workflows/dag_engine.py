@@ -249,6 +249,68 @@ class DAGDefinition:
             self.nodes[node_id].status = status
             self.nodes[node_id].progress_pct = progress_pct
 
+    def get_subgraph_from(self, start_node: str) -> List[str]:
+        """
+        Return topological subset of DAG from start_node to all terminal nodes.
+
+        All nodes reachable from start_node (following edges forward) are included.
+        The result is in topological order.
+        """
+        if start_node not in self.nodes:
+            raise ValueError(f"Node '{start_node}' not found in DAG")
+
+        # Build adjacency list
+        adjacency: Dict[str, List[str]] = defaultdict(list)
+        for edge in self.edges:
+            adjacency[edge.source].append(edge.target)
+
+        # BFS forward from start_node to find all reachable nodes
+        reachable = set()
+        queue = deque([start_node])
+        while queue:
+            node_id = queue.popleft()
+            if node_id in reachable:
+                continue
+            reachable.add(node_id)
+            for neighbor in adjacency[node_id]:
+                if neighbor not in reachable:
+                    queue.append(neighbor)
+
+        # Filter topological order to only reachable nodes
+        topo = self.topological_sort()
+        return [nid for nid in topo if nid in reachable]
+
+    def get_terminal_nodes(self) -> List[str]:
+        """Return nodes with no outgoing edges (sinks)."""
+        has_outgoing = set()
+        for edge in self.edges:
+            has_outgoing.add(edge.source)
+        return [nid for nid in self.nodes if nid not in has_outgoing]
+
+    def get_predecessors(self, node_id: str) -> List[str]:
+        """Return immediate predecessors (dependencies) of a node."""
+        if node_id not in self.nodes:
+            return []
+        return list(self.nodes[node_id].dependencies)
+
+    def get_predecessor_chain(self, node_id: str) -> List[str]:
+        """Return all ancestors of a node in topological order."""
+        if node_id not in self.nodes:
+            return []
+
+        # BFS backward
+        ancestors = set()
+        queue = deque(self.nodes[node_id].dependencies)
+        while queue:
+            pred = queue.popleft()
+            if pred in ancestors or pred not in self.nodes:
+                continue
+            ancestors.add(pred)
+            queue.extend(self.nodes[pred].dependencies)
+
+        topo = self.topological_sort()
+        return [nid for nid in topo if nid in ancestors]
+
     def reset(self) -> None:
         """Reset all nodes to pending."""
         for node in self.nodes.values():

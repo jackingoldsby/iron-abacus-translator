@@ -45,7 +45,7 @@ class TranslationConfig:
     # Rate Limiting
     rate_limit_delay: float = 1.0  # Seconds between API calls
     batch_size: int = 10  # Blocks per batch
-    max_concurrent_chapters: int = 3  # Parallel chapter processing
+    max_workers: int = 5  # Parallel workers for translation
 
     # Input/Output (can be overridden, defaults loaded from environment)
     source_dir: Optional[Path] = None

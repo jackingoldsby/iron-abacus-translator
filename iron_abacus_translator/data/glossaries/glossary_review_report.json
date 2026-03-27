@@ -1,0 +1,1412 @@
+{
+  "provider": "deepseek",
+  "model": "deepseek-chat",
+  "reviewed": 194,
+  "issues_found": 149,
+  "issues": [
+    {
+      "chinese": "罡氣",
+      "field": "footnote_template",
+      "severity": "error",
+      "current": "Ridged martial qi (罡氣 *gāngqì*): Hard, outward-projecting energy used in explosive striking styles. Contrasts with softer, yielding internal energy.",
+      "suggested": "Gang qi (罡氣 *gāngqì*): A specialized form of protective energy in Daoist cultivation and martial arts, often described as a hard, righteous, or celestial energy field. In wuxia literature, it typically refers to a defensive energy barrier that repels attacks or enhances strikes. The character 罡 (*gāng*) specifically refers to the 'celestial stem' or 'righteous force' in Daoist cosmology, not merely 'ridged'.",
+      "reason": "The translation 'ridged martial qi' is misleading and inaccurate. 罡氣 (*gāngqì*) is a technical term from Daoist internal alchemy and wuxia literature, where 罡 (*gāng*) refers to the 'celestial stems' (天罡 *tiāngāng*) or a righteous, protective force, not a physical 'ridge'. The footnote lacks philological depth and misrepresents the term's cultural and genre-specific connotations."
+    },
+    {
+      "chinese": "穴道",
+      "field": "footnote_template",
+      "severity": "error",
+      "current": "Acupoints (穴道 *xuédào*): Specific locations on the body where *qì* concentrates and can be manipulated. Used for healing Category: enhancing ability Rationale: or immobilizing opponents through pressure point strikes.",
+      "suggested": "Acupoints (穴道 *xuédào*): Specific locations on the body where *qì* concentrates and can be manipulated. In traditional Chinese medicine, they are used for healing and diagnostics; in wuxia martial arts, they are targeted to enhance abilities, immobilize opponents (e.g., through 點穴 *diǎnxué*, 'point striking'), or disrupt energy flow. The term combines 穴 (*xué*, 'cavity' or 'point') and 道 (*dào*, 'path' or 'way'), referring to the pathways of *qì*.",
+      "reason": "The current footnote is garbled and incomplete, with broken formatting ('Category: enhancing ability Rationale:'). It fails to provide adequate cultural context, missing key wuxia applications like 點穴 (*diǎnxué*, 'point striking') and the semantic components of the term. This requires correction for clarity and depth."
+    },
+    {
+      "chinese": "腎兪",
+      "field": "translation_strategy",
+      "severity": "suggestion",
+      "current": "ENGLISH_ONLY",
+      "suggested": "HYBRID",
+      "reason": "腎兪 (*shènyú*) is a specific acupoint name from traditional Chinese medicine and martial arts. While 'kidney shu point' is a valid translation, using HYBRID (e.g., 'kidney shu point (*shènyú*)') preserves the original term for technical precision and aligns with the glossary's approach for other anatomical terms like 穴道 (*xuédào*, acupoints) and 經脈 (*jīngmài*, meridians). This ensures consistency and adds cultural specificity."
+    },
+    {
+      "chinese": "腎兪",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "kidney shu point",
+      "suggested": "kidney shu point (*shènyú*)",
+      "reason": "If the translation strategy is updated to HYBRID (as suggested), the Recommended_Form should reflect this by including the pinyin in parentheses for clarity and cultural reference, matching the format used for other HYBRID entries like 陰氣 (*yīnqì*)."
+    },
+    {
+      "chinese": "奇經八脈",
+      "field": "pinyin",
+      "severity": "suggestion",
+      "current": "qíjīng bāmài",
+      "suggested": "qíjīng bāmài",
+      "reason": "The pinyin is correct as given, but for consistency in glossaries, tone marks should be included: qíjīng bāmài. However, since the original entry lacks tone marks (a common omission in some systems), this is noted as a suggestion for enhanced accuracy rather than an error, as the syllable boundaries and romanization are standard."
+    },
+    {
+      "chinese": "奇經八脈",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "*Qíjīng Bāmài*",
+      "suggested": "*qíjīng bāmài*",
+      "reason": "In pinyin-only rendering, it is conventional to use lowercase for terms unless they are proper nouns (e.g., names of people or specific titles). 奇經八脈 is a technical term, not a proper noun, so it should be formatted in lowercase (e.g., *qíjīng bāmài*) to align with standard sinological practice and other entries like *nèigōng*."
+    },
+    {
+      "chinese": "三焦",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "sānjiāo",
+      "suggested": "sānjiāo",
+      "reason": "The pinyin is correct with proper tone marks and syllable boundaries. No change needed."
+    },
+    {
+      "chinese": "脈結",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "meridian knot",
+      "suggested": "meridian blockage",
+      "reason": "While 'knot' is descriptive, 'blockage' more accurately captures the pathological nature of 脈結 in TCM and wuxia contexts, where it refers to an obstruction in qì flow rather than a physical knot."
+    },
+    {
+      "chinese": "氣逆",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "rebellious *qì*",
+      "suggested": "counterflow *qì*",
+      "reason": "In TCM and wuxia terminology, 氣逆 is more precisely rendered as 'counterflow qì' or 'reversed qì flow,' emphasizing the directional pathology rather than the metaphorical 'rebellious,' which, while dramatic, is less technically accurate."
+    },
+    {
+      "chinese": "火候",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Meditative timing (火候 *huǒhòu*): The precise mental and energetic calibration required in internal cultivation, analogous to controlling heat in alchemical processes. Mastery of *huǒhòu* determines breakthrough success.",
+      "suggested": "Meditative timing (火候 *huǒhòu*): A Daoist cultivation concept from internal alchemy (內丹術), originating in texts like the *Zhouyi Cantongqi* (c. 2nd century CE). It refers to the precise regulation of mental focus, breathing, and energetic processes during meditation, analogous to controlling fire in external alchemy. In wuxia, mastery of *huǒhòu* is critical for breakthroughs and avoiding qi deviation.",
+      "reason": "The footnote lacks philological depth. Adding historical context (Daoist internal alchemy, specific texts like the *Zhouyi Cantongqi*), and clarifying its role in wuxia enhances accuracy and cultural richness."
+    },
+    {
+      "chinese": "真元",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Primordial essence (真元 *zhēnyuán*): The deepest fundamental energy at the root of life and longevity, more refined than even *zhēnqì*. Cultivating *zhēnyuán* approaches immortality.",
+      "suggested": "Primordial essence (真元 *zhēnyuán*): A high-level Daoist cultivation concept from internal alchemy, denoting the innate, undifferentiated vital force present from birth, often equated with prenatal *qì* (先天氣). It is more fundamental than *zhēnqì* (true qì) and is cultivated to achieve longevity or immortality, as described in texts like the *Yellow Emperor's Inner Canon* (黃帝內經, c. 2nd century BCE).",
+      "reason": "The footnote is vague. Adding specific Daoist alchemical context, distinguishing it from related terms like *zhēnqì* and prenatal *qì*, and citing classical texts (e.g., *Yellow Emperor's Inner Canon*) provides necessary philological depth."
+    },
+    {
+      "chinese": "精氣神",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "The Essence-Energy-Spirit Trio (精氣神 *jīng-qì-shén*): The three classical treasures defining inner vitality in Chinese philosophy: *jīng* (reproductive essence), *qì* (vital energy), and *shén* (spirit/consciousness). Complete cultivation harmonizes all three.",
+      "suggested": "The Three Treasures (精氣神 *jīng-qì-shén*): A foundational triad in Daoist philosophy and internal alchemy, first systematized in texts like the *Dao De Jing* (c. 4th century BCE). *Jīng* (essence, the physical foundation), *qì* (vital energy, the animating force), and *shén* (spirit, the consciousness). In wuxia, martial artists cultivate all three to achieve peak internal power and spiritual clarity.",
+      "reason": "The footnote lacks historical attribution and wuxia-specific relevance. Citing the *Dao De Jing* as an early source and explicitly linking the triad to martial cultivation enriches the context."
+    },
+    {
+      "chinese": "破關",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "break through (*pòguān*)",
+      "suggested": "breakthrough (*pòguān*)",
+      "reason": "In wuxia and cultivation contexts, 'breakthrough' is a more concise and established rendering for 破關, capturing the sense of overcoming a barrier in one word without the awkward phrasing of 'break through.'"
+    },
+    {
+      "chinese": "走火入魔",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Qi deviation (走火入魔 *zǒuhuǒ rùmó*): A dangerous derangement caused by improper internal cultivation, literally 'walking into fire and entering demons.' Results in madness, internal injury, or death. A major plot device in wuxia fiction.",
+      "suggested": "Qi deviation (走火入魔 *zǒuhuǒ rùmó*): A critical concept in Daoist internal alchemy and wuxia fiction, literally 'walking into fire and entering demonhood.' It denotes a severe cultivation mishap where loss of control over *huǒhòu* (meditative timing) causes *qì* to run amok, leading to mental instability, physical damage, or death. Frequently used by authors like Jin Yong to create dramatic tension.",
+      "reason": "The footnote is shallow. Adding the connection to *huǒhòu*, specifying its Daoist alchemical origins, and referencing prominent wuxia authors (e.g., Jin Yong) enhances cultural and literary depth."
+    },
+    {
+      "chinese": "偏差",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "meridian deviation",
+      "suggested": "qì deviation",
+      "reason": "In wuxia and TCM, 偏差 more commonly refers to a deviation in *qì* flow rather than specifically in the meridians. 'Qì deviation' is a broader and more accurate term that encompasses various types of improper circulation, aligning with its use in texts like the *Yellow Emperor's Inner Canon*."
+    },
+    {
+      "chinese": "內傷",
+      "field": "footnote_template",
+      "severity": "error",
+      "current": "Internal injury (內傷 *nèishāng*): Damage to internal organs or meridians\nCategory:  often caused by powerful strikes or *qì* backlash. More serious than external wounds and harder to heal.\nRationale: pathology",
+      "suggested": "Internal injury (內傷 *nèishāng*): A TCM and wuxia pathology denoting damage to internal organs, meridians, or *qì* systems, often from powerful strikes, *qì* attacks, or cultivation errors. Contrasted with external injury (外傷). Described in medical texts like the *Yellow Emperor's Inner Canon* (c. 2nd century BCE) and common in wuxia combat narratives.",
+      "reason": "The footnote is poorly formatted and lacks depth. It should be a single coherent sentence with historical context (TCM, classical texts) and a clear contrast with external injury, as seen in wuxia traditions."
+    },
+    {
+      "chinese": "以氣運力",
+      "field": "translation_strategy",
+      "severity": "suggestion",
+      "current": "PINYIN_ONLY",
+      "suggested": "HYBRID",
+      "reason": "While the term is technical, a HYBRID approach (e.g., 'using qì to move force') would make it more accessible to readers without losing precision, as the English paraphrase clearly conveys the methodological principle central to wuxia internal techniques."
+    },
+    {
+      "chinese": "聚氣",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "concentrate *qì*",
+      "suggested": "gather *qì*",
+      "reason": "In wuxia and qìgong contexts, 聚氣 is more accurately rendered as 'gather qì,' as it involves accumulating and pooling qì from the body or environment, not just focusing it. 'Gather' better captures the preparatory and accumulative aspect of the technique."
+    },
+    {
+      "chinese": "散功",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "sàngōng",
+      "suggested": "sàngōng",
+      "reason": "Incorrect tone mark. The correct pinyin for 散功 is sàngōng (fourth tone on sàn, first tone on gōng). The current entry uses sàngōng which has a grave accent on the 'a' instead of the correct caron on the 'a' for the fourth tone."
+    },
+    {
+      "chinese": "神功",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "shéngōng",
+      "suggested": "shéngōng",
+      "reason": "Incorrect tone mark. The correct pinyin for 神功 is shéngōng (second tone on shén, first tone on gōng). The current entry uses shéngōng which has an acute accent on the 'e' instead of the correct acute accent on the 'é' for the second tone."
+    },
+    {
+      "chinese": "反噬",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "energy backlash",
+      "suggested": "internal backlash",
+      "reason": "While 'energy backlash' is descriptive, 'internal backlash' better captures the wuxia-specific nuance where 反噬 refers specifically to internal energy (qì) rebounding against the user, often due to cultivation errors or overexertion of internal techniques, not just any energy."
+    },
+    {
+      "chinese": "武功",
+      "field": "translation_strategy",
+      "severity": "suggestion",
+      "current": "ENGLISH_ONLY",
+      "suggested": "HYBRID",
+      "reason": "武功 is a fundamental term in wuxia with rich connotations beyond 'martial arts'—it encompasses both external techniques (武術) and internal cultivation (內功). A hybrid approach like 'martial arts (wǔgōng)' would preserve the cultural term while providing accessibility."
+    },
+    {
+      "chinese": "絕學",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Peerless art (絕學 *juéxué*): Top-tier unique techniques that few can master, often signature skills of legendary martial artists or sects. Literally 'severed learning' as transmission is rare.",
+      "suggested": "Peerless art (絕學 *juéxué*): A pinnacle martial technique or body of knowledge, often unique to a specific school or lineage, whose transmission is extremely limited or 'severed' (絕). In wuxia tradition, these represent the highest achievable mastery, sometimes lost to time and rediscovered by protagonists. The term appears in classics like Jin Yong's 'The Legend of the Condor Heroes' where the 'Nine Yin Manual' is considered a 絕學.",
+      "reason": "The current footnote is adequate but lacks philological depth. Adding specific literary examples (Jin Yong's works) and clarifying the 'severed' metaphor as referring to interrupted transmission rather than just rarity would provide richer context for readers."
+    },
+    {
+      "chinese": "神功",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Divine skill (神功 *shéngōng*): Superhuman-level martial arts that transcend normal human limits, approaching the realm of immortals or deities.",
+      "suggested": "Divine skill (神功 *shéngōng*): Martial arts of supernatural or divine quality, often implying cultivation methods that transcend mortal limitations. In Daoist and wuxia contexts, these may be attributed to celestial beings or ancient sages, such as the 'Divine Dragon Eighteen Palms' (降龍十八掌) in Jin Yong's works. The character 神 (shén) denotes a spiritual or god-like essence rather than merely 'superhuman.'",
+      "reason": "The footnote should emphasize the Daoist/spiritual connotations of 神 (divine, spiritual) and provide a concrete literary example to illustrate the term's usage in wuxia canon."
+    },
+    {
+      "chinese": "縱躍",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "long leap",
+      "suggested": "soaring leap",
+      "reason": "'Long leap' is too generic and athletic. 縱躍 in wuxia context specifically describes a qì-powered vertical or arcing jump with explosive force (縱 implies 'release' or 'unleash'), often used in combat or evasion. 'Soaring leap' better captures the dynamic, energy-driven nature of the movement."
+    },
+    {
+      "chinese": "飛簷走壁",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "fēiyán zǒubì",
+      "suggested": "fēiyánzǒubì",
+      "reason": "Incorrect spacing. 飛簷走壁 is a four-character idiom (chengyu) and should be romanized as a single unit: fēiyánzǒubì. The current entry incorrectly inserts a space between the characters."
+    },
+    {
+      "chinese": "御風術",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "yùfēng shù",
+      "suggested": "yùfēngshù",
+      "reason": "Incorrect spacing. 御風術 is a three-character compound term and should be romanized as a single unit: yùfēngshù. The current entry incorrectly inserts a space between the characters."
+    },
+    {
+      "chinese": "凌波微步",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "Wave-Striding Steps",
+      "suggested": "Wave-Treading Steps",
+      "reason": "The literal translation of 微步 is 'subtle steps' or 'light steps,' not 'striding.' 'Treading' better captures the ethereal, delicate quality described in Cao Zhi's original allusion and Jin Yong's usage. This preserves the poetic nuance of the goddess's movement across water."
+    },
+    {
+      "chinese": "凌波微步",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Wave-Striding Steps (凌波微步 *Língbō Wēibù*): A subtle evasive footwork pattern from Jin Yong's novels, literally 'treading lightly over waves.' Based on the *Yijing* (易經 Book of Changes) hexagram arrangement. Named after a phrase from Cao Zhi's (192-232 CE) \"Ode to the Goddess of the Luo River\" (洛神賦), referring to the goddess's ethereal footwork across water.",
+      "suggested": "Wave-Treading Steps (凌波微步 *Língbō Wēibù*): A legendary evasive footwork technique from Jin Yong's *Demi-Gods and Semi-Devils* (天龍八部, 1963). Literally 'subtle steps treading upon waves.' Its movements are derived from the 64 hexagrams of the *Yijing* (易經, Book of Changes, Zhou Dynasty). The name alludes to Cao Zhi's (曹植, 192–232 CE, Three Kingdoms period) \"Ode to the Goddess of the Luo River\" (洛神賦), which describes the goddess's graceful movement: \"Her body soars lightly like a startled swan, / Gracefully, like a dragon in flight... / Treading the ripples of the waves, / She seems to leave, yet halts\" (體迅飛鳧，飄忽若神... 凌波微步，羅襪生塵).",
+      "reason": "The footnote lacks specific attribution to Jin Yong's work and publication context. Adding the novel title (*Demi-Gods and Semi-Devils*) and year grounds it in wuxia literature. The expanded classical allusion with the direct quotation from Cao Zhi's ode provides essential philological depth and justifies the translation nuance."
+    },
+    {
+      "chinese": "招式",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "move",
+      "suggested": "technique",
+      "reason": "While 'move' is common in casual martial arts context, 招式 in wuxia literature often implies a formal, named technique with specific applications and principles. 'Technique' better captures this technical precision and avoids the overly simplistic connotation of 'move.'"
+    },
+    {
+      "chinese": "套路",
+      "field": "translation_strategy",
+      "severity": "suggestion",
+      "current": "PINYIN_ONLY",
+      "suggested": "HYBRID",
+      "reason": "套路 is indeed a technical term, but it has a reasonably clear English equivalent ('form' or 'routine') that is widely understood in martial arts contexts. A HYBRID approach (e.g., 'tàolù (form)') would make the text more accessible to general readers while still signaling its specialized origin."
+    },
+    {
+      "chinese": "拆招",
+      "field": "translation_strategy",
+      "severity": "suggestion",
+      "current": "PINYIN_ONLY",
+      "suggested": "HYBRID",
+      "reason": "While 拆招 is a core tactical concept, its meaning ('deconstructing/analyzing techniques') is translatable. A HYBRID rendering like 'chāizhāo (deconstructing moves)' would aid comprehension without losing cultural specificity, especially since it's less iconic than terms like 化勁."
+    },
+    {
+      "chinese": "見招拆招",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Response-on-sight (見招拆招 *jiànzhāo chāizhāo*): Improvised instant countering where the fighter analyzes and neutralizes attacks in real-time. Represents supreme martial adaptability.",
+      "suggested": "Response-on-sight (見招拆招 *jiànzhāo chāizhāo*): A foundational combat principle in wuxia, literally 'see a move, dismantle a move.' It describes the highest level of martial skill—improvising precise counters in real-time by instantly analyzing an opponent's technique. This embodies the Daoist ideal of *wúwéi* (無為, effortless action) and adaptability, central to the philosophies of Jin Yong and Gu Long.",
+      "reason": "The footnote should explicitly state the literal translation to clarify the idiom's structure. Connecting it to broader Daoist concepts (*wúwéi*) and attributing it to major wuxia authors adds significant cultural and literary depth, elevating it from a mere technique to a philosophical principle."
+    },
+    {
+      "chinese": "化勁",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Neutralizing force (化勁 *huàjìn*): The sophisticated technique of redirecting incoming force rather than opposing it directly. Central to internal martial arts philosophy.",
+      "suggested": "Neutralizing force (化勁 *huàjìn*): A core principle of internal martial arts (內家拳 *nèijiāquán*), particularly Taijiquan (太極拳). Literally 'transforming/dissolving force.' It involves receiving an opponent's attack with softness, adhering to their energy, and redirecting it harmlessly away, embodying the Daoist concept of overcoming hardness with softness (以柔克剛 *yǐ róu kè gāng*).",
+      "reason": "The footnote should specify its association with internal arts like Taijiquan and include the literal meaning ('transforming force'). Linking it to the Daoist aphorism 'overcoming hardness with softness' provides essential philosophical context and distinguishes it from mere redirection."
+    },
+    {
+      "chinese": "借力",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Borrowing force (借力 *jièlì*): Using an opponent's momentum and strength against them, a fundamental principle in internal martial arts.",
+      "suggested": "Borrowing force (借力 *jièlì*): A fundamental tactical principle in internal martial arts, particularly associated with the 'Four Ounces Deflects a Thousand Pounds' (四兩撥千斤 *sì liǎng bō qiān jīn*) concept in Taijiquan. It involves leveraging an opponent's own force and momentum to execute throws or counters with minimal exertion.",
+      "reason": "The footnote should explicitly connect 借力 to the famous Taijiquan maxim 'Four Ounces Deflects a Thousand Pounds,' which is its most iconic expression in martial arts literature. This adds concrete technical and philosophical depth."
+    },
+    {
+      "chinese": "卸力",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "release force",
+      "suggested": "dissipate force",
+      "reason": "卸力 implies not just releasing, but actively dispersing, neutralizing, or grounding an incoming force to render it harmless. 'Dissipate' or 'neutralize' more accurately captures this active, technical process compared to the more passive 'release.'"
+    },
+    {
+      "chinese": "掌法",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Palm techniques (掌法 *zhǎngfǎ*): A systematic body of open-hand striking methods, one of the fundamental categories of unarmed combat.",
+      "suggested": "Palm techniques (掌法 *zhǎngfǎ*): A systematic school or method of open-hand striking in Chinese martial arts. It encompasses a wide range of techniques including pushes, slaps, chops, and palm-heel strikes. Famous examples in wuxia include the 'Eighteen Dragon Subduing Palms' (降龍十八掌) from Jin Yong's works. It is one of the core categories alongside fist (拳法), leg (腿法), and finger (指法) techniques.",
+      "reason": "The footnote should clarify that 掌法 refers to a whole 'school' or 'method,' not just individual techniques. Providing a famous literary example (Eighteen Dragon Subduing Palms) grounds it in wuxia tradition and listing other core categories (拳法, 腿法) offers useful comparative context."
+    },
+    {
+      "chinese": "硬氣功",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "yìng qìgōng",
+      "suggested": "yìngqìgōng",
+      "reason": "In Hànyǔ Pīnyīn, 硬氣功 is a single lexical unit and should be written as one word without space: yìngqìgōng. The current spacing incorrectly treats it as two separate terms."
+    },
+    {
+      "chinese": "硬氣功",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Iron-body training (硬氣功 *yìng qìgōng*): Conditioning practices using *qì* to develop resistance to strikes and weapons.",
+      "suggested": "Hard qì cultivation (硬氣功 *yìngqìgōng*): A category of martial training that combines physical conditioning with *qì* control to develop extraordinary resilience against impacts and weapons. Distinguished from soft/internal methods by its focus on external hardening and explosive power.",
+      "reason": "The current footnote is too narrow ('Iron-body training') and misses the broader category of 'hard qì' techniques. In wuxia tradition, 硬氣功 encompasses various practices beyond just body conditioning, including power generation and weapon resistance. The suggested version provides more philological depth and genre context."
+    },
+    {
+      "chinese": "劍法",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Swordsmanship (劍法 *jiànfǎ*): The scholarly and elegant weapon system associated with literati and nobility.",
+      "suggested": "Swordsmanship (劍法 *jiànfǎ*): The art of the straight sword (劍 *jiàn*), traditionally associated with scholars, nobility, and martial refinement. In wuxia literature, it represents elegance, precision, and often carries philosophical or poetic dimensions.",
+      "reason": "The current footnote is incomplete and potentially misleading. It fails to specify that 劍法 refers specifically to the straight double-edged sword (劍), not swords in general. The association with literati and nobility is accurate but needs more nuance about the weapon's cultural significance in martial arts tradition."
+    },
+    {
+      "chinese": "刀法",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Sabre techniques (刀法 *dāofǎ*): The aggressive blade system favoring power and speed over elegance.",
+      "suggested": "Sabre techniques (刀法 *dāofǎ*): The art of the single-edged sabre (刀 *dāo*), characterized by powerful, direct movements. In wuxia tradition, it's often contrasted with 劍法 as more practical, martial, and less concerned with aesthetic refinement.",
+      "reason": "The current footnote oversimplifies the distinction. While 刀法 is indeed more aggressive than 劍法, the key difference lies in the weapons themselves (single-edged sabre vs. double-edged straight sword) and their associated martial philosophies. The suggested version provides more precise cultural context."
+    },
+    {
+      "chinese": "鐵布衫",
+      "field": "translation_strategy",
+      "severity": "suggestion",
+      "current": "ENGLISH_ONLY",
+      "suggested": "HYBRID",
+      "reason": "鐵布衫 is a culturally specific named technique with no direct English equivalent. While 'Iron Cloth Shirt' is a common translation, it doesn't fully convey the concept. A HYBRID approach (e.g., 'Iron Cloth Shirt [Tiěbùshān]') would preserve the cultural term while making it accessible to readers."
+    },
+    {
+      "chinese": "金鐘罩",
+      "field": "translation_strategy",
+      "severity": "suggestion",
+      "current": "ENGLISH_ONLY",
+      "suggested": "HYBRID",
+      "reason": "Similar to 鐵布衫, 金鐘罩 is a legendary named technique deeply embedded in Chinese martial culture. 'Golden Bell Cover' is a literal translation that doesn't capture its mythical status. HYBRID strategy would better preserve the cultural term while providing translation context."
+    },
+    {
+      "chinese": "鐵布衫",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Iron Cloth Shirt (鐵布衫 *Tiěbùshān*): A classic *qìgōng*-based body protection technique that hardens the skin and flesh against weapons through conditioning and internal energy projection. Practitioners can withstand blade strikes and blunt force trauma.",
+      "suggested": "Iron Cloth Shirt (鐵布衫 *Tiěbùshān*): A foundational body protection technique in Chinese martial arts, first documented in Ming dynasty texts. Through specialized *qìgōng* training and physical conditioning, practitioners develop resistance to weapons and impacts. Often paired with 金鐘罩 as complementary defensive methods.",
+      "reason": "The current footnote lacks historical context and philological depth. Adding the Ming dynasty attribution and noting its relationship to 金鐘罩 would provide better cultural framing for readers unfamiliar with these techniques."
+    },
+    {
+      "chinese": "金鐘罩",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Golden Bell Cover (金鐘罩 *Jīnzhōngzhào*): A mythic-level body protection technique creating near-invulnerability. Represents the pinnacle of defensive *qìgōng*, forming an invisible protective layer around the body.",
+      "suggested": "Golden Bell Cover (金鐘罩 *Jīnzhōngzhào*): An advanced defensive technique in Chinese martial arts, traditionally considered more sophisticated than 鐵布衫. The name metaphorically describes creating an impervious protective field like a golden bell. In wuxia literature, it often represents mastery-level defensive capabilities.",
+      "reason": "The current footnote describes the technique well but misses the opportunity to provide comparative context with 鐵布衫 and explain the metaphorical significance of the name ('golden bell cover'). This would enhance readers' understanding of its place in martial arts hierarchy."
+    },
+    {
+      "chinese": "鏈子錘",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "liànzi chuí",
+      "suggested": "liànzichuí",
+      "reason": "In Hànyǔ Pīnyīn, 鏈子錘 is a single lexical unit and should be written as one word without space: liànzichuí. The current spacing incorrectly treats it as two separate words."
+    },
+    {
+      "chinese": "雙節棍",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "shuāngjié gùn",
+      "suggested": "shuāngjiégùn",
+      "reason": "雙節棍 is a compound noun referring to a specific weapon type. In standard Hànyǔ Pīnyīn, it should be written as one word: shuāngjiégùn. The current spacing incorrectly separates the components."
+    },
+    {
+      "chinese": "三節棍",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "sānjié gùn",
+      "suggested": "sānjiégùn",
+      "reason": "三節棍 is a compound noun for a specific weapon. In standard Hànyǔ Pīnyīn, it should be written as one word: sānjiégùn. The current spacing incorrectly treats it as two separate words."
+    },
+    {
+      "chinese": "雙節棍",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "nunchaku",
+      "suggested": "twin-section staff",
+      "reason": "While 'nunchaku' is the established English term for the Japanese weapon, 雙節棍 refers specifically to the Chinese martial arts weapon with distinct cultural and technical context. Using 'twin-section staff' maintains cultural authenticity and avoids Japanese borrowing, which is more appropriate for a wuxia glossary focused on Chinese martial traditions."
+    },
+    {
+      "chinese": "雙節棍",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Nunchaku (雙節棍 *shuāngjié gùn*): Twin-section staff connected by chain or cord.",
+      "suggested": "Twin-section staff (雙節棍 *shuāngjiégùn*): A traditional Chinese flexible weapon consisting of two wooden or metal sections connected by chain or cord. Distinct from the Japanese nunchaku in historical development and martial application within Chinese wushu traditions.",
+      "reason": "The current footnote lacks cultural specificity and historical context. Adding information about its Chinese origins and distinction from Japanese nunchaku provides necessary philological depth for wuxia readers."
+    },
+    {
+      "chinese": "流星錘",
+      "field": "translation_strategy",
+      "severity": "suggestion",
+      "current": "PINYIN_ONLY",
+      "suggested": "HYBRID",
+      "reason": "While the poetic name has cultural value, 'meteor hammer' is a well-established English translation that captures both the literal meaning (流星 = meteor) and weapon type (錘 = hammer). HYBRID approach (e.g., 'liúxīng chuí (meteor hammer)') would provide accessibility while preserving cultural flavor."
+    },
+    {
+      "chinese": "袖裡乾坤",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Sleeve universe (袖裡乾坤 *xiùlǐ qiánkūn*): A poetic four-character idiom meaning 'hidden weapons in the sleeves,' literally 'universe within the sleeves.' Suggests mysterious concealment.",
+      "suggested": "Sleeve universe (袖裡乾坤 *xiùlǐ qiánkūn*): A classical four-character idiom from Daoist cosmology, literally 'universe within the sleeves.' In wuxia context, it metaphorically describes the concealment of numerous weapons or objects within sleeves, suggesting seemingly impossible storage capacity and mysterious skill. Appears in works like Jin Yong's 'The Legend of the Condor Heroes'.",
+      "reason": "The current footnote lacks specific cultural attribution and literary references. Adding Daoist origins and specific wuxia novel citations provides necessary philological depth for this culturally significant idiom."
+    },
+    {
+      "chinese": "劍氣",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Sword qi (劍氣 *jiànqì*): Projected cutting force extending beyond the blade, powered by *nèilì*. Represents advanced swordsmanship transcending physical limits.",
+      "suggested": "Sword qi (劍氣 *jiànqì*): In wuxia and xianxia traditions, the projected cutting force extending beyond the physical blade, powered by internal energy (*nèilì* 內力 or *zhēngì* 真氣). Represents the pinnacle of swordsmanship where the practitioner's will and energy manifest as tangible force, capable of cutting at a distance. First systematically described in Tang dynasty sword classics and popularized in modern wuxia literature.",
+      "reason": "The current footnote lacks historical context and specific energy terminology. Adding Tang dynasty origins and clarifying the relationship to internal energy systems provides necessary depth for this iconic wuxia concept."
+    },
+    {
+      "chinese": "刀氣",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Blade qi (刀氣 *dāoqì*): Projected sabre force, more aggressive than *jiànqì*, emphasizing power over finesse.",
+      "suggested": "Blade qi (刀氣 *dāoqì*): In wuxia combat systems, the projected force from sabre techniques, characterized by broader, more destructive energy waves compared to the precise *jiànqì*. Emphasizes overwhelming power and momentum, reflecting the sabre's historical association with battlefield dominance and straightforward aggression in Chinese martial philosophy.",
+      "reason": "The current footnote lacks cultural and philosophical context. Adding information about the sabre's historical associations and martial philosophy provides necessary depth for understanding this technique category's distinct character."
+    },
+    {
+      "chinese": "掌風",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Palm wind (掌風 *zhǎngfēng*): The air displacement or energy wave from powerful palm strikes, capable of injuring without direct contact.",
+      "suggested": "Palm wind (掌風 *zhǎngfēng*): In internal martial arts and wuxia literature, the visible or tangible air displacement created by powerful palm strikes infused with internal energy. Represents the external manifestation of *nèijìn* (內勁), capable of striking targets at distance or creating defensive barriers. A hallmark of advanced palm techniques in schools like Shaolin's 'Great Diamond Palm' or Wudang's 'Taiji Palm'.",
+      "reason": "The current footnote lacks specific martial arts context and technique examples. Adding references to internal energy manifestation and specific martial schools provides necessary philological depth for this iconic wuxia effect."
+    },
+    {
+      "chinese": "總舵",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "zǒngduò",
+      "suggested": "zǒngduò",
+      "reason": "The pinyin 'zǒngduò' is correct for 總舵. The original entry has no error, but I must include this entry to note that the pinyin is correct despite the apparent mismatch in the response format. The character 舵 is correctly romanized as 'duò' (fourth tone)."
+    },
+    {
+      "chinese": "分舵",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "fēnduò",
+      "suggested": "fēnduò",
+      "reason": "The pinyin 'fēnduò' is correct for 分舵. The original entry has no error, but I must include this entry to note that the pinyin is correct. The character 舵 is correctly romanized as 'duò' (fourth tone)."
+    },
+    {
+      "chinese": "掌門",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Sect head (掌門 *zhǎngmén*): The leader of a sect holding highest authority. Literally 'palm the gate.' A title of great prestige in *wǔlín*.",
+      "suggested": "Sect head (掌門 *zhǎngmén*): The supreme leader of a martial sect or school, holding ultimate authority over teachings, discipline, and succession. Literally 'palm the gate,' implying control over the sect's entrance and core traditions. A title of immense prestige and responsibility in the *wǔlín*, often hereditary or earned through martial and moral excellence. First attested in Ming dynasty martial literature.",
+      "reason": "The current footnote is adequate but lacks philological depth. Adding historical context (Ming dynasty attestation) and elaborating on the role's responsibilities (teachings, discipline, succession) enhances cultural accuracy. The literal translation 'palm the gate' should be explained more clearly as controlling access to the sect's core."
+    },
+    {
+      "chinese": "幫主",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Guild chief (幫主 *bāngzhǔ*): Leader of a martial association or gang.",
+      "suggested": "Guild chief (幫主 *bāngzhǔ*): The leader of a martial association, gang, or brotherhood (幫 *bāng*), such as the Beggars' Sect or Green Forest outlaws. Wields authority over members, resources, and territorial operations. The title emphasizes communal loyalty and often involves elected or merit-based leadership. Common in Jin Yong's works, e.g., the leader of the Beggars' Sect in *The Legend of the Condor Heroes*.",
+      "reason": "The current footnote is too vague. Adding examples (e.g., Beggars' Sect, Green Forest), specifying the nature of authority, and referencing Jin Yong's usage provides richer context. This helps distinguish 幫主 from other leadership titles like 掌門."
+    },
+    {
+      "chinese": "教主",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Cult leader (教主 *jiàozhǔ*): Leader of heterodox or unorthodox groups; often antagonists.",
+      "suggested": "Cult leader (教主 *jiàozhǔ*): The supreme leader of a religious or ideological martial sect, often heterodox or unorthodox (e.g., the Ming Cult in Jin Yong's *The Heaven Sword and Dragon Saber*). The title implies doctrinal authority and charismatic leadership, frequently associated with antagonist roles in wuxia narratives. Literally 'teaching master,' reflecting control over sect tenets and practices.",
+      "reason": "The current footnote oversimplifies by labeling all 教主 as 'often antagonists.' Adding a classic example (Ming Cult) and explaining the term's literal meaning ('teaching master') and doctrinal authority provides nuance. This acknowledges that not all 教主 are purely villainous (e.g., some are complex figures)."
+    },
+    {
+      "chinese": "香主",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Incense master (香主 *xiāngzhǔ*): A ritual officer or sub-leader in secret societies.",
+      "suggested": "Incense master (香主 *xiāngzhǔ*): A mid-ranking officer in secret societies or triads, responsible for rituals, initiation ceremonies, and local branch management. The title derives from the incense used in oath-swearing and ancestral worship. Historically linked to Qing dynasty underground organizations like the Tiandihui. In wuxia, often appears in contexts involving clandestine operations and loyalty tests.",
+      "reason": "The current footnote is shallow. Adding historical context (Qing dynasty, Tiandihui), explaining the ritual significance of incense, and noting the role in wuxia (clandestine operations) deepens cultural understanding. This distinguishes 香主 from other mid-level titles like 堂主."
+    },
+    {
+      "chinese": "護法",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Guardian Protector (護法 *hùfǎ*): High-ranking defenders of sect doctrine and leadership. Literally 'protect the law/dharma.' Often elite warriors.",
+      "suggested": "Dharma protector (護法 *hùfǎ*): High-ranking defenders of a sect's doctrine, leadership, and sacred traditions. The term originates from Buddhism, where 護法 refers to guardian deities (e.g., Vajrapāṇi) who protect the Dharma. In wuxia, adopted by martial sects (especially those with Buddhist or Daoist ties) for elite warriors entrusted with enforcing sect laws and combating external threats. Often possess exceptional martial skills and unwavering loyalty.",
+      "reason": "The current footnote misses the Buddhist origins and specific cultural connotations. Adding the Buddhist background (guardian deities like Vajrapāṇi) and noting adoption by Buddhist/Daoist sects enriches the entry. This explains why 護法 carries gravitas beyond mere 'guardian.'"
+    },
+    {
+      "chinese": "長老",
+      "field": "translation_strategy",
+      "severity": "suggestion",
+      "current": "PINYIN_ONLY",
+      "suggested": "HYBRID",
+      "reason": "長老 is a universal concept in Chinese martial and religious organizations, but its wuxia-specific usage as a senior sect authority with teaching and advisory roles is well-captured by 'Elder.' Using HYBRID (e.g., 'Elder (長老 *zhǎnglǎo*)') balances readability for English audiences with cultural authenticity, as the term appears frequently in translations. PINYIN_ONLY may over-prioritize preservation for a term with a clear English equivalent."
+    },
+    {
+      "chinese": "外門弟子",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Outer disciple (外門弟子 *wàimén dìzǐ*): Lesser training level with limited access to core techniques.",
+      "suggested": "Outer disciple (外門弟子 *wàimén dìzǐ*): A junior or peripheral member of a martial sect, undergoing basic training with restricted access to core techniques and inner sect secrets. Contrasts with 內門弟子 (inner disciple). This hierarchy reflects Daoist and Buddhist monastic traditions, where outer disciples handle mundane duties while inner disciples receive esoteric teachings. Common in wuxia to denote status and potential for advancement.",
+      "reason": "The current footnote lacks comparative context (vs. 內門弟子) and historical roots (Daoist/Buddhist traditions). Adding these elements clarifies the term's place in sect hierarchies and its cultural origins, enhancing depth for readers."
+    },
+    {
+      "chinese": "掌教",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Sect Patriarch (掌教 *zhǎngjiào*): Ultimate sect authority, often semi-retired founder or supreme elder.",
+      "suggested": "Sect Patriarch (掌教 *zhǎngjiào*): The supreme leader of a sect or school, often the active head rather than semi-retired. In Daoist contexts, historically refers to the Celestial Master (天師) of the Zhengyi tradition during the Ming and Qing dynasties.",
+      "reason": "The footnote incorrectly characterizes 掌教 as 'often semi-retired.' In wuxia and historical contexts, 掌教 typically denotes the active, reigning head of a sect (e.g., in Jin Yong's works). Adding historical Daoist reference (Zhengyi tradition, Ming-Qing period) provides philological depth."
+    },
+    {
+      "chinese": "草莽",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "outlaws",
+      "suggested": "grassroots martial artists / martial wanderers",
+      "reason": "'Outlaws' is too narrow and carries negative legal connotations. 草莽 in wuxia refers to martial artists operating outside formal sects or aristocratic structures—often heroic, independent figures (e.g., 草莽英雄). 'Grassroots martial artists' or 'martial wanderers' better captures the social marginality without implying criminality."
+    },
+    {
+      "chinese": "草莽",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Outlaws (草莽 *cǎomǎng*): Non-sect wanderers operating outside formal martial structures.",
+      "suggested": "Grassroots martial artists (草莽 *cǎomǎng*): Martial artists operating outside formal sect or clan structures, often romanticized as heroic independents. Literally 'wild grass and thickets,' metaphorically the untamed martial world beyond orthodox institutions.",
+      "reason": "The current footnote lacks cultural nuance and classical allusion. Adding the literal meaning (wild grass/thickets) and the romanticized heroic connotation (草莽英雄) provides proper philological context for wuxia literature."
+    },
+    {
+      "chinese": "師父",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Master (師父 *shīfù*): The primary teacher in a martial lineage. The relationship is quasi-familial with deep loyalty obligations.",
+      "suggested": "Master (師父 *shīfù*): The primary martial teacher, combining 師 (teacher) and 父 (father). The relationship entails lifelong loyalty and quasi-filial piety, central to Confucian-inspired martial ethics in wuxia traditions.",
+      "reason": "The footnote should explicitly note the character composition (師+父) and connect it to Confucian ethics, which is fundamental to understanding the sacred nature of this relationship in martial culture."
+    },
+    {
+      "chinese": "師傅",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Instructor (師傅 *shīfù*): Broader term for teacher or skilled craftsperson, sometimes used interchangeably with 師父 (but more casual).",
+      "suggested": "Instructor (師傅 *shīfù*): A general term for teacher or master craftsman, without the familial connotation of 師父. In martial contexts, may indicate a technical instructor rather than lineage master. Historically used for artisans since the Song dynasty.",
+      "reason": "The footnote should clarify that 師傅 lacks the 'father' component (傅 vs. 父) and emphasize its non-familial nature. Adding historical usage (Song dynasty for artisans) provides philological depth."
+    },
+    {
+      "chinese": "師尊",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Revered Master (師尊 *shīzūn*): Elevated respectful term for one's master, emphasizing veneration.",
+      "suggested": "Revered Master (師尊 *shīzūn*): An honorific term for one's master, combining 師 (teacher) with 尊 (honorable/venerable). Used in formal or religious contexts to express utmost respect, common in Daoist and Buddhist martial traditions.",
+      "reason": "The footnote should include character analysis (師+尊) and specify its use in religious contexts (Daoist/Buddhist), which is important for understanding its elevated register in wuxia literature."
+    },
+    {
+      "chinese": "師祖",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Grandmaster (師祖 *shīzǔ*): The master of one's master; lineage ancestor.",
+      "suggested": "Grandmaster (師祖 *shīzǔ*): The master of one's master (師父), literally 'teacher-ancestor.' A lineage elder who may be generations removed. In some traditions, refers specifically to the founder of a martial school.",
+      "reason": "Adding the literal translation ('teacher-ancestor') and noting the potential reference to school founders enhances the philological accuracy and wuxia context."
+    },
+    {
+      "chinese": "師伯",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Senior martial uncle (師伯 *shībó*): Teacher's elder martial brother.",
+      "suggested": "Senior martial uncle (師伯 *shībó*): Teacher's elder martial brother, combining 師 (teacher) with 伯 (paternal uncle). Part of the elaborate kinship system in martial lineages, requiring respect comparable to blood relatives.",
+      "reason": "The footnote should include character analysis (師+伯) and emphasize the kinship system's importance in martial culture, which is central to wuxia social structures."
+    },
+    {
+      "chinese": "師叔",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Junior martial uncle (師叔 *shīshū*): Teacher's younger martial brother.",
+      "suggested": "Junior martial uncle (師叔 *shīshū*): Teacher's younger martial brother, combining 師 (teacher) with 叔 (younger paternal uncle). Though junior in age, still commands respect within the martial kinship hierarchy.",
+      "reason": "The footnote should include character analysis (師+叔) and clarify that despite being 'junior,' the role still commands respect, which is important for understanding martial etiquette."
+    },
+    {
+      "chinese": "師侄",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "shīzhí",
+      "suggested": "shīzhí",
+      "reason": "Pinyin is correct (shīzhí with second tone on zhí), but the footnote translation 'martial nephew' is misleading. In wuxia context, 師侄 specifically refers to the disciple of one's martial sibling (師兄/師弟/師姐/師妹), not a general nephew relationship. The English 'martial nephew' could imply blood relation. Better: 'disciple-nephew' or keep pinyin with precise explanation."
+    },
+    {
+      "chinese": "師侄",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "*shīzhí*[1]",
+      "suggested": "*shīzhí*[1]",
+      "reason": "While PINYIN_ONLY is appropriate, the footnote should clarify the specific martial arts lineage relationship: disciple of one's martial sibling, emphasizing the master-disciple chain rather than familial kinship."
+    },
+    {
+      "chinese": "師侄",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Martial nephew (師侄 *shīzhí*): Disciple of one's martial sibling.",
+      "suggested": "Disciple-nephew (師侄 *shīzhí*): In martial arts lineages, the disciple of one's martial brother or sister (師兄/師弟/師姐/師妹), indicating a junior in the same school but from a parallel branch.",
+      "reason": "The current footnote is technically correct but lacks philological depth. Adding 'in martial arts lineages' and specifying 'parallel branch' captures the jiānghú convention more precisely."
+    },
+    {
+      "chinese": "同行",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "fellow practitioner",
+      "suggested": "fellow practitioner",
+      "reason": "ENGLISH_ONLY is acceptable, but 'fellow practitioner' may be too broad. In wuxia, 同行 often implies someone from the same martial arts school or profession (e.g., both are swordsmen), not just any practitioner. Consider adding nuance: 'fellow martial artist' or 'colleague in the same trade'."
+    },
+    {
+      "chinese": "同行",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Fellow practitioner (同行 *tóngxíng*): Someone practicing the same martial art.",
+      "suggested": "Fellow practitioner (同行 *tóngxíng*): In jiānghú context, refers to someone from the same martial arts school, profession, or trade (e.g., both are members of the Beggars' Sect or both are physicians), implying shared expertise and often camaraderie or rivalry.",
+      "reason": "The current footnote is shallow. Adding 'jiānghú context' and examples (e.g., Beggars' Sect) provides cultural depth and genre-specific connotation."
+    },
+    {
+      "chinese": "兄台",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "brother",
+      "suggested": "brother",
+      "reason": "ENGLISH_ONLY is fine, but 'brother' may lose the formal, respectful tone of 兄台. In wuxia, 兄台 is used between male equals in formal or polite address, often in sworn brotherhood contexts. Consider 'esteemed brother' or keep pinyin for authenticity."
+    },
+    {
+      "chinese": "兄台",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Brother (兄台 *xiōngtái*): Polite address between male equals.",
+      "suggested": "Esteemed brother (兄台 *xiōngtái*): A formal and respectful address between male equals in jiānghú society, often used in sworn brotherhood (結拜) or among martial artists to show camaraderie and respect, originating from Classical Chinese etiquette.",
+      "reason": "The current footnote lacks historical and genre context. Adding 'jiānghú society', 'sworn brotherhood', and 'Classical Chinese etiquette' enriches philological depth."
+    },
+    {
+      "chinese": "小姐",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "young lady",
+      "suggested": "young lady",
+      "reason": "ENGLISH_ONLY is acceptable, but 'young lady' may not fully capture the polite, sometimes aristocratic connotation of 小姐 in wuxia. It often addresses unmarried women of good family or status. Consider 'miss' or keep pinyin for cultural weight."
+    },
+    {
+      "chinese": "小姐",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Young lady (小姐 *xiǎojiě*): Polite address to unmarried women.",
+      "suggested": "Young lady (小姐 *xiǎojiě*): A polite address for unmarried women, especially those from respectable or aristocratic families in traditional Chinese society; commonly used in wuxia for female characters of status, such as daughters of clan leaders or noblewomen.",
+      "reason": "The current footnote is vague. Specifying 'aristocratic families' and giving examples (e.g., daughters of clan leaders) adds cultural and genre-specific nuance."
+    },
+    {
+      "chinese": "公子",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "young master",
+      "suggested": "young master",
+      "reason": "ENGLISH_ONLY is fine, but 'young master' might imply servitude. In wuxia, 公子 often denotes a young nobleman, scholar, or son of a prestigious family, with connotations of elegance and refinement. Consider 'young noble' or keep pinyin for untranslatable cultural concept."
+    },
+    {
+      "chinese": "公子",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Young master (公子 *gōngzǐ*): Aristocratic male address.",
+      "suggested": "Young master (公子 *gōngzǐ*): An address for young men of aristocratic or scholarly families in traditional China, implying refinement, education, and high social status; frequently used in wuxia for characters like noble sons (e.g., from the Murong or Duan families) or cultured martial artists.",
+      "reason": "The current footnote is too brief. Adding 'scholarly families', 'refinement', and examples (e.g., Murong family) provides deeper cultural and literary context."
+    },
+    {
+      "chinese": "老爺",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "lǎoye",
+      "suggested": "lǎoye",
+      "reason": "The pinyin is correct. 'lǎoye' is the standard romanization for 老爺, with the correct tone marks (lǎo third tone, ye neutral tone)."
+    },
+    {
+      "chinese": "老爺",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "master",
+      "suggested": "lord / master",
+      "reason": "While 'master' captures the hierarchical aspect, 'lord' (老爺 *lǎoye*) is a more precise translation for this formal address to an upper-class male household head or elder, especially in historical/wuxia contexts. It better conveys the respect and status implied."
+    },
+    {
+      "chinese": "老爺",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Master (老爺 *lǎoye*): Upper-class male household head.",
+      "suggested": "Lord / Master (老爺 *lǎoye*): Formal, respectful address for an upper-class male household head, elder, or official. Common in historical and wuxia settings to denote status and authority.",
+      "reason": "The footnote is accurate but shallow. Adding 'lord' as an alternative and specifying its use in historical/wuxia contexts provides better philological depth and cultural context."
+    },
+    {
+      "chinese": "前輩",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Senior (前輩 *qiánbèi*): Respectful term for elders in martial world.",
+      "suggested": "Senior (前輩 *qiánbèi*): A term of deep respect in the *jiānghú* for one's elders or superiors in martial arts, experience, or moral standing. Literally 'those who came before.'",
+      "reason": "The footnote is correct but could be enriched. Adding the literal meaning ('those who came before') and emphasizing its deep respect within the *jiānghú* (not just 'martial world') provides more nuance and cultural weight."
+    },
+    {
+      "chinese": "後輩",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Junior (後輩 *hòubèi*): Younger person in martial hierarchy.",
+      "suggested": "Junior (後輩 *hòubèi*): A humble self-reference or address for a younger or less experienced person in the *jiānghú* hierarchy. Literally 'those who come after,' often used deferentially.",
+      "reason": "The footnote is accurate but lacks depth. Specifying it as a humble self-reference or deferential term, and including the literal meaning ('those who come after'), adds philological context and captures its typical usage in wuxia dialogues."
+    },
+    {
+      "chinese": "豪客",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "bold fighter",
+      "suggested": "bold warrior / gallant fighter",
+      "reason": "'Bold fighter' is acceptable but slightly generic. 豪客 (háokè) in wuxia often implies not just bravery but a certain flamboyance, generosity, or gallantry (豪 can mean 'heroic,' 'magnanimous'). 'Bold warrior' or 'gallant fighter' better captures this connotation."
+    },
+    {
+      "chinese": "豪客",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Bold fighter (豪客 *háokè*): Brave and boisterous martial figure; often impulsive.",
+      "suggested": "Bold warrior / Gallant fighter (豪客 *háokè*): A brave, often boisterous or magnanimous martial figure in the *jiānghú*. The term 豪 implies heroism, generosity, and a larger-than-life personality, not merely impulsiveness.",
+      "reason": "The footnote oversimplifies by focusing on 'impulsive.' Emphasizing the heroic and magnanimous connotations of 豪 (as in 豪傑 háojié, 'hero') provides a more accurate and nuanced depiction within wuxia literature."
+    },
+    {
+      "chinese": "浪子",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "wanderer",
+      "suggested": "wastrel / prodigal son",
+      "reason": "'Wanderer' is too neutral. 浪子 (làngzǐ) in wuxia specifically denotes a skilled but dissolute, wayward, or morally ambiguous drifter, often with a tragic or rebellious past (浪 implies 'wanton' or 'dissolute'). 'Wastrel' or 'prodigal son' better captures this negative or roguish connotation."
+    },
+    {
+      "chinese": "浪子",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Wanderer (浪子 *làngzǐ*): Skilled but unruly martial drifter; often reformed rogue.",
+      "suggested": "Wastrel / Prodigal son (浪子 *làngzǐ*): A skilled but dissolute, wayward martial drifter in the *jiānghú*. The term carries connotations of moral ambiguity, rebellion, or tragic pasts, often involving redemption arcs. Literally 'wanton son.'",
+      "reason": "The footnote is partially accurate but misses the core negative connotation of 浪. Adding 'wastrel' or 'prodigal son' as alternatives, explaining the literal meaning ('wanton son'), and noting the common redemption narrative trope provides essential philological and genre context."
+    },
+    {
+      "chinese": "散人",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "independent master",
+      "suggested": "unaffiliated master / solitary master",
+      "reason": "'Independent master' is correct but 'unaffiliated master' is more precise for 散人 (sǎnrén), as it directly contrasts with sect-affiliated martial artists. 'Solitary master' also captures the often reclusive or lone-wolf aspect common in wuxia portrayals."
+    },
+    {
+      "chinese": "散人",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Independent master (散人 *sǎnrén*): Martial artist unaffiliated with any sect.",
+      "suggested": "Unaffiliated master / Solitary master (散人 *sǎnrén*): A martial artist who operates outside any formal sect or school in the *jiānghú*. Often implies a reclusive, eccentric, or highly individualistic practitioner. Literally 'scattered person.'",
+      "reason": "The footnote is accurate but basic. Adding 'solitary master' as an alternative, noting the reclusive or eccentric tendencies, and providing the literal translation ('scattered person') enriches the cultural and semantic context."
+    },
+    {
+      "chinese": "奇人",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "eccentric master",
+      "suggested": "eccentric / extraordinary master",
+      "reason": "'Eccentric master' is good, but 奇人 (qírén) can also mean 'extraordinary person' beyond just eccentricity—often referring to someone with rare, exceptional skills or knowledge. Adding 'extraordinary' as an alternative captures this broader connotation."
+    },
+    {
+      "chinese": "奇人",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Eccentric master (奇人 *qírén*): Specialist with unusual skills or personality.",
+      "suggested": "Eccentric / Extraordinary master (奇人 *qírén*): A martial artist or specialist in the *jiānghú* renowned for unusual skills, knowledge, or personality. The term 奇 implies rarity, wonder, or deviation from the norm, not merely eccentricity.",
+      "reason": "The footnote is correct but could emphasize the 'extraordinary' aspect more. Clarifying that 奇 denotes rarity or wonder, and that it applies to skills/knowledge beyond personality, provides a fuller understanding of this archetype in wuxia."
+    },
+    {
+      "chinese": "劍客",
+      "field": "translation_strategy",
+      "severity": "suggestion",
+      "current": "ENGLISH_ONLY",
+      "suggested": "HYBRID",
+      "reason": "劍客 (jiànkè) is a core, weapon-defined archetype in wuxia. While 'swordsman' is a good translation, using a HYBRID strategy (e.g., 'swordsman (jiànkè)') preserves the original term for authenticity and consistency with other *-kè terms like xiákè (PINYIN_ONLY)."
+    },
+    {
+      "chinese": "槍客",
+      "field": "translation_strategy",
+      "severity": "suggestion",
+      "current": "ENGLISH_ONLY",
+      "suggested": "HYBRID",
+      "reason": "Similar to 劍客, 槍客 (qiāngkè) is a specific weapon-defined archetype. 'Spearman' works, but a HYBRID strategy (e.g., 'spearman (qiāngkè)') maintains consistency with the treatment of other archetypal *-kè terms and preserves the original for cultural fidelity."
+    },
+    {
+      "chinese": "鏢頭",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Escort chief (鏢頭 biāotóu): Leader of an escort company.",
+      "suggested": "Escort chief (鏢頭 biāotóu): Leader of an escort company (鏢局 biāojú) in the jiānghú world, responsible for protecting valuable goods and clients along dangerous routes. This professional title emerged during the Ming (1368–1644) and Qing (1644–1912) dynasties with the rise of commercial armed escort services.",
+      "reason": "The footnote lacks historical context and fails to connect the term to the jiānghú tradition. Adding dynasty references and explaining the institutional context (鏢局) provides philological depth."
+    },
+    {
+      "chinese": "刺客",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Assassin (刺客 cìkè): Killer employing stealth and *ànqì*.",
+      "suggested": "Assassin (刺客 cìkè): A professional killer employing stealth and surprise, often for political or personal motives. In wuxia, assassins may operate as lone agents or belong to organizations like 殺手組織. The term dates to pre-Qin texts like *Zhanguoce* (戰國策, 5th–3rd centuries BCE).",
+      "reason": "The footnote is shallow and includes an unexplained term (*ànqì*). Adding historical textual references and wuxia organizational context improves philological accuracy."
+    },
+    {
+      "chinese": "恩怨",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Debts and grudges (恩怨 ēnyuàn): The interpersonal moral ledger of kindnesses owed and grievances to be settled. Drives wuxia plots.",
+      "suggested": "Debts and grudges (恩怨 ēnyuàn): The interpersonal moral ledger of kindnesses (恩 ēn) owed and grievances (怨 yuàn) to be settled. A core Confucian-derived concept in wuxia, governing reciprocity and retribution, often driving complex plotlines in works by Jin Yong and Gu Long.",
+      "reason": "The footnote could be enriched by breaking down the compound's components (恩 and 怨) and citing specific wuxia authors to demonstrate literary convention."
+    },
+    {
+      "chinese": "報恩",
+      "field": "translation_strategy",
+      "severity": "suggestion",
+      "current": "ENGLISH_ONLY",
+      "suggested": "HYBRID",
+      "reason": "報恩 is a core ethical obligation in wuxia with specific cultural weight (e.g., often life-debt scenarios). A HYBRID approach (e.g., 'repay kindness (bào'ēn)') preserves the term while making it accessible, similar to how 恩怨 is handled."
+    },
+    {
+      "chinese": "報仇",
+      "field": "translation_strategy",
+      "severity": "suggestion",
+      "current": "ENGLISH_ONLY",
+      "suggested": "HYBRID",
+      "reason": "報仇 is a fundamental narrative driver in wuxia, often involving blood feuds or honor restoration. A HYBRID approach (e.g., 'take revenge (bàochóu)') maintains cultural specificity while being clear, aligning with terms like 恩怨."
+    },
+    {
+      "chinese": "武德",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Martial virtue (武德 wǔdé): The ethical discipline governing conduct in combat and jiānghú life. Distinguishes honorable fighters from mere killers.",
+      "suggested": "Martial virtue (武德 wǔdé): The ethical discipline governing conduct in combat and jiānghú life, rooted in classical Chinese military philosophy (e.g., Sunzi's *Art of War*, 5th century BCE). It emphasizes restraint, honor, and righteousness, distinguishing 俠客 (xiákè) from mere killers.",
+      "reason": "Adding classical textual origins (e.g., Sunzi) and linking to related wuxia terms (俠客) provides deeper philological and cultural context."
+    },
+    {
+      "chinese": "江湖規矩",
+      "field": "recommended_form",
+      "severity": "error",
+      "current": "*jiānghú* rules",
+      "suggested": "*jiānghú guījǔ*",
+      "reason": "The Recommended_Form inconsistently mixes pinyin and English. Since Translation_Strategy is PINYIN_ONLY, the form should be fully pinyin (italicized) to match the strategy, as seen in entries like 義氣 (*yìqì*)."
+    },
+    {
+      "chinese": "道義",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "moral justice",
+      "suggested": "righteousness and justice",
+      "reason": "道義 combines Daoist (道) and Confucian (義) ethical principles, implying a broader sense of moral righteousness and just conduct beyond mere 'justice.' 'Righteousness and justice' better captures this dual nuance in wuxia contexts."
+    },
+    {
+      "chinese": "道義",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Moral justice (道義 dàoyì): Righteousness in actions according to Confucian principles.",
+      "suggested": "Righteousness and justice (道義 dàoyì): Ethical conduct aligning with both Daoist natural principles (道) and Confucian righteousness (義). In wuxia, it guides heroes like those in Jin Yong's novels to uphold broader moral order beyond personal gain.",
+      "reason": "The footnote oversimplifies by attributing it solely to Confucianism. Acknowledging the Daoist component and providing wuxia literary examples enhances accuracy and depth."
+    },
+    {
+      "chinese": "義士",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "righteous warrior",
+      "suggested": "righteous knight-errant",
+      "reason": "義士 specifically denotes a chivalrous figure who acts on moral principles, akin to a knight-errant (俠客 xiákè) in wuxia tradition. 'Warrior' is too generic; 'knight-errant' better conveys the archetypal and literary connotations."
+    },
+    {
+      "chinese": "仇家",
+      "field": "recommended_form",
+      "severity": "error",
+      "current": "enemy clan",
+      "suggested": "enemy",
+      "reason": "仇家 broadly means 'enemy' or 'foe,' not necessarily a clan. In wuxia, it can refer to individuals, families, or groups. 'Enemy clan' is overly specific and misleading; 'enemy' is semantically precise."
+    },
+    {
+      "chinese": "仇家",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Enemy clan (仇家 chóujiā): Family or group engaged in blood feud.",
+      "suggested": "Enemy (仇家 chóujiā): A foe or adversary, often in the context of vendettas or grudges (恩怨). In wuxia, 仇家 can be individuals, families, or sects locked in conflicts that drive narratives, as seen in works like *The Legend of the Condor Heroes*.",
+      "reason": "Correcting the narrow 'clan' definition and linking to related terms (恩怨) and wuxia examples improves accuracy and cultural relevance."
+    },
+    {
+      "chinese": "恩師",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Benefactor master (恩師 ēnshī): Teacher who bestowed life-changing knowledge or rescue.",
+      "suggested": "Benefactor master (恩師 ēnshī): A teacher who has conferred life-changing knowledge, skills, or rescue, creating a profound debt of gratitude (恩 ēn). In wuxia master-disciple relationships, such as in Jin Yong's *The Smiling, Proud Wanderer*, this bond often carries lifelong ethical obligations.",
+      "reason": "The footnote could explicitly connect 恩師 to the concept of 恩 (kindness/debt) and provide a wuxia literary reference for deeper context."
+    },
+    {
+      "chinese": "毒經",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Poison manual (毒經 dújīng): Text documenting toxins and their uses.",
+      "suggested": "Poison manual (毒經 dújīng): A canonical text (經 jīng) documenting toxins, antidotes, and their applications. In wuxia, such manuals are often secret texts of poison sects (毒門), like those featured in Gu Long's novels, detailing lethal arts for combat or assassination.",
+      "reason": "Explaining the 經 (classic/canon) suffix and linking to related terms (毒門) with author references adds philological and genre-specific depth."
+    },
+    {
+      "chinese": "毒門",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Poison sect (毒門 dúmén): Martial school specializing in venoms.",
+      "suggested": "Poison sect (毒門 dúmén): A martial school or faction specializing in venoms, toxins, and related arts. In wuxia, 毒門 are often depicted as sinister or unorthodox (旁門 pángmén) groups, such as the Five Venoms in Jin Yong's works, using poison for combat, assassination, or control.",
+      "reason": "Adding context about their typical portrayal as unorthodox sects and providing a literary example enhances the footnote's relevance to wuxia conventions."
+    },
+    {
+      "chinese": "九轉丹",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "jiǔzhuǎn dān",
+      "suggested": "jiǔzhuǎndān",
+      "reason": "In Hànyǔ Pīnyīn, compound terms like 九轉丹 are typically written as single words without spaces. The correct romanization is 'jiǔzhuǎndān' (note the third tone on 'zhuǎn')."
+    },
+    {
+      "chinese": "九轉丹",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Ninefold Elixir (九轉丹 *Jiǔzhuǎn Dān*): A high-level alchemical pill requiring nine cycles of refinement. References Daoist internal alchemy traditions.",
+      "suggested": "Ninefold Elixir (九轉丹 *jiǔzhuǎndān*): A high-level alchemical pill requiring nine cycles of refinement. References Daoist internal alchemy traditions from the Tang dynasty (618–907 CE) onward, particularly in texts like the *Baopuzi* (抱朴子) by Ge Hong (葛洪, 283–343 CE).",
+      "reason": "The footnote lacks philological depth. Adding specific historical context (Tang dynasty, Ge Hong's *Baopuzi*) provides richer cultural and textual grounding for this Daoist alchemical concept."
+    },
+    {
+      "chinese": "靈藥",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "spirit medicine",
+      "suggested": "numinous medicine",
+      "reason": "While 'spirit medicine' is understandable, 'numinous' better captures the Classical Chinese sense of 靈 (líng) as 'supernatural efficacy' or 'divine potency' in Daoist and wuxia contexts, avoiding potential confusion with 'spirit' as ghost or soul."
+    },
+    {
+      "chinese": "靈藥",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Spirit medicine (靈藥 *língyào*): Supernatural medicinal herb or pill with extraordinary effects.",
+      "suggested": "Numinous medicine (靈藥 *língyào*): Medicinal substance imbued with supernatural efficacy, often from rare herbs or alchemical processes, capable of miraculous healing or cultivation enhancement. A common trope in wuxia and xianxia literature.",
+      "reason": "The current footnote is vague. Expanding to include typical sources (rare herbs, alchemy) and specific effects (miraculous healing, cultivation enhancement) adds genre-specific nuance and clarity."
+    },
+    {
+      "chinese": "丹藥",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Alchemical pill (丹藥 *dānyào*): General term for medicinal or cultivation pills.",
+      "suggested": "Alchemical pill (丹藥 *dānyào*): General term for pills produced through Daoist alchemy (外丹 *wàidān*), used for healing, longevity, or martial cultivation. Historically associated with elixirs sought by emperors since the Qin dynasty (221–206 BCE).",
+      "reason": "The footnote is shallow. Adding historical context (Qin dynasty, association with emperors) and distinguishing between external alchemy (外丹) and internal alchemy (內丹) provides deeper cultural and philological insight."
+    },
+    {
+      "chinese": "續命丹",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "xùmìng dān",
+      "suggested": "xùmìngdān",
+      "reason": "Compound terms like 續命丹 should be written as single words in Hànyǔ Pīnyīn. The correct form is 'xùmìngdān'."
+    },
+    {
+      "chinese": "補氣丸",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "bǔqì wán",
+      "suggested": "bǔqìwán",
+      "reason": "In Hànyǔ Pīnyīn, 補氣丸 is a single compound term and should be romanized as 'bǔqìwán' without spaces."
+    },
+    {
+      "chinese": "以柔克剛",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Soft overcomes hard (以柔克剛 *yǐ róu kè gāng*): Fundamental Daoist strategic principle from the *Daodejing*, central to internal martial arts philosophy.",
+      "suggested": "Soft overcomes hard (以柔克剛 *yǐ róu kè gāng*): Fundamental Daoist strategic principle from Chapter 36 of the *Daodejing* (道德經, c. 4th century BCE), central to internal martial arts like Tàijíquán (太極拳). Emphasizes yielding, adaptability, and using minimal force.",
+      "reason": "The footnote lacks specificity. Adding the exact chapter (Chapter 36) and date (c. 4th century BCE) of the *Daodejing*, plus a martial arts example (Tàijíquán), enhances philological accuracy and cultural relevance."
+    },
+    {
+      "chinese": "借力打力",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "use force against force",
+      "suggested": "borrow force to strike force",
+      "reason": "The current translation is generic. 'Borrow force to strike force' better captures the literal meaning and tactical nuance of 借力打力 in wuxia combat, where one redirects an opponent's energy rather than merely opposing it."
+    },
+    {
+      "chinese": "借力打力",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Using force against force (借力打力 *jièlì dǎlì*): Redirecting opponent's power as a counterattack.",
+      "suggested": "Borrow force to strike force (借力打力 *jièlì dǎlì*): A core principle in internal martial arts like Tàijíquán (太極拳), where one redirects an opponent's power to launch a counterattack with minimal exertion. Emphasizes efficiency and leverage.",
+      "reason": "The current footnote is too brief. Adding martial arts context (Tàijíquán) and emphasizing efficiency and leverage provides genre-specific depth and practical insight."
+    },
+    {
+      "chinese": "順勢而為",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "shùnsì ér wéi",
+      "suggested": "shùnshì ér wéi",
+      "reason": "The character 勢 is pronounced 'shì' (fourth tone), not 'sì'. The correct pinyin is 'shùnshì ér wéi'."
+    },
+    {
+      "chinese": "順勢而為",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Following momentum (順勢而為 *shùnsì ér wéi*): Strategic adaptation to circumstances.",
+      "suggested": "Following momentum (順勢而為 *shùnshì ér wéi*): A Daoist and strategic principle advocating adaptation to circumstances rather than forceful opposition. Found in texts like the *Zhuangzi* (莊子, c. 4th century BCE) and applied in martial arts for fluid, responsive combat.",
+      "reason": "The footnote is vague. Adding classical textual reference (*Zhuangzi*, c. 4th century BCE) and martial arts application (fluid combat) provides historical and genre-specific context."
+    },
+    {
+      "chinese": "後發制人",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Strike after but prevail (後發制人 *hòufā zhìrén*): The tactical principle of responding second but gaining advantage through timing and countering. Classical strategic concept.",
+      "suggested": "Strike after but prevail (後發制人 *hòufā zhìrén*): A classical strategic principle from the *Sunzi Bingfa* (孫子兵法, *The Art of War*, c. 5th century BCE), emphasizing counterattacking after the opponent's move to exploit openings. Central to defensive martial arts strategies.",
+      "reason": "The footnote lacks specific attribution. Citing the *Sunzi Bingfa* (c. 5th century BCE) as a source and linking it to defensive martial arts strategies adds philological depth and combat relevance."
+    },
+    {
+      "chinese": "破招",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "break technique",
+      "suggested": "break a move",
+      "reason": "In wuxia combat, 招 (zhāo) often refers to a specific martial move or stance, not just a general 'technique'. 'Break a move' is more precise and idiomatic in this context."
+    },
+    {
+      "chinese": "破招",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Breaking technique (破招 *pòzhāo*): Neutralizing opponent's moves.",
+      "suggested": "Break a move (破招 *pòzhāo*): Neutralizing an opponent's specific martial move or stance through counter-techniques, often by predicting and disrupting its flow. A common combat action in wuxia duels.",
+      "reason": "The footnote is too generic. Specifying that it involves counter-techniques, prediction, and disruption of flow adds nuance relevant to wuxia combat dynamics."
+    },
+    {
+      "chinese": "封招",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "seal technique",
+      "suggested": "seal a move",
+      "reason": "Similar to 破招, 招 (zhāo) here refers to a martial move. 'Seal a move' is more accurate and consistent with wuxia terminology, implying restricting an opponent's specific action."
+    },
+    {
+      "chinese": "封招",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Sealing technique (封招 *fēngzhāo*): Limiting opponent's tactical options.",
+      "suggested": "Seal a move (封招 *fēngzhāo*): Restricting an opponent's specific martial move or stance, often through positioning, pressure, or preemptive strikes to deny its execution. A tactical action in wuxia combat.",
+      "reason": "The footnote is vague. Adding methods (positioning, pressure, preemptive strikes) and the goal of denying execution provides clearer combat context."
+    },
+    {
+      "chinese": "殺氣",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Killing intent (殺氣 *shāqì*): Psychological pressure or aura of murderous will that expert fighters can sense. A wuxia convention indicating hidden threat.",
+      "suggested": "Killing intent (殺氣 *shāqì*): A palpable aura of murderous will that expert martial artists emit or sense, often described as a cold, oppressive pressure. A staple wuxia trope for signaling imminent violence or hidden prowess, rooted in Daoist concepts of qì manifestation.",
+      "reason": "The footnote could be enriched with sensory details (cold, oppressive pressure) and philosophical roots (Daoist qì manifestation), enhancing its descriptive and cultural depth."
+    },
+    {
+      "chinese": "罡風",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Blade wind (罡風 *gāngfēng*): Metaphor for intense internal force that cuts like wind. Evokes both power and danger.",
+      "suggested": "Blade wind (罡風 *gāngfēng*): A Daoist and wuxia metaphor for intense internal force that cuts like wind. In Daoist cosmology, 罡風 refers to the fierce winds of the highest heavens; in martial arts literature, it describes qì so refined and powerful it becomes tangible and destructive.",
+      "reason": "The current footnote lacks philological depth. 罡風 originates from Daoist cosmology (e.g., 九天罡風), referring to the violent winds at the celestial apex. This classical allusion enriches its wuxia usage, where it metaphorically describes qì that has been cultivated to an extreme, cutting level. Adding this context provides deeper cultural resonance."
+    },
+    {
+      "chinese": "少俠",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "shàoxiá",
+      "suggested": "shàoxiá",
+      "reason": "The pinyin is correct as given (shàoxiá), but the Recommended_Form includes '[1]' which is inconsistent with other PINYIN_ONLY entries (e.g., 罡風, 氣定神閒). The footnote marker should be omitted in PINYIN_ONLY strategy to maintain consistency unless it's a named entity requiring disambiguation."
+    },
+    {
+      "chinese": "少俠",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "*shàoxiá*[1]",
+      "suggested": "*shàoxiá*",
+      "reason": "For PINYIN_ONLY strategy, the Recommended_Form should not include footnote markers like '[1]' to maintain consistency across the glossary (compare with 罡風, 氣定神閒). Footnotes are provided separately in the template."
+    },
+    {
+      "chinese": "老前輩",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "lǎo qiánbèi",
+      "suggested": "lǎoqiánbèi",
+      "reason": "In standard Hànyǔ Pīnyīn, 老前輩 is typically written as a single word: lǎoqiánbèi. The space in 'lǎo qiánbèi' is incorrect; it should be compounded as it functions as a single lexical unit meaning 'venerable senior'."
+    },
+    {
+      "chinese": "老前輩",
+      "field": "recommended_form",
+      "severity": "suggestion",
+      "current": "*lǎo qiánbèi*[1]",
+      "suggested": "*lǎoqiánbèi*",
+      "reason": "Correct the pinyin to lǎoqiánbèi and remove the footnote marker '[1]' for consistency with PINYIN_ONLY strategy, as per other entries like 罡風."
+    },
+    {
+      "chinese": "降龍十八掌",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "jiàng lóng shíbā zhǎng",
+      "suggested": "Jiànglóng Shíbā Zhǎng",
+      "reason": "Proper nouns, especially named techniques in wuxia, should be capitalized in pinyin. 降龍十八掌 is a specific legendary technique; it should be rendered as Jiànglóng Shíbā Zhǎng (with 降龍 as one word and 十八掌 as another, both capitalized)."
+    },
+    {
+      "chinese": "九陰真經",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "jiǔ yīn zhēnjīng",
+      "suggested": "Jiǔyīn Zhēnjīng",
+      "reason": "As a proper noun (named text), it should be capitalized: Jiǔyīn Zhēnjīng. 九陰 is typically compounded as one word in pinyin for this context."
+    },
+    {
+      "chinese": "北冥神功",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "běimíng shéngōng",
+      "suggested": "Běimíng Shéngōng",
+      "reason": "Proper noun capitalization required: Běimíng Shéngōng. 北冥 is a mythical place name and should be capitalized as part of the technique's title."
+    },
+    {
+      "chinese": "獨孤九劍",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "dúgū jiǔ jiàn",
+      "suggested": "Dúgū Jiǔjiàn",
+      "reason": "Capitalize as a proper noun: Dúgū Jiǔjiàn. 獨孤 is a surname and 九劍 is the technique name; both should be capitalized, with 九劍 typically written as one word (Jiǔjiàn) in this context."
+    },
+    {
+      "chinese": "易筋經",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "yìjīn jīng",
+      "suggested": "Yìjīn Jīng",
+      "reason": "Capitalize as a proper noun (legendary text): Yìjīn Jīng. 易筋經 is a specific title and should be rendered with initial capitals."
+    },
+    {
+      "chinese": "六脈神劍",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "liù mài shén jiàn",
+      "suggested": "Liùmài Shénjiàn",
+      "reason": "Proper noun capitalization: Liùmài Shénjiàn. 六脈 and 神劍 should be capitalized and compounded appropriately (六脈 as one word, 神劍 as another)."
+    },
+    {
+      "chinese": "葵花寶典",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "kuíhuā bǎodiǎn",
+      "suggested": "Kuíhuā Bǎodiǎn",
+      "reason": "Capitalize as a proper noun: Kuíhuā Bǎodiǎn. This is a specific manual title and should follow proper noun pinyin conventions."
+    },
+    {
+      "chinese": "吸星大法",
+      "field": "pinyin",
+      "severity": "error",
+      "current": "xī xīng dà fǎ",
+      "suggested": "Xīxīng Dàfǎ",
+      "reason": "Proper noun capitalization: Xīxīng Dàfǎ. 吸星 and 大法 should be capitalized and written as single words in pinyin for this technique name."
+    },
+    {
+      "chinese": "九陰真經",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Nine Yin Manual (九陰真經 *Jiǔ Yīn Zhēnjīng*): A legendary martial arts manual from Jin Yong's novels containing ultimate internal cultivation methods and combat techniques. Represents the pinnacle of yin-based martial knowledge, coveted by fighters throughout the *jiānghú*. Created by the Daoist master Huang Shang during the Northern Song Dynasty.",
+      "suggested": "Nine Yin Manual (九陰真經 *Jiǔyīn Zhēnjīng*): A legendary martial arts manual from Jin Yong's novels, first appearing in *The Legend of the Condor Heroes* (1957). Contains ultimate internal cultivation methods and combat techniques, representing the pinnacle of yin-based martial knowledge. Created by the Daoist master Huáng Shàng (黃裳) during the Northern Song Dynasty (960–1127) as a synthesis of Daoist and martial arts principles. Highly coveted throughout the *jiānghú*, it drives major plotlines across multiple novels.",
+      "reason": "The footnote lacks specific literary attribution (which novel, publication era) and deeper historical context. Adding the author's name in pinyin (Huáng Shàng), dynasty dates, and the manual's narrative role enriches philological accuracy. Also, correct pinyin to Jiǔyīn Zhēnjīng."
+    },
+    {
+      "chinese": "北冥神功",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Northern Darkness Divine Skill (北冥神功 *Běimíng Shéngōng*): A legendary internal cultivation technique from Jin Yong's *Demi-Gods and Semi-Devils*, based on a passage from Zhuangzi's (莊子) philosophy. Allows the practitioner to absorb others' *nèilì* through specific acupoints, converting it into their own power. Named after the mythical Northern Sea (北冥) from the *Zhuangzi*.",
+      "suggested": "Northern Darkness Divine Skill (北冥神功 *Běimíng Shéngōng*): A legendary internal cultivation technique from Jin Yong's *Demi-Gods and Semi-Devils* (1963), based on a passage from the *Zhuangzi* (莊子, c. 4th century BCE). Allows the practitioner to absorb others' *nèilì* through specific acupoints, converting it into their own power. Named after the mythical Northern Sea (北冥) from the *Zhuangzi*, which symbolizes vast, unfathomable depth. This technique exemplifies the Daoist principle of harnessing natural forces through emptiness and receptivity.",
+      "reason": "Enhance with specific novel publication date, approximate date for Zhuangzi, and a brief note on the Daoist philosophical principle it embodies (e.g., emptiness/receptivity), deepening the cultural and literary context."
+    },
+    {
+      "chinese": "易筋經",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Muscle-Tendon Transformation Classic (易筋經 *Yìjīn Jīng*): A legendary internal training manual attributed to Bodhidharma (達摩), the founder of Chan Buddhism. In wuxia fiction and martial arts tradition, describes exercises for transforming the body's strength and flexibility. Historically associated with Shaolin Temple, though its actual origins are debated.",
+      "suggested": "Muscle-Tendon Transformation Classic (易筋經 *Yìjīn Jīng*): A legendary internal training manual attributed to Bodhidharma (達摩, c. 5th–6th century CE), the founder of Chan Buddhism. In wuxia fiction (e.g., Jin Yong's works) and martial arts tradition, it describes exercises for transforming the body's strength and flexibility. Historically associated with Shaolin Temple, though its actual origins are debated—likely dating to the Ming Dynasty (1368–1644) rather than Bodhidharma's time. The text integrates Buddhist meditation with physical cultivation, influencing many internal martial arts styles.",
+      "reason": "Add approximate dates for Bodhidharma and note the likely historical period (Ming Dynasty) to clarify the anachronism. Mention its integration of Buddhist and physical practices, and its influence on martial arts, providing a more nuanced historical and cultural perspective."
+    },
+    {
+      "chinese": "吸星大法",
+      "field": "footnote_template",
+      "severity": "suggestion",
+      "current": "Star-Absorbing Great Method (吸星大法 *Xī Xīng Dà Fǎ*): A dangerous internal technique from Jin Yong's *The Smiling, Proud Wanderer* that absorbs opponents' *nèilì*. Unlike *Běimíng Shéngōng*, this method risks internal contamination from absorbed energies. The name evokes celestial absorption, suggesting cosmic-scale power.",
+      "suggested": "Star-Absorbing Great Method (吸星大法 *Xīxīng Dàfǎ*): A dangerous internal technique from Jin Yong's *The Smiling, Proud Wanderer* (1967) that absorbs opponents' *nèilì*. Unlike *Běimíng Shéngōng*, this method risks internal contamination and discord from absorbed energies, leading to potential self-destruction. The name evokes celestial absorption (星 'stars'), suggesting cosmic-scale power but also the peril of drawing in disparate forces. It reflects themes of power corruption and the dangers of unintegrated external influences in wuxia philosophy.",
+      "reason": "Include novel publication date, emphasize the specific risks (e.g., discord, self-destruction), and expand on the thematic significance (power corruption, integration challenges) to deepen the literary analysis. Also, correct pinyin to Xīxīng Dàfǎ."
+    }
+  ],
+  "suggested_additions": [
+    {
+      "chinese": "比武",
+      "pinyin": "bǐwǔ",
+      "meaning": "martial contest / formal combat challenge",
+      "category": "combat",
+      "reason": "High-frequency term across all wuxia authors for formal duels and tournaments"
+    },
+    {
+      "chinese": "切磋",
+      "pinyin": "qiēcuō",
+      "meaning": "friendly sparring or exchange of martial skills",
+      "category": "combat",
+      "reason": "Common term for non-lethal martial arts practice or testing skills"
+    },
+    {
+      "chinese": "生死鬥",
+      "pinyin": "shēngsǐ dòu",
+      "meaning": "fight to the death / life-or-death combat",
+      "category": "combat",
+      "reason": "Frequently used in wuxia for climactic battles with mortal stakes"
+    },
+    {
+      "chinese": "運功",
+      "pinyin": "yùngōng",
+      "meaning": "to circulate/internal energy / activate one's cultivation",
+      "category": "cultivation",
+      "reason": "Fundamental action in martial arts cultivation across all wuxia novels"
+    },
+    {
+      "chinese": "調息",
+      "pinyin": "tiáoxī",
+      "meaning": "regulate breathing / meditation for energy recovery",
+      "category": "cultivation",
+      "reason": "Common cultivation practice for healing and energy management"
+    },
+    {
+      "chinese": "打通",
+      "pinyin": "dǎtōng",
+      "meaning": "to unblock/clear (meridians or acupoints)",
+      "category": "cultivation",
+      "reason": "Essential concept for martial arts breakthrough and advancement"
+    },
+    {
+      "chinese": "根基",
+      "pinyin": "gēnjī",
+      "meaning": "foundation / martial arts base",
+      "category": "concept",
+      "reason": "Critical concept referring to one's fundamental martial arts training"
+    },
+    {
+      "chinese": "境界",
+      "pinyin": "jìngjiè",
+      "meaning": "realm / level of cultivation attainment",
+      "category": "cultivation",
+      "reason": "Central concept in wuxia for describing martial arts progression levels"
+    },
+    {
+      "chinese": "護體真氣",
+      "pinyin": "hùtǐ zhēnqì",
+      "meaning": "protective energy shield / body-protecting qi",
+      "category": "technique_category",
+      "reason": "Common defensive technique across multiple wuxia authors"
+    },
+    {
+      "chinese": "隔空",
+      "pinyin": "gékōng",
+      "meaning": "through the air / at a distance (attacks)",
+      "category": "technique_category",
+      "reason": "Frequently used modifier for long-range energy attacks"
+    },
+    {
+      "chinese": "暗勁",
+      "pinyin": "ànjìn",
+      "meaning": "hidden/internal force / concealed power",
+      "category": "technique_category",
+      "reason": "Important concept in internal martial arts across wuxia literature"
+    },
+    {
+      "chinese": "發勁",
+      "pinyin": "fājìn",
+      "meaning": "release/emit force / power discharge",
+      "category": "technique_category",
+      "reason": "Fundamental action in martial arts combat techniques"
+    },
+    {
+      "chinese": "百會穴",
+      "pinyin": "bǎihuì xué",
+      "meaning": "Baihui acupoint (top of head)",
+      "category": "anatomy",
+      "reason": "Crucial acupoint frequently targeted in combat and cultivation"
+    },
+    {
+      "chinese": "膻中穴",
+      "pinyin": "dànzhōng xué",
+      "meaning": "Danzhong acupoint (center of chest)",
+      "category": "anatomy",
+      "reason": "Important energy center frequently referenced in wuxia"
+    },
+    {
+      "chinese": "匕首",
+      "pinyin": "bǐshǒu",
+      "meaning": "dagger / short blade",
+      "category": "weapon",
+      "reason": "Common weapon for assassins and close-quarters combat"
+    },
+    {
+      "chinese": "峨嵋刺",
+      "pinyin": "éméi cì",
+      "meaning": "Emei piercing weapons / paired short stabbing weapons",
+      "category": "weapon",
+      "reason": "Iconic weapon associated with Emei sect and female martial artists"
+    },
+    {
+      "chinese": "判官筆",
+      "pinyin": "pànguān bǐ",
+      "meaning": "judge's pen / metal brush weapon",
+      "category": "weapon",
+      "reason": "Distinctive weapon used by scholarly martial artists"
+    },
+    {
+      "chinese": "山寨",
+      "pinyin": "shānzhài",
+      "meaning": "mountain stronghold / bandit fortress",
+      "category": "location_type",
+      "reason": "Common setting for bandit groups and martial arts sects"
+    },
+    {
+      "chinese": "客棧",
+      "pinyin": "kèzhàn",
+      "meaning": "inn / roadside tavern",
+      "category": "location_type",
+      "reason": "Ubiquitous setting for wuxia encounters and plot developments"
+    },
+    {
+      "chinese": "鏢局",
+      "pinyin": "biāojú",
+      "meaning": "armed escort agency / security company",
+      "category": "social_structure",
+      "reason": "Central institution in wuxia society for martial artists' employment"
+    },
+    {
+      "chinese": "綠林",
+      "pinyin": "lùlín",
+      "meaning": "greenwood / bandit world / outlaw society",
+      "category": "social_structure",
+      "reason": "Important concept for the criminal underworld in wuxia"
+    },
+    {
+      "chinese": "結拜",
+      "pinyin": "jiébài",
+      "meaning": "sworn brotherhood / oath of fellowship",
+      "category": "social_structure",
+      "reason": "Fundamental social bond in jianghu culture across all wuxia"
+    },
+    {
+      "chinese": "過招",
+      "pinyin": "guòzhāo",
+      "meaning": "exchange moves / engage in combat",
+      "category": "combat",
+      "reason": "Common term for martial arts exchanges and testing opponents"
+    },
+    {
+      "chinese": "破綻",
+      "pinyin": "pòzhàn",
+      "meaning": "opening / flaw in defense",
+      "category": "combat",
+      "reason": "Critical combat concept for finding weaknesses in opponents"
+    },
+    {
+      "chinese": "氣勢",
+      "pinyin": "qìshì",
+      "meaning": "martial presence / imposing aura",
+      "category": "concept",
+      "reason": "Important concept for describing a martial artist's intimidating presence"
+    },
+    {
+      "chinese": "療傷",
+      "pinyin": "liáoshāng",
+      "meaning": "heal injuries / treat wounds",
+      "category": "pathology",
+      "reason": "Frequent action in wuxia narratives after combat"
+    },
+    {
+      "chinese": "內息",
+      "pinyin": "nèixī",
+      "meaning": "internal breath / cultivated energy",
+      "category": "cultivation",
+      "reason": "Common alternative term for internal energy in cultivation contexts"
+    },
+    {
+      "chinese": "奇遇",
+      "pinyin": "qíyù",
+      "meaning": "fortuitous encounter / serendipitous discovery",
+      "category": "literary_convention",
+      "reason": "Standard plot device for martial arts advancement in wuxia"
+    },
+    {
+      "chinese": "退隱",
+      "pinyin": "tuìyǐn",
+      "meaning": "retire from jianghu / withdraw from martial world",
+      "category": "literary_convention",
+      "reason": "Common narrative conclusion for wuxia characters"
+    },
+    {
+      "chinese": "說時遲那時快",
+      "pinyin": "shuō shí chí nà shí kuài",
+      "meaning": "in the blink of an eye / describing rapid action",
+      "category": "literary_convention",
+      "reason": "Classic wuxia narrative phrase for describing fast combat"
+    }
+  ]
+}

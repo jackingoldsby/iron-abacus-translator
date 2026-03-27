@@ -219,6 +219,10 @@ class EpubBuilder:
             book.add_item(glossary_item)
             spine.append(glossary_item)
 
+        # Dramatis personae data stays in JSON for footnote classification
+        # but is excluded from the EPUB output
+        dp_item = None
+
         # Build TOC
         toc_entries = [
             epub.Link(title_page.file_name, "Title Page", "title"),
@@ -226,13 +230,16 @@ class EpubBuilder:
         ]
         for ch_idx, ch_item in enumerate(chapter_items):
             ch = chapters[ch_idx]
-            ch_title = ch.get("translated_title") or ""
-            if not ch_title:
+            ch_title = (ch.get("title_english")
+                        or ch.get("translated_title")
+                        or ch.get("title", ""))
+            title_zh = ch.get("title_chinese", "")
+            if not ch_title or ch_title == title_zh:
                 ch_title = self._translate_chapter_title(
-                    ch.get("title", ""), ch_idx + 1
+                    title_zh or ch.get("title", ""), ch_idx + 1
                 )
-            # Strip markdown asterisks from TOC text
-            ch_title_clean = ch_title.replace("*", "")
+            # Strip footnote markers and markdown asterisks from TOC text
+            ch_title_clean = re.sub(r'\[\d+\]', '', ch_title).strip().replace("*", "")
             toc_entries.append(
                 epub.Link(ch_item.file_name, ch_title_clean, ch_item.id)
             )
@@ -245,14 +252,16 @@ class EpubBuilder:
 
         # Add navigation files
         book.add_item(epub.EpubNcx())
-        book.add_item(epub.EpubNav())
+        nav = epub.EpubNav()
+        nav.add_link(href=css_item.file_name, rel="stylesheet", type="text/css")
+        book.add_item(nav)
 
         # Set spine
         book.spine = spine
 
         # Write EPUB
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        epub.write_epub(str(output_path), book)
+        epub.write_epub(str(output_path), book, {"epub3_pages": False})
         logger.info(f"Generated EPUB: {output_path}")
 
         return output_path
@@ -516,11 +525,15 @@ class EpubBuilder:
         css_item: epub.EpubItem,
     ) -> epub.EpubHtml:
         """Build a single chapter XHTML file with popup footnotes."""
-        title_zh = chapter.get("title", "")
-        title_en = chapter.get("translated_title") or ""
-        if not title_en:
-            # Generate English title from Chinese 第N回/章 pattern or fall back
-            title_en = self._translate_chapter_title(title_zh, chapter_num)
+        title_en = (chapter.get("title_english")
+                    or chapter.get("translated_title")
+                    or chapter.get("title", ""))
+        title_zh = chapter.get("title_chinese", "")
+        if not title_en or title_en == title_zh:
+            # No English translation yet — generate from Chinese pattern
+            title_en = self._translate_chapter_title(title_zh or chapter.get("title", ""), chapter_num)
+        # Strip footnote markers from heading
+        title_en = re.sub(r'\[\d+\]', '', title_en).strip()
         blocks = chapter.get("content_blocks", [])
 
         # Build body content
@@ -531,10 +544,7 @@ class EpubBuilder:
         title_html = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', title_html)
         title_html = re.sub(r'\*([^*]+)\*', r'<em>\1</em>', title_html)
         title_html = title_html.replace('**', '').replace('*', '')
-        heading = f'<h2>{title_html}'
-        if title_zh:
-            heading += f'<span class="chapter-chinese">{_escape(title_zh)}</span>'
-        heading += '</h2>'
+        heading = f'<h2>{title_html}</h2>'
         body_parts.append(heading)
 
         # Collect all footnotes for end-of-chapter rendering
@@ -547,8 +557,13 @@ class EpubBuilder:
             content_type = block.get("content_type", "narrative")
             footnotes = block.get("footnotes", [])
 
-            # Skip first block if it was used as the chapter heading
-            if block_idx == 0 and translated.strip() == chapter.get("translated_title", "").strip():
+            # Skip blocks that duplicate the chapter title (heading or text with same Chinese source)
+            block_type = block.get("type", "")
+            if block_type == "heading":
+                continue
+            title_zh = (chapter.get("title_chinese") or "").strip()
+            block_source = (block.get("content") or "").strip()
+            if block_idx <= 1 and title_zh and block_source == title_zh:
                 continue
 
             if not translated:
@@ -556,12 +571,19 @@ class EpubBuilder:
 
             # Remap footnote keys to chapter-level sequential numbering
             # Only include footnotes whose [key] marker exists in text
+            # Sort by marker position so numbering follows reading order
             old_to_new = {}
             block_footnotes = []
+            present_fns = []
             for fn in footnotes:
                 old_key = fn.get("key", 0)
-                if f"[{old_key}]" not in translated:
+                pos = translated.find(f"[{old_key}]")
+                if pos == -1:
                     continue
+                present_fns.append((pos, fn))
+            present_fns.sort(key=lambda x: x[0])
+            for _pos, fn in present_fns:
+                old_key = fn.get("key", 0)
                 fn_counter += 1
                 old_to_new[old_key] = fn_counter
                 fn_entry = {
@@ -888,7 +910,7 @@ class EpubBuilder:
             ref_id = fn_id.replace("fn-", "fnref-")
             ideogram = _escape(fn.get("ideogram", ""))
             pinyin = _escape(fn.get("pinyin", ""))
-            explanation = _escape(fn.get("explanation", ""))
+            explanation = _md_inline(fn.get("explanation", ""))
 
             entry = (
                 f'<a href="#{ref_id}" class="fn-number">[{fn["key"]}]</a> '
@@ -906,6 +928,89 @@ class EpubBuilder:
         parts.append('</section>')
 
         return "\n".join(parts)
+
+    def _build_dramatis_personae(
+        self,
+        characters: List[Dict[str, Any]],
+        css_item: epub.EpubItem,
+    ) -> epub.EpubHtml:
+        """Build Dramatis Personae back-matter page.
+
+        Characters are grouped by historical vs fictional, sorted by
+        first appearance within each group.
+        """
+        historical = [c for c in characters if c.get("dp_type") == "historical"
+                      or (c.get("is_historical") and not c.get("dp_type"))]
+        fictional = [c for c in characters if c.get("dp_type", "fictional") == "fictional"
+                     and not c.get("is_historical")]
+        groups = [c for c in characters if c.get("dp_type") == "group"]
+
+        parts = [
+            '<section class="dramatis-personae">',
+            '<h2>Dramatis Personae</h2>',
+        ]
+
+        if historical:
+            parts.append('<div class="dp-group">')
+            parts.append('<h3>Historical Figures</h3>')
+            for ch in sorted(historical, key=lambda c: c.get("first_chapter", 0)):
+                parts.append(self._format_dp_entry(ch))
+            parts.append('</div>')
+
+        if fictional:
+            parts.append('<div class="dp-group">')
+            parts.append('<h3>Fictional Characters</h3>')
+            for ch in sorted(fictional, key=lambda c: c.get("first_chapter", 0)):
+                parts.append(self._format_dp_entry(ch))
+            parts.append('</div>')
+
+        if groups:
+            parts.append('<div class="dp-group">')
+            parts.append('<h3>Sects &amp; Factions</h3>')
+            for ch in sorted(groups, key=lambda c: c.get("first_chapter", 0)):
+                parts.append(self._format_dp_entry(ch))
+            parts.append('</div>')
+
+        parts.append('</section>')
+
+        html = f"""<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head>
+  <title>Dramatis Personae</title>
+  <link rel="stylesheet" type="text/css" href="styles/kindle.css"/>
+</head>
+<body>
+{chr(10).join(parts)}
+</body>
+</html>"""
+
+        item = epub.EpubHtml(
+            title="Dramatis Personae",
+            file_name="dramatis_personae.xhtml",
+            lang="en",
+        )
+        item.set_content(html.encode("utf-8"))
+        item.add_item(css_item)
+        return item
+
+    @staticmethod
+    def _format_dp_entry(entry: Dict[str, Any]) -> str:
+        """Format a single Dramatis Personae entry as HTML."""
+        ideogram = _escape(entry.get("ideogram", ""))
+        pinyin = _escape(entry.get("pinyin", ""))
+        explanation = _md_inline(entry.get("explanation", ""))
+        chapter = entry.get("first_chapter", "")
+
+        html = '<div class="dp-entry">'
+        html += f'<p><strong>{pinyin}</strong>'
+        if ideogram:
+            html += f' <span class="dp-ideogram">({ideogram})</span>'
+        html += f' &mdash; {explanation}</p>'
+        if chapter:
+            html += f'<p class="dp-first-appearance">First appears: Chapter {chapter}</p>'
+        html += '</div>'
+        return html
 
     def _build_glossary(
         self,
@@ -926,7 +1031,7 @@ class EpubBuilder:
             for entry in cat_entries:
                 ideogram = _escape(entry.ideogram)
                 pinyin = _escape(entry.pinyin)
-                explanation = _escape(entry.explanation)
+                explanation = _md_inline(entry.explanation)
 
                 parts.append('<div class="glossary-entry">')
                 parts.append(
@@ -992,6 +1097,27 @@ def _escape(text: str) -> str:
         .replace(">", "&gt;")
         .replace('"', "&quot;")
     )
+
+
+def _md_inline(text: str) -> str:
+    """Convert markdown inline formatting to HTML after escaping.
+
+    Handles *italic* → <em> and **bold** → <strong> in footnote
+    explanations, DP entries, and glossary text.
+    """
+    escaped = _escape(text)
+    # **bold** → <strong> first (before italic, to avoid conflict)
+    escaped = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', escaped)
+    # *italic* → <em> (short spans only, ≤ 3 words)
+    def _italic_short(m):
+        content = m.group(1)
+        if len(content.split()) <= 3:
+            return f'<em>{content}</em>'
+        return content
+    escaped = re.sub(r'\*([^*]+)\*', _italic_short, escaped)
+    # Strip orphan asterisks
+    escaped = escaped.replace('*', '')
+    return escaped
 
 
 def main():
