@@ -1,6 +1,8 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This is a **product reference for Claude the developer** — it documents the Iron Abacus Translator pipeline's architecture, commands, and implementation details.
+
+**The pipeline itself uses OpenAI and DeepSeek as its LLM providers, not Claude.** All references to "AI features", "AI-powered", or "API calls" in this document refer to OpenAI/DeepSeek calls made by the product at runtime.
 
 **📖 For organizational standards and coding conventions, see [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md)**
 
@@ -564,8 +566,9 @@ python -m cli.run_pipeline D1379 --status
 
 ### Required Environment Variables
 ```bash
-export OPENAI_API_KEY=your-key-here        # For AI features
-export ANTHROPIC_API_KEY=your-key-here     # Optional alternative
+export OPENAI_API_KEY=your-key-here        # Product runtime — powers translation, validation, footnote scoring
+export DEEPSEEK_API_KEY=your-key-here      # Product runtime — alternative/primary translation provider
+export ANTHROPIC_API_KEY=your-key-here     # Optional — not used by the pipeline at runtime
 ```
 
 ### Default Paths

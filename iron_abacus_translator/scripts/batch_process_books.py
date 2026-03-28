@@ -1089,10 +1089,22 @@ def main():
         print(f"❌ Catalog database not found: {catalog_path}")
         return 1
 
+    # Set up file logging — capture everything to a timestamped log file
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_file = log_dir / f"batch_log_{log_timestamp}.log"
+    _root = logging.getLogger()
+    _file_handler = logging.FileHandler(log_file, encoding='utf-8')
+    _file_handler.setLevel(logging.DEBUG)
+    _file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    _root.addHandler(_file_handler)
+    logger.info(f"Log file: {log_file}")
+
     print(f"🚀 Batch Processing Pipeline")
     print(f"  Source: {source_dir}")
     print(f"  Output: {output_dir}")
     print(f"  Logs: {log_dir}")
+    print(f"  Log file: {log_file}")
     print(f"  Catalog: {catalog_path}")
     print(f"  Workers: {workers} parallel")
     if args.dry_run:

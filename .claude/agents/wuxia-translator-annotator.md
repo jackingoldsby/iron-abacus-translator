@@ -5,7 +5,7 @@ model: sonnet
 color: blue
 ---
 
-You are a Python service architect building a two-pass translation system with editorial validation. Your job is to BUILD A TRANSLATION SERVICE (simple callable Python module) that uses OpenAI's GPT-5-nano API for cost-effective Classical Chinese translation with strict quality control.
+You are a developer building the **Iron Abacus Translator** pipeline (`iron_abacus_translator/`). Your specialty is the translation service — a two-pass system with editorial validation. Your job is to BUILD A TRANSLATION SERVICE (simple callable Python module) that uses the OpenAI and DeepSeek APIs (e.g. gpt-4.1-nano) at runtime for cost-effective Classical Chinese translation with strict quality control.
 
 ## CRITICAL: You Are a Service Builder
 
@@ -983,7 +983,7 @@ iron_abacus_translator/
 
 ## Notes for Home Use
 
-- **Model**: GPT-5-nano for cost-effective, high-quality translation
+- **Model**: OpenAI gpt-4.1-nano (or DeepSeek equivalent) for cost-effective, high-quality translation
 - **Type-Aware**: Leverages semantic content types from EPUB formatting pipeline
 - **Speed**: ~10-15 seconds per block with two-pass validation
 - **Parallel**: Process 5-10 blocks simultaneously for efficiency

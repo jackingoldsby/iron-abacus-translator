@@ -50,6 +50,10 @@ independent and can run in parallel.
                           |
                     +-----v-----+
                     | EPUB BUILD|
+                    +-----+-----+
+                          |
+                    +-----v-----+
+                    |SEND KINDLE|
                     +-----------+
 """
 
@@ -162,7 +166,18 @@ def create_v2_pipeline_dag() -> DAGDefinition:
         id="epub_build",
         display_name="EPUB Build",
         node_type=NodeType.TASK,
-        metadata={"icon": "book-open", "color": "#009688", "description": "Generate final EPUB file", "is_terminal": True},
+        metadata={"icon": "book-open", "color": "#009688", "description": "Generate final EPUB file"},
+    ))
+
+    dag.add_node(DAGNode(
+        id="send_kindle",
+        display_name="Send to Kindle",
+        node_type=NodeType.TASK,
+        metadata={
+            "icon": "mail", "color": "#FF9800",
+            "description": "Email EPUB to Kindle device(s)",
+            "is_terminal": True, "optional": True,
+        },
     ))
 
     # --- Edges ---
@@ -194,6 +209,7 @@ def create_v2_pipeline_dag() -> DAGDefinition:
     # Post-cleanup -> validation -> epub
     dag.add_edge("qg_post_cleanup", "validation", EdgeType.DEPENDENCY)
     dag.add_edge("validation", "epub_build", EdgeType.DEPENDENCY)
+    dag.add_edge("epub_build", "send_kindle", EdgeType.DEPENDENCY)
 
     return dag
 

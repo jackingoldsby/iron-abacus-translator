@@ -2,21 +2,24 @@
 """
 Kindle Email Delivery
 
-Sends EPUB files to a Kindle device via Amazon's Send-to-Kindle email service.
+Sends EPUB files to Kindle device(s) via Amazon's Send-to-Kindle email service.
 Uses SMTP with stdlib only (no extra dependencies).
 
 Usage:
     from utils.kindle_sender import KindleSender
 
     sender = KindleSender()
-    sender.send("/path/to/book.epub")
+    results = sender.send("/path/to/book.epub")
+    # results: {"jack@kindle.com": True, "other@kindle.com": False}
 
 Environment variables:
-    KINDLE_EMAIL      - Kindle delivery address (xxx@kindle.com)
+    KINDLE_EMAILS     - Comma-separated Kindle addresses (preferred)
+    KINDLE_EMAIL      - Single Kindle address (fallback)
     SMTP_HOST         - SMTP server (default: smtp.gmail.com)
     SMTP_PORT         - SMTP port (default: 587)
     SMTP_USER         - SMTP username
     SMTP_PASSWORD     - SMTP password (app password for Gmail)
+    SMTP_TIMEOUT      - Connection timeout in seconds (default: 30)
 """
 
 import logging
@@ -27,6 +30,7 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
+from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -39,39 +43,52 @@ class KindleSender:
 
     def __init__(
         self,
-        kindle_email: str = None,
+        kindle_emails: List[str] = None,
         smtp_host: str = None,
         smtp_port: int = None,
         smtp_user: str = None,
         smtp_password: str = None,
+        smtp_timeout: int = None,
     ):
-        self.kindle_email = kindle_email or os.environ.get("KINDLE_EMAIL", "")
+        # Multi-recipient: KINDLE_EMAILS > KINDLE_EMAIL > empty
+        if kindle_emails:
+            self.kindle_emails = kindle_emails
+        else:
+            env_emails = os.environ.get("KINDLE_EMAILS", "")
+            if env_emails:
+                self.kindle_emails = [e.strip() for e in env_emails.split(",") if e.strip()]
+            elif os.environ.get("KINDLE_EMAIL"):
+                self.kindle_emails = [os.environ["KINDLE_EMAIL"]]
+            else:
+                self.kindle_emails = []
+
         self.smtp_host = smtp_host or os.environ.get("SMTP_HOST", "smtp.gmail.com")
         self.smtp_port = smtp_port or int(os.environ.get("SMTP_PORT", "587"))
         self.smtp_user = smtp_user or os.environ.get("SMTP_USER", "")
         self.smtp_password = smtp_password or os.environ.get("SMTP_PASSWORD", "")
+        self.smtp_timeout = smtp_timeout or int(os.environ.get("SMTP_TIMEOUT", "30"))
 
     def validate_config(self) -> list[str]:
         """Check configuration. Returns list of missing settings."""
         missing = []
-        if not self.kindle_email:
-            missing.append("KINDLE_EMAIL")
+        if not self.kindle_emails:
+            missing.append("KINDLE_EMAILS")
         if not self.smtp_user:
             missing.append("SMTP_USER")
         if not self.smtp_password:
             missing.append("SMTP_PASSWORD")
         return missing
 
-    def send(self, epub_path: str | Path, dry_run: bool = False) -> bool:
+    def send(self, epub_path: str | Path, dry_run: bool = False) -> Dict[str, bool]:
         """
-        Send an EPUB file to Kindle.
+        Send an EPUB file to all configured Kindle addresses.
 
         Args:
             epub_path: Path to the .epub file
             dry_run: If True, validate everything but don't actually send
 
         Returns:
-            True if sent successfully
+            Dict mapping each email to True (success) or False (failure)
 
         Raises:
             FileNotFoundError: If epub_path doesn't exist
@@ -101,39 +118,61 @@ class KindleSender:
                 f"Set these as environment variables or pass to KindleSender()."
             )
 
-        logger.info(f"Sending {epub_path.name} ({file_size_mb:.1f}MB) to {self.kindle_email}")
+        recipients = self.kindle_emails
+        logger.info(
+            f"Sending {epub_path.name} ({file_size_mb:.1f}MB) to {len(recipients)} recipient(s): "
+            f"{', '.join(recipients)}"
+        )
 
         if dry_run:
             logger.info("[DRY RUN] Would send via %s:%d as %s", self.smtp_host, self.smtp_port, self.smtp_user)
-            return True
+            return {email: True for email in recipients}
 
-        # Build email
+        # Read EPUB once for all recipients
+        epub_data = epub_path.read_bytes()
+
+        results = {}
+        try:
+            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=self.smtp_timeout) as server:
+                server.starttls()
+                server.login(self.smtp_user, self.smtp_password)
+
+                for email in recipients:
+                    try:
+                        msg = self._build_message(email, epub_path.name, epub_data)
+                        server.send_message(msg)
+                        logger.info("  Sent to %s", email)
+                        results[email] = True
+                    except smtplib.SMTPException as e:
+                        logger.error("  Failed to send to %s: %s", email, e)
+                        results[email] = False
+
+        except smtplib.SMTPException as e:
+            logger.error("SMTP connection error: %s", e)
+            # Mark all unsent recipients as failed
+            for email in recipients:
+                if email not in results:
+                    results[email] = False
+
+        succeeded = sum(1 for v in results.values() if v)
+        logger.info("Kindle delivery: %d/%d succeeded", succeeded, len(recipients))
+        return results
+
+    def _build_message(self, to_email: str, filename: str, epub_data: bytes) -> MIMEMultipart:
+        """Build email message with EPUB attachment."""
         msg = MIMEMultipart()
         msg["From"] = self.smtp_user
-        msg["To"] = self.kindle_email
+        msg["To"] = to_email
         msg["Subject"] = "convert"  # Amazon converts EPUB to Kindle format
 
-        msg.attach(MIMEText("Sent by Book Translator", "plain"))
+        msg.attach(MIMEText("Sent by Iron Abacus Translator", "plain"))
 
-        # Attach EPUB
-        with open(epub_path, "rb") as f:
-            part = MIMEBase("application", "epub+zip")
-            part.set_payload(f.read())
+        part = MIMEBase("application", "epub+zip")
+        part.set_payload(epub_data)
         encoders.encode_base64(part)
         part.add_header(
             "Content-Disposition",
-            f'attachment; filename="{epub_path.name}"',
+            f'attachment; filename="{filename}"',
         )
         msg.attach(part)
-
-        # Send
-        try:
-            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=30) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
-            logger.info("Sent successfully to %s", self.kindle_email)
-            return True
-        except smtplib.SMTPException as e:
-            logger.error("SMTP error: %s", e)
-            raise
+        return msg

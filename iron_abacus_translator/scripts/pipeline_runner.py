@@ -131,6 +131,7 @@ class RunContext:
     config: RunnerConfig
     db: ProgressDB
     dag: DAGDefinition
+    kindle_defer: bool = False  # True during series mode — batch send at end
 
     def emit(self, stage: str, event_type: str, status: str = "running",
              chapter_num: int = None, block_id: str = None,
@@ -302,7 +303,8 @@ class PipelineRunner:
     def run(self, work_id: str, volume: Optional[str] = None,
             from_node: Optional[str] = None, resume: bool = False,
             chapter_range: Optional[tuple] = None,
-            block_range: Optional[tuple] = None) -> Dict[str, Any]:
+            block_range: Optional[tuple] = None,
+            kindle_defer: bool = False) -> Dict[str, Any]:
         """
         Execute the pipeline.
 
@@ -350,6 +352,7 @@ class PipelineRunner:
             config=self.config,
             db=self.db,
             dag=self.dag,
+            kindle_defer=kindle_defer,
         )
 
         # Load source data
@@ -1615,6 +1618,56 @@ class EpubBuildProcessor(StageProcessor):
         return data
 
 
+class SendKindleProcessor(StageProcessor):
+    """Email EPUB to Kindle device(s) via Send-to-Kindle service."""
+
+    def __init__(self, config: RunnerConfig):
+        self.config = config
+
+    @property
+    def stage_id(self):
+        return "send_kindle"
+
+    def process(self, data, filename, ctx):
+        from utils.kindle_sender import KindleSender
+
+        # In series mode, Kindle delivery is deferred to batch send at end
+        if getattr(ctx, 'kindle_defer', False):
+            logger.info("  Kindle delivery deferred (series mode — will batch send at end)")
+            return data
+
+        sender = KindleSender()
+
+        # Skip silently if no Kindle config
+        if not sender.kindle_emails:
+            logger.info("  No KINDLE_EMAILS configured — skipping Kindle delivery")
+            return data
+
+        # Find EPUB from previous stage
+        epub_dir = self.config.output_dir / ctx.work_id
+        epubs = sorted(epub_dir.glob("*.epub"))
+        if not epubs:
+            logger.warning("  No EPUB found to send")
+            return data
+
+        epub_path = epubs[-1]
+        logger.info(f"  Sending {epub_path.name} to Kindle...")
+
+        try:
+            results = sender.send(epub_path, dry_run=self.config.dry_run)
+            succeeded = sum(1 for v in results.values() if v)
+            failed = len(results) - succeeded
+            if failed:
+                logger.warning(f"  Kindle delivery: {succeeded} succeeded, {failed} failed")
+            else:
+                logger.info(f"  Kindle delivery: {succeeded}/{len(results)} succeeded")
+        except Exception as e:
+            # Never fail the pipeline on send errors — the translation is already saved
+            logger.error(f"  Kindle delivery error (non-fatal): {e}")
+
+        return data
+
+
 # ---------------------------------------------------------------------------
 # Factory: build_pipeline
 # ---------------------------------------------------------------------------
@@ -1664,5 +1717,151 @@ def build_pipeline(config: RunnerConfig,
     runner.register_processor("qg_post_cleanup", PostCleanupGate())
     runner.register_processor("validation", ValidationProcessor(config))
     runner.register_processor("epub_build", EpubBuildProcessor(config))
+    runner.register_processor("send_kindle", SendKindleProcessor(config))
 
     return runner
+
+
+# ---------------------------------------------------------------------------
+# Series Orchestration
+# ---------------------------------------------------------------------------
+
+def run_series(
+    series_name: str,
+    config: RunnerConfig,
+    progress_db: ProgressDB,
+    from_node: Optional[str] = None,
+    resume: bool = False,
+) -> Dict[str, Any]:
+    """
+    Run the full pipeline for every work in a series, in order.
+
+    Multi-volume works iterate volumes sequentially (a, b, c, ...).
+    Kindle delivery is deferred until the entire series completes —
+    all EPUBs are sent in a single batch at the end.
+
+    Args:
+        series_name: Series name (e.g. "Condor Trilogy") or path.
+        config: Pipeline configuration.
+        progress_db: Progress database.
+        from_node: Start from this DAG node for each work.
+        resume: Auto-resume each work from its last checkpoint.
+
+    Returns:
+        Result dict with per-work results and series-level summary.
+    """
+    from utils.library_resolver import resolve_series
+
+    start_time = datetime.now()
+    works = resolve_series(series_name)
+
+    if not works:
+        return {
+            "success": False,
+            "error": f"No works found for series '{series_name}'",
+            "work_results": [],
+            "duration_s": 0,
+        }
+
+    logger.info(f"\n{'='*60}")
+    logger.info(f"  Series: {series_name}")
+    logger.info(f"  Works:  {len(works)}")
+    for w in works:
+        vols = f" (volumes: {', '.join(w.volumes)})" if w.volumes else ""
+        logger.info(f"    {w.order_in_series or '?'}. {w.work_id} — {w.title_english}{vols}")
+    logger.info(f"{'='*60}\n")
+
+    work_results = []
+    collected_epubs = []
+
+    for work in works:
+        volumes = work.volumes or [None]
+        for volume in volumes:
+            vol_str = f" volume={volume}" if volume else ""
+            logger.info(f"\n{'─'*60}")
+            logger.info(f"  Starting: {work.work_id}{vol_str} — {work.title_english}")
+            logger.info(f"{'─'*60}")
+
+            # Build a fresh pipeline for each work (clean DAG state)
+            runner = build_pipeline(config, progress_db, verify_clients=(len(work_results) == 0))
+
+            work_start = datetime.now()
+            try:
+                result = runner.run(
+                    work_id=work.work_id,
+                    volume=volume,
+                    from_node=from_node,
+                    resume=resume,
+                    kindle_defer=True,  # Batch send at series end
+                )
+                work_duration = (datetime.now() - work_start).total_seconds()
+                result["duration_s"] = round(work_duration, 2)
+
+                work_results.append({
+                    "work_id": work.work_id,
+                    "volume": volume,
+                    "title": work.title_english,
+                    "success": result["success"],
+                    "duration_s": round(work_duration, 2),
+                })
+
+                # Collect EPUBs for batch Kindle delivery
+                if result["success"]:
+                    epub_dir = config.output_dir / work.work_id
+                    if epub_dir.exists():
+                        for epub in epub_dir.glob("*.epub"):
+                            collected_epubs.append(epub)
+
+            except Exception as e:
+                work_duration = (datetime.now() - work_start).total_seconds()
+                logger.error(f"  Work {work.work_id}{vol_str} failed: {e}")
+                work_results.append({
+                    "work_id": work.work_id,
+                    "volume": volume,
+                    "title": work.title_english,
+                    "success": False,
+                    "error": str(e),
+                    "duration_s": round(work_duration, 2),
+                })
+
+    # Batch Kindle delivery at series end
+    kindle_sent = []
+    if collected_epubs and not config.dry_run:
+        kindle_sent = _send_series_to_kindle(series_name, collected_epubs)
+
+    total_duration = (datetime.now() - start_time).total_seconds()
+    all_succeeded = all(r["success"] for r in work_results)
+
+    return {
+        "success": all_succeeded,
+        "series": series_name,
+        "work_results": work_results,
+        "kindle_sent": kindle_sent,
+        "duration_s": round(total_duration, 2),
+    }
+
+
+def _send_series_to_kindle(series_name: str, epub_paths: List[Path]) -> List[str]:
+    """Send all EPUBs from a series to Kindle in batch."""
+    from utils.kindle_sender import KindleSender
+
+    sender = KindleSender()
+    if not sender.kindle_emails:
+        logger.info("  No KINDLE_EMAILS configured — skipping series Kindle delivery")
+        return []
+
+    logger.info(f"\n  Sending {len(epub_paths)} EPUBs from '{series_name}' to Kindle...")
+    sent = []
+    for epub_path in epub_paths:
+        try:
+            results = sender.send(epub_path)
+            if any(results.values()):
+                sent.append(epub_path.name)
+                logger.info(f"    Sent: {epub_path.name}")
+            else:
+                logger.warning(f"    Failed: {epub_path.name}")
+        except Exception as e:
+            logger.error(f"    Kindle error for {epub_path.name}: {e}")
+
+    logger.info(f"  Kindle delivery: {len(sent)}/{len(epub_paths)} EPUBs sent")
+    return sent

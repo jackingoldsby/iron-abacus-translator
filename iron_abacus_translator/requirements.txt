@@ -29,6 +29,9 @@ duckdb>=1.0.0
 # EPUB generation
 ebooklib>=0.18
 
+# Simplified ↔ Traditional Chinese conversion
+opencc-python-reimplemented>=0.1.7
+
 # Web UI
 streamlit>=1.30.0
 

@@ -91,7 +91,25 @@ _MECHANICAL_RULES_GPT = """
 
    Female character markers: 姑娘, 小姐, 夫人, 女, 嫂, 丫鬟, 婦, 奶媽 all indicate female characters. If a character was introduced with these terms, they remain female throughout.
 
+   EXAMPLES:
+   - Source: 她抽出長劍，冷冷地看著他。他不敢再上前一步。
+   - WRONG: "He drew his long sword, looking at him coldly. He dared not take another step forward."
+   - RIGHT: "She drew her long sword, looking at him coldly. He dared not take another step forward."
+
+   - Source: 那姑娘輕功極好，她飛身躍上屋頂。
+   - WRONG: "The young man's qinggong was superb; he leapt onto the rooftop."
+   - RIGHT: "The young woman's qinggong was superb; she leapt onto the rooftop."
+
    **GENDERED COLLECTIVE NOUNS — HARD RULE:** 這兩人 → "these two" (NEVER "these two men"). 六人 → "the six" (NEVER "six men"). 二人/兩人/三人/眾人/幾人 → ALWAYS gender-neutral. You translate blocks independently and CANNOT know whether the group includes women, so NEVER use "men" for 人-based group words.
+
+   EXAMPLES:
+   - Source: 這兩人武功都不弱。
+   - WRONG: "These two men were both skilled in martial arts."
+   - RIGHT: "These two were both skilled in martial arts."
+
+   - Source: 眾人聽了，都默然不語。
+   - WRONG: "The men heard this and all fell silent."
+   - RIGHT: "The assembled company heard this and all fell silent."
 
 5c. **HONORIFICS — transliterate as italicized pinyin and footnote on first occurrence.** Chinese honorifics encode social relationships, rank, and respect. TRANSLITERATE them as pinyin and ITALICIZE the honorific portion with asterisks — e.g. "Ruǎn *Shīxiōng*", "Miáo *Gūniáng*", "Bǎoshù *Dàshī*", "Táo *Zhàizhǔ*". The personal name stays roman; only the honorific is italicized. Do NOT translate them to English ("Senior Brother Ruǎn"). Keep the pinyin form consistent throughout the work. The FIRST time each honorific appears, footnote it explaining the relationship it encodes.
 
@@ -266,9 +284,17 @@ Translate techniques, weapons, and cultural concepts using your deep knowledge o
 
 5a. **NAME ACCURACY — non-negotiable.** Every personal name must match the source characters exactly. If uncertain, transliterate faithfully and say so.
 
-5b. **GENDER PRONOUNS — match 他/她/它 accurately.** Many key wuxia characters are women. Track each character's gender throughout.
+5b. **GENDER PRONOUNS — match 他/她/它 accurately.** Many key wuxia characters are women. Track each character's gender throughout. Do NOT default to "he".
+
+   EXAMPLES:
+   - Source: 她抽出長劍，冷冷地看著他。 → WRONG: "He drew his long sword..." → RIGHT: "She drew her long sword..."
+   - Source: 那姑娘輕功極好，她飛身躍上屋頂。 → WRONG: "The young man's qinggong was superb; he leapt..." → RIGHT: "The young woman's qinggong was superb; she leapt..."
 
    **GENDERED COLLECTIVE NOUNS — HARD RULE:** 這兩人 → "these two" (NEVER "these two men"). 六人 → "the six" (NEVER "six men"). 二人/兩人/三人/眾人/幾人 → ALWAYS gender-neutral. You translate blocks independently and CANNOT know whether the group includes women, so NEVER use "men" for 人-based group words.
+
+   EXAMPLES:
+   - Source: 這兩人武功都不弱。 → WRONG: "These two men were both skilled..." → RIGHT: "These two were both skilled..."
+   - Source: 眾人聽了，都默然不語。 → WRONG: "The men heard this and all fell silent." → RIGHT: "The assembled company heard this and all fell silent."
 
 5c. **HONORIFICS — transliterate as italicized pinyin and footnote on first occurrence.** E.g. "Ruǎn *Shīxiōng*", "Miáo *Gūniáng*". The personal name stays roman; only the honorific is italicized.
 
