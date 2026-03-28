@@ -8,9 +8,10 @@ Produces Kindle-ready EPUB3 files with:
 - Bilingual title page
 - NCX + EPUB3 nav table of contents
 - Glossary appendix
+- Optional cover image
 
 Usage:
-    from processors.epub_builder import EpubBuilder
+    from builders.epub_builder import EpubBuilder
 
     builder = EpubBuilder()
     builder.build(translated_json_path, output_epub_path)
@@ -25,10 +26,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from ebooklib import epub
 
-logger = logging.getLogger(__name__)
+from config.defaults import DEFAULT_CSS_PATH, DEFAULT_CATALOG_DB
 
-# CSS path relative to this file
-_DEFAULT_CSS_PATH = Path(__file__).parent.parent / "styles" / "kindle.css"
+logger = logging.getLogger(__name__)
 
 _PREFACE_PARAGRAPHS = [
     "This translation was produced using an automated workflow developed by"
@@ -60,11 +60,6 @@ _PREFACE_PARAGRAPHS = [
 ]
 
 
-def _default_catalog_path() -> Path:
-    from utils.environment_config import get_or_create_config
-    return get_or_create_config().catalog_path
-
-
 class EpubBuilder:
     """
     EPUB3 builder with popup footnotes and content-type formatting.
@@ -77,15 +72,24 @@ class EpubBuilder:
         </aside>
     """
 
-    def __init__(self, css_path: Optional[Path] = None, catalog_db: Optional[Path] = None):
-        self.css_path = css_path or _DEFAULT_CSS_PATH
-        self.catalog_db = catalog_db or _default_catalog_path()
+    def __init__(
+        self,
+        css_path: Optional[Path] = None,
+        catalog_db: Optional[Path] = None,
+        cover_image: Optional[Path] = None,
+    ):
+        self.css_path = css_path or DEFAULT_CSS_PATH
+        self.catalog_db = catalog_db or DEFAULT_CATALOG_DB
+        self.cover_image = cover_image
         self._catalog_cache: Dict[str, Dict[str, Any]] = {}
 
     def _get_catalog(self, work_number: str) -> Dict[str, Any]:
         """Cached catalog lookup."""
         if work_number not in self._catalog_cache:
-            self._catalog_cache[work_number] = self._lookup_catalog(work_number)
+            from utils.catalog import lookup_catalog
+            self._catalog_cache[work_number] = lookup_catalog(
+                work_number, self.catalog_db
+            )
         return self._catalog_cache[work_number]
 
     def _resolve_english_meta(self, meta: Dict[str, Any]) -> tuple:
@@ -98,11 +102,9 @@ class EpubBuilder:
         trans_title = meta.get("translation", {}).get("title", "")
         trans_author = meta.get("translation", {}).get("author", "")
 
-        # Catalog (curated) takes priority; fall back to GPT translation, then Chinese
         title_en = catalog_title or trans_title or meta.get("title", "Untitled")
         author_en = catalog_author or trans_author or meta.get("author", "Unknown")
 
-        # Strip edition suffix from title if edition is tracked separately
         edition = catalog.get("edition", "")
         if edition and title_en.endswith(f"({edition})"):
             title_en = title_en[: -(len(edition) + 3)].rstrip()
@@ -161,7 +163,8 @@ class EpubBuilder:
         author_zh = meta.get("author", "")
 
         # Look up series info from catalog
-        series_info = self._lookup_series(work_number)
+        from utils.catalog import lookup_series
+        series_info = lookup_series(work_number, self.catalog_db)
         series_name = series_info.get("name", "")
         series_order = series_info.get("order")
         series_total = series_info.get("total", 0)
@@ -178,6 +181,16 @@ class EpubBuilder:
         book.set_title(epub_title)
         book.set_language("en")
         book.add_author(author_en)
+
+        # Add cover image if available
+        if self.cover_image and self.cover_image.exists():
+            cover_data = self.cover_image.read_bytes()
+            suffix = self.cover_image.suffix.lower()
+            media_type = {
+                ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+                ".png": "image/png",
+            }.get(suffix, "image/jpeg")
+            book.set_cover(f"cover{suffix}", cover_data)
 
         # Add CSS
         css_content = self._load_css()
@@ -219,10 +232,6 @@ class EpubBuilder:
             book.add_item(glossary_item)
             spine.append(glossary_item)
 
-        # Dramatis personae data stays in JSON for footnote classification
-        # but is excluded from the EPUB output
-        dp_item = None
-
         # Build TOC
         toc_entries = [
             epub.Link(title_page.file_name, "Title Page", "title"),
@@ -233,12 +242,11 @@ class EpubBuilder:
             ch_title = (ch.get("title_english")
                         or ch.get("translated_title")
                         or ch.get("title", ""))
-            title_zh = ch.get("title_chinese", "")
-            if not ch_title or ch_title == title_zh:
+            ch_title_zh = ch.get("title_chinese", "")
+            if not ch_title or ch_title == ch_title_zh:
                 ch_title = self._translate_chapter_title(
-                    title_zh or ch.get("title", ""), ch_idx + 1
+                    ch_title_zh or ch.get("title", ""), ch_idx + 1
                 )
-            # Strip footnote markers and markdown asterisks from TOC text
             ch_title_clean = re.sub(r'\[\d+\]', '', ch_title).strip().replace("*", "")
             toc_entries.append(
                 epub.Link(ch_item.file_name, ch_title_clean, ch_item.id)
@@ -268,10 +276,10 @@ class EpubBuilder:
 
     # Chinese numeral → int mapping for chapter title translation
     _CHINESE_NUMS = {
-        "〇": 0, "零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
-        "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
-        "百": 100, "千": 1000,
-        "廿": 20, "卅": 30, "卌": 40,
+        "\u3007": 0, "\u96f6": 0, "\u4e00": 1, "\u4e8c": 2, "\u4e09": 3,
+        "\u56db": 4, "\u4e94": 5, "\u516d": 6, "\u4e03": 7, "\u516b": 8,
+        "\u4e5d": 9, "\u5341": 10, "\u767e": 100, "\u5343": 1000,
+        "\u5eff": 20, "\u5345": 30, "\u534c": 40,
     }
 
     def _parse_chinese_num(self, s: str) -> Optional[int]:
@@ -279,10 +287,8 @@ class EpubBuilder:
         nums = self._CHINESE_NUMS
         if not s:
             return None
-        # Single character
         if len(s) == 1 and s in nums:
             return nums[s]
-        # Try to parse compound numerals
         total = 0
         current = 0
         for ch in s:
@@ -317,14 +323,13 @@ class EpubBuilder:
         if not zh_title:
             return f"Chapter {chapter_num}"
 
-        # Match 第N回, 第N章, 第N節 patterns
-        m = re.match(r"第(.+?)(回|章|節|篇|卷)", zh_title)
+        m = re.match(r"\u7b2c(.+?)(\u56de|\u7ae0|\u7bc0|\u7bc7|\u5377)", zh_title)
         if m:
             num_str = m.group(1)
             type_char = m.group(2)
             parsed = self._parse_chinese_num(num_str)
-            type_map = {"回": "Chapter", "章": "Chapter", "節": "Section",
-                        "篇": "Part", "卷": "Volume"}
+            type_map = {"\u56de": "Chapter", "\u7ae0": "Chapter", "\u7bc0": "Section",
+                        "\u7bc7": "Part", "\u5377": "Volume"}
             label = type_map.get(type_char, "Chapter")
             if parsed is not None:
                 suffix = zh_title[m.end():].strip()
@@ -338,14 +343,14 @@ class EpubBuilder:
         """Generate an English EPUB filename from metadata.
 
         Format: Author - Title (Series #NN).epub
-        e.g.  Jin Yong - The Flying Fox of Snowy Mountain (Fox Volant Duology #01).epub
         """
         meta = data.get("meta", {})
         work_number = meta.get("work_number", "unknown")
         title_en, author_en = self._resolve_english_meta(meta)
 
         catalog = self._get_catalog(work_number)
-        series_info = self._lookup_series(work_number)
+        from utils.catalog import lookup_series
+        series_info = lookup_series(work_number, self.catalog_db)
         series_suffix = ""
         if series_info.get("name") and series_info.get("order") is not None:
             total = series_info["total"]
@@ -358,57 +363,6 @@ class EpubBuilder:
         raw_name = f"{author_en} - {title_en}{series_suffix}{edition_suffix}"
         safe_name = _sanitize_filename(raw_name)
         return output_dir / f"{safe_name}.epub"
-
-    def _lookup_catalog(self, work_number: str) -> Dict[str, Any]:
-        """Look up title, author, and series info from catalog DB."""
-        if not self.catalog_db or not self.catalog_db.exists():
-            return {}
-        try:
-            from utils.db import connect_catalog
-            conn = connect_catalog(self.catalog_db)
-            cur = conn.cursor()
-            # Fetch title/author + series, preferring consensus translations
-            cur.execute("""
-                SELECT COALESCE(wct.consensus_title_english, w.title_english) as title_en,
-                       COALESCE(wct.consensus_author_english, w.author_english) as author_en,
-                       s.name_english, ws.order_in_series,
-                       (SELECT COUNT(*) FROM work_series ws2
-                        WHERE ws2.series_id = ws.series_id) as total,
-                       w.edition
-                FROM works w
-                LEFT JOIN works_consensus_translations wct ON w.work_id = wct.work_id
-                LEFT JOIN work_series ws ON w.work_id = ws.work_id
-                LEFT JOIN series s ON ws.series_id = s.series_id
-                WHERE w.work_number = ?
-            """, (work_number,))
-            row = cur.fetchone()
-            conn.close()
-            if row:
-                result = {
-                    "title_english": row[0] or "",
-                    "author_english": row[1] or "",
-                }
-                if row[2]:  # series name
-                    result["series_name"] = row[2]
-                    result["series_order"] = row[3]
-                    result["series_total"] = row[4]
-                if row[5]:  # edition
-                    result["edition"] = row[5]
-                return result
-        except Exception as e:
-            logger.warning(f"Catalog lookup failed for {work_number}: {e}")
-        return {}
-
-    def _lookup_series(self, work_number: str) -> Dict[str, Any]:
-        """Look up series info from catalog DB by work_number."""
-        catalog = self._lookup_catalog(work_number)
-        if catalog.get("series_name"):
-            return {
-                "name": catalog["series_name"],
-                "order": catalog["series_order"],
-                "total": catalog["series_total"],
-            }
-        return {}
 
     def _load_css(self) -> str:
         """Load CSS file content."""
@@ -430,7 +384,6 @@ class EpubBuilder:
         series_total: int = 0,
     ) -> epub.EpubHtml:
         """Build bilingual title page with series info."""
-        # Only show Chinese subtitle if different from English title
         title_zh_line = ""
         if title_zh and title_zh != title_en:
             title_zh_line = f'    <p class="title-chinese">{_escape(title_zh)}</p>'
@@ -488,7 +441,7 @@ class EpubBuilder:
             css_class = ' class="first"' if i == 0 else ""
             body_parts.append(f"    <p{css_class}>{text}</p>")
 
-        body_parts.append(f'    <p class="signature">Iron Abacus</p>')
+        body_parts.append('    <p class="signature">Iron Abacus</p>')
         body_parts.append(
             f'    <p class="dateline">Brooklyn, New York &mdash; {_escape(build_date)}</p>'
         )
@@ -530,13 +483,10 @@ class EpubBuilder:
                     or chapter.get("title", ""))
         title_zh = chapter.get("title_chinese", "")
         if not title_en or title_en == title_zh:
-            # No English translation yet — generate from Chinese pattern
             title_en = self._translate_chapter_title(title_zh or chapter.get("title", ""), chapter_num)
-        # Strip footnote markers from heading
         title_en = re.sub(r'\[\d+\]', '', title_en).strip()
         blocks = chapter.get("content_blocks", [])
 
-        # Build body content
         body_parts = []
 
         # Chapter heading
@@ -547,7 +497,6 @@ class EpubBuilder:
         heading = f'<h2>{title_html}</h2>'
         body_parts.append(heading)
 
-        # Collect all footnotes for end-of-chapter rendering
         chapter_footnotes: List[Dict[str, Any]] = []
         fn_counter = 0
         prev_content_type: Optional[str] = None
@@ -557,21 +506,18 @@ class EpubBuilder:
             content_type = block.get("content_type", "narrative")
             footnotes = block.get("footnotes", [])
 
-            # Skip blocks that duplicate the chapter title (heading or text with same Chinese source)
             block_type = block.get("type", "")
             if block_type == "heading":
                 continue
-            title_zh = (chapter.get("title_chinese") or "").strip()
+            block_title_zh = (chapter.get("title_chinese") or "").strip()
             block_source = (block.get("content") or "").strip()
-            if block_idx <= 1 and title_zh and block_source == title_zh:
+            if block_idx <= 1 and block_title_zh and block_source == block_title_zh:
                 continue
 
             if not translated:
                 continue
 
             # Remap footnote keys to chapter-level sequential numbering
-            # Only include footnotes whose [key] marker exists in text
-            # Sort by marker position so numbering follows reading order
             old_to_new = {}
             block_footnotes = []
             present_fns = []
@@ -596,7 +542,6 @@ class EpubBuilder:
                 block_footnotes.append(fn_entry)
                 chapter_footnotes.append(fn_entry)
 
-            # Verse/document: render as before without splitting
             if content_type in ("verse", "document"):
                 rendered_text = self._render_text_with_noterefs(
                     translated, old_to_new, chapter_num
@@ -607,23 +552,18 @@ class EpubBuilder:
                 prev_content_type = content_type
                 continue
 
-            # Split raw text into dialogue/narrative segments before
-            # HTML escaping (quotes are lost after _escape).
             raw_segments = self._split_dialogue_segments(translated)
 
             _speech = {"dialogue"}
             _prose = {"narrative", "descriptive"}
 
             for seg_idx, raw_seg in enumerate(raw_segments):
-                # Determine CSS class: if segment starts with a quote
-                # char, tag it as dialogue; otherwise use block type
                 seg_class = content_type
                 if raw_seg and raw_seg[0] in '"\u201c':
                     seg_class = "dialogue"
                 elif content_type == "dialogue" and raw_seg and raw_seg[0] not in '"\u201c':
                     seg_class = "narrative"
 
-                # Detect transition from previous paragraph
                 is_transition = (
                     prev_content_type is not None
                     and (
@@ -641,13 +581,11 @@ class EpubBuilder:
                     f'<p class="{seg_class}"{t_style}>{rendered_seg}</p>'
                 )
 
-        # Render footnotes at chapter end
         if chapter_footnotes:
             body_parts.append(
                 self._render_chapter_footnotes(chapter_footnotes)
             )
 
-        # Assemble XHTML
         body_html = "\n".join(body_parts)
         html = f"""<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html>
@@ -676,11 +614,7 @@ class EpubBuilder:
         old_to_new: Dict[int, int],
         chapter_num: int,
     ) -> str:
-        """
-        Replace [N] markers with EPUB3 noteref links.
-
-        [1] -> <a epub:type="noteref" href="#fn-ch3-7">[7]</a>
-        """
+        """Replace [N] markers with EPUB3 noteref links."""
         def replace_marker(match):
             old_key = int(match.group(1))
             new_key = old_to_new.get(old_key)
@@ -694,22 +628,17 @@ class EpubBuilder:
             )
 
         result = re.sub(r'\[(\d+)\]', replace_marker, _escape(text))
-        # Fix unpaired asterisks before italic conversion.
-        # Word* without opening * → *Word*  (e.g. Shīxiōng* → *Shīxiōng*)
         result = re.sub(r'(?<!\*)\b(\w+)\*(?!\*)', r'*\1*', result)
-        # *Word without closing * → *Word*
         result = re.sub(r'(?<!\*)\*(\w+)\b(?!\*)', r'*\1*', result)
-        # Convert **bold** to <strong> (before italics to avoid conflict)
         result = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', result)
-        # Convert *italics* to <em>, but only for short spans (≤ 3 words).
-        # Longer spans are almost certainly unpaired asterisk bugs.
+
         def _italic_if_short(m):
             content = m.group(1)
             if len(content.split()) <= 3:
                 return f'<em>{content}</em>'
-            return content  # strip the asterisks, don't italicize
+            return content
+
         result = re.sub(r'\*([^*]+)\*', _italic_if_short, result)
-        # Strip any orphan asterisks
         result = result.replace('**', '').replace('*', '')
         return result
 
@@ -718,51 +647,36 @@ class EpubBuilder:
         """Split a block into dialogue and narrative segments.
 
         Each quoted speech line (with its attribution if present)
-        becomes its own segment.  Narrative passages between quotes
+        becomes its own segment. Narrative passages between quotes
         also become separate segments.
 
         Handles split quotes: "start," he said, "end." stays as one unit.
-        Attribution: "speech," he said. stays together.
         """
-        # Split on explicit blank lines first
         if "\n\n" in text:
             return [s.strip() for s in text.split("\n\n") if s.strip()]
 
-        import re
         Q_OPEN = '"\u201c'
         Q_CLOSE = '"\u201d'
 
-        # Tokenize into quoted and unquoted spans
-        # This handles nested split quotes properly
         tokens: List[dict] = []
         i = 0
         while i < len(text):
             if text[i] in Q_OPEN:
-                # Find closing quote
                 j = i + 1
                 while j < len(text) and text[j] not in Q_CLOSE:
                     j += 1
                 if j < len(text):
-                    j += 1  # include closing quote
+                    j += 1
                 tokens.append({"type": "quote", "text": text[i:j], "start": i})
                 i = j
             else:
-                # Unquoted text — read until next opening quote or end
                 j = i
                 while j < len(text) and text[j] not in Q_OPEN:
                     j += 1
                 tokens.append({"type": "narr", "text": text[i:j], "start": i})
                 i = j
 
-        # Now merge tokens into segments:
-        # - A quote ending with , + narr + quote = split quote (merge all three)
-        # - A quote ending with , + narr ending with . = quote + attribution (merge both)
-        # - A quote ending with .!? = standalone dialogue
-        # - Narr alone = narrative segment
-        # Pre-pass: merge inline quoted terms into surrounding narr.
-        # An inline quote is short (< 30 chars) and the content inside
-        # doesn't look like dialogue (no sentence-ending punct before
-        # the closing quote).
+        # Pre-pass: merge inline quoted terms into surrounding narr
         merged_tokens: List[dict] = []
         for tok in tokens:
             if (tok["type"] == "quote"
@@ -770,19 +684,15 @@ class EpubBuilder:
                     and merged_tokens[-1]["type"] == "narr"):
                 inner = tok["text"].strip().strip('"\u201c\u201d')
                 inner_core = inner.rstrip('.!?, ')
-                # Inline term: very short content (< 10 chars stripped of
-                # punct), or short (< 30 chars) with no sentence punct.
                 is_inline = (
                     len(inner_core) < 10
                     or (len(inner) < 30
                         and not any(inner.rstrip().endswith(p) for p in '.!?'))
                 )
                 if is_inline:
-                    # Peek: if next token is also narr, likely inline
                     merged_tokens[-1]["text"] += tok["text"]
                     merged_tokens[-1]["type"] = "narr"
                     continue
-            # Merge consecutive narr tokens (from inline quote merging)
             if (tok["type"] == "narr"
                     and merged_tokens
                     and merged_tokens[-1]["type"] == "narr"):
@@ -792,7 +702,6 @@ class EpubBuilder:
         tokens = merged_tokens
 
         def _ends_with_comma(q_text):
-            """Check if quoted text ends with ," (comma before close-quote)."""
             s = q_text.rstrip()
             return len(s) >= 2 and s[-2] == ','
 
@@ -805,11 +714,6 @@ class EpubBuilder:
                 merged = tok["text"]
 
                 if _ends_with_comma(merged):
-                    # Comma ending: split quote or attribution follows.
-                    # Split quote: "...," action-beat, "continuation"
-                    #   action-beat does NOT end with .!?
-                    # Attribution: "...," he said.
-                    #   attribution DOES end with .!?
                     while (idx + 2 < len(tokens)
                            and tokens[idx + 1]["type"] == "narr"
                            and tokens[idx + 2]["type"] == "quote"):
@@ -822,7 +726,6 @@ class EpubBuilder:
                         if not _ends_with_comma(next_q):
                             break
 
-                # Attach trailing attribution to comma-ended quote
                 if (_ends_with_comma(merged)
                         and idx + 1 < len(tokens)
                         and tokens[idx + 1]["type"] == "narr"):
@@ -836,18 +739,12 @@ class EpubBuilder:
                 segments.append(merged.strip())
 
             else:
-                # Narrative segment.
                 narr = tok["text"]
-                # If narr ends with comma (e.g. "he said,") attach the
-                # following quote as introductory attribution.
                 if (narr.rstrip().endswith(',')
                         and idx + 1 < len(tokens)
                         and tokens[idx + 1]["type"] == "quote"):
                     narr += tokens[idx + 1]["text"]
                     idx += 1
-                    # The attached quote might itself have attribution
-                    qt = tokens[idx]["text"] if idx < len(tokens) and tokens[idx]["type"] == "quote" else narr
-                    # Check if the whole thing now ends with ,"
                     if (_ends_with_comma(narr)
                             and idx + 1 < len(tokens)
                             and tokens[idx + 1]["type"] == "narr"):
@@ -866,7 +763,6 @@ class EpubBuilder:
         self, html_text: str, content_type: str, *, transition: bool = False
     ) -> str:
         """Wrap rendered text in content-type-appropriate HTML."""
-        # Extra top margin at narrative/descriptive <-> dialogue boundaries
         t_style = ' style="margin-top:0.8em"' if transition else ""
         if content_type == "verse":
             lines = html_text.split("\n")
@@ -882,7 +778,6 @@ class EpubBuilder:
             parts = []
             for idx, seg in enumerate(segments):
                 style = t_style if idx == 0 else ""
-                # Tag segments that start with a quote as dialogue
                 seg_class = css_class
                 if seg and seg[0] in '"\u201c':
                     seg_class = "dialogue"
@@ -894,15 +789,9 @@ class EpubBuilder:
     def _render_chapter_footnotes(
         self, footnotes: List[Dict[str, Any]]
     ) -> str:
-        """
-        Render footnotes as EPUB3 aside elements for popup support,
-        plus a visible section for fallback readers.
-        """
+        """Render footnotes as EPUB3 aside elements for popup support."""
         parts = []
 
-        # Footnote section — visible on all readers including Kindle.
-        # Each entry uses epub:type="footnote" on a <div> so Kindle can
-        # also show it as a popup when tapped via a noteref link.
         parts.append('<section class="chapter-footnotes">')
         parts.append('<h3>Notes</h3>')
         for fn in footnotes:
@@ -934,11 +823,7 @@ class EpubBuilder:
         characters: List[Dict[str, Any]],
         css_item: epub.EpubItem,
     ) -> epub.EpubHtml:
-        """Build Dramatis Personae back-matter page.
-
-        Characters are grouped by historical vs fictional, sorted by
-        first appearance within each group.
-        """
+        """Build Dramatis Personae back-matter page."""
         historical = [c for c in characters if c.get("dp_type") == "historical"
                       or (c.get("is_historical") and not c.get("dp_type"))]
         fictional = [c for c in characters if c.get("dp_type", "fictional") == "fictional"
@@ -1018,14 +903,13 @@ class EpubBuilder:
         css_item: epub.EpubItem,
     ) -> epub.EpubHtml:
         """Build glossary appendix chapter."""
-        # Group by category
-        from utils.epub_glossary_generator import group_by_category
+        from builders.glossary_renderer import group_by_category
         groups = group_by_category(entries)
 
         parts = ['<section class="glossary">', '<h2>Glossary of Terms</h2>']
 
         for category, cat_entries in groups.items():
-            parts.append(f'<div class="glossary-category">')
+            parts.append('<div class="glossary-category">')
             parts.append(f'<h3>{_escape(category)}</h3>')
 
             for entry in cat_entries:
@@ -1077,11 +961,8 @@ class EpubBuilder:
 
 def _sanitize_filename(name: str) -> str:
     """Remove or replace characters unsafe for filenames."""
-    # Replace path-unsafe chars
     name = re.sub(r'[\\/:*?"<>|]', '', name)
-    # Collapse multiple spaces
     name = re.sub(r'\s+', ' ', name).strip()
-    # Truncate to reasonable length
     if len(name) > 200:
         name = name[:200].rsplit(' ', 1)[0]
     return name
@@ -1100,43 +981,16 @@ def _escape(text: str) -> str:
 
 
 def _md_inline(text: str) -> str:
-    """Convert markdown inline formatting to HTML after escaping.
-
-    Handles *italic* → <em> and **bold** → <strong> in footnote
-    explanations, DP entries, and glossary text.
-    """
+    """Convert markdown inline formatting to HTML after escaping."""
     escaped = _escape(text)
-    # **bold** → <strong> first (before italic, to avoid conflict)
     escaped = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', escaped)
-    # *italic* → <em> (short spans only, ≤ 3 words)
+
     def _italic_short(m):
         content = m.group(1)
         if len(content.split()) <= 3:
             return f'<em>{content}</em>'
         return content
+
     escaped = re.sub(r'\*([^*]+)\*', _italic_short, escaped)
-    # Strip orphan asterisks
     escaped = escaped.replace('*', '')
     return escaped
-
-
-def main():
-    """CLI entry point."""
-    import sys
-
-    if len(sys.argv) < 2:
-        print("Usage: python processors/epub_builder.py <input.json> [output.epub]")
-        return 1
-
-    input_path = Path(sys.argv[1])
-    output_path = Path(sys.argv[2]) if len(sys.argv) >= 3 else None
-
-    builder = EpubBuilder()
-    result = builder.build(input_path, output_path)
-    print(f"Generated: {result}")
-    return 0
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    exit(main())

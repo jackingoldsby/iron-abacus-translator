@@ -20,7 +20,7 @@ This is a **product reference for Claude the developer** — it documents the Ir
 - ✅ Batch Pipeline (8-stage processing with metadata enrichment)
 - ✅ Translation Orchestration (7-stage pipeline with AI footnotes + cleanup)
 - ✅ Footnote Cleanup (4-phase: suppress list → heuristics → AI scoring → context-free review)
-- 🚧 EPUB Builder (placeholder)
+- ✅ EPUB Builder (migrated to `crimson_folio/` product)
 
 ## Development Commands
 
@@ -52,8 +52,8 @@ python -m cli.run_pipeline D1379 --resume  # Resume from checkpoint
 # Standalone footnote cleanup (if needed separately)
 python cli/cleanup_character_footnotes.py --input translated.json --output-dir ./cleaned
 
-# Future processors (placeholders)
-python cli/build_epub.py --input translated.json --output book.epub
+# EPUB building — now in crimson_folio product
+# cd ../crimson_folio && python -m cli.build --input translated.json --output book.epub
 ```
 
 ### Testing
@@ -117,8 +117,8 @@ processors/
 ├── content_structurer.py    [IMPLEMENTED] Blocks → Semantic types
 ├── structure_validator.py   [IMPLEMENTED] AI-powered TOC/structure validation
 ├── translator.py            [IMPLEMENTED] Classical Chinese translation with cultural footnotes
-├── footnote_generator.py    [INTEGRATED] Part of translator.py
-└── epub_builder.py          [PLACEHOLDER] Generate EPUB file
+└── footnote_generator.py    [INTEGRATED] Part of translator.py
+# epub_builder.py → migrated to crimson_folio/builders/epub_builder.py
 
 utils/
 ├── topology_analyzer.py         [IMPLEMENTED] Structure analysis without modification
@@ -146,8 +146,8 @@ cli/
 ├── structure.py             [IMPLEMENTED] CLI for content_structurer
 ├── validate_structure.py    [IMPLEMENTED] CLI for structure_validator
 ├── translate.py             [IMPLEMENTED] CLI for translator (use pipeline_runner.py for production)
-├── cleanup_character_footnotes.py [IMPLEMENTED] CLI for character footnote cleanup
-└── build_epub.py            [PLACEHOLDER] CLI for epub_builder
+└── cleanup_character_footnotes.py [IMPLEMENTED] CLI for character footnote cleanup
+# build_epub.py → migrated to crimson_folio/cli/build.py
 ```
 
 ### Data Flow
@@ -339,9 +339,10 @@ TRANSLATED JSON (ready for EPUB)
    → WIP files saved for each stage
    → Detailed logs and progress reports
    ↓
-processors/epub_builder.py [TODO]
-   → EPUB 3.0 generation
-   → Internal linking via block IDs
+crimson_folio/builders/epub_builder.py (separate product)
+   → EPUB 3.0 generation with popup footnotes
+   → Cover image pipeline (period artwork)
+   → Kindle delivery
    ↓
 FINAL EPUB FILE
 ```
@@ -870,11 +871,10 @@ When the user does request a commit, follow the standard git commit protocol as 
 - ✅ Footnote Processing (4-phase: suppress → heuristics → AI scoring → context-free review, 93-98% junk removal)
 - ✅ Validation Tools (TOC/chapter alignment, structure validation)
 
-**In Progress**:
-- 🚧 EPUB Builder (EPUB 3.0 generation, CSS themes, cover images)
+**Migrated to Crimson Folio** (`crimson_folio/`):
+- ✅ EPUB Builder (EPUB 3.0 generation, CSS themes, cover images, Kindle delivery)
 
 **Future Enhancements**:
 - Advanced formatting rules engine
-- Multi-format output (PDF, MOBI)
 
 **Source Files Location**: `/Users/jacki/project_files/translation_project/wuxia_individual_files`

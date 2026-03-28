@@ -1,0 +1,1 @@
+"""Cover image pipeline modules."""

@@ -11,7 +11,7 @@
     "structure": "python cli/structure.py",
     "translate": "python cli/translate.py",
     "footnotes": "python cli/footnotes.py",
-    "epub": "python cli/build_epub.py",
+    "epub": "cd ../crimson_folio && python -m cli.build",
     "test": "pytest",
     "lint": "flake8 processors ai utils cli",
     "format": "black processors ai utils cli"

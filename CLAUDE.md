@@ -1,6 +1,6 @@
 # CLAUDE.md — Workspace Root
 
-This is the **agentic workspace** for two independent products: Iron Abacus (translation) and Jade Shuttle (extraction).
+This is the **agentic workspace** for four independent products: Iron Abacus (translation), Jade Shuttle (extraction), Crimson Folio (EPUB generation), and Amber Inkstone (period artwork curation).
 
 ## Workspace Structure
 
@@ -35,7 +35,30 @@ agentic_test_project/                    # GIT ROOT / WORKSPACE
 │   ├── cli/                             # CLI entry points
 │   └── tests/                           # Extraction tests
 │
-├── dev/                                 # DEV TOOLING (not part of either product)
+├── crimson_folio/                       # EPUB GENERATION PRODUCT (丹帙)
+│   ├── CLAUDE.md                        # EPUB builder architecture (source of truth)
+│   ├── builders/                        # EPUB3 assembly (epub_builder, cover, glossary)
+│   ├── covers/                          # Cover image composition (composer only)
+│   ├── styles/                          # CSS themes (kindle, modern, minimal)
+│   ├── delivery/                        # Kindle email delivery
+│   ├── utils/                           # LLM client, catalog lookup
+│   ├── cli/                             # CLI entry points
+│   ├── config/                          # Default paths, settings
+│   └── tests/                           # EPUB output tests
+│
+├── amber_inkstone/                      # PERIOD ARTWORK CURATOR (琥珀硯)
+│   ├── CLAUDE.md                        # Portfolio architecture (source of truth)
+│   ├── catalog/                         # Period grouping + portfolio DB
+│   ├── research/                        # DeepSeek art context research
+│   ├── sources/                         # Wikimedia Commons + Met Museum search
+│   ├── acquisition/                     # Image download + validation
+│   ├── models/                          # Data models
+│   ├── config/                          # Dynasty periods, defaults
+│   ├── utils/                           # DeepSeek LLM client
+│   ├── cli/                             # curate, browse, assign
+│   └── tests/                           # Portfolio tests
+│
+├── dev/                                 # DEV TOOLING (not part of any product)
 │   ├── test/                            # Test scripts (test_chapter1, test_glossary, etc.)
 │   ├── demo/                            # Demo scripts (glossary matching demos)
 │   ├── eval/                            # Evaluation scripts (prompt version comparison)
@@ -48,24 +71,33 @@ agentic_test_project/                    # GIT ROOT / WORKSPACE
 
 ## Key Principle
 
-**Two products**: `iron_abacus_translator/` (translation pipeline) and `jade_shuttle/` (ebook extraction). They communicate through raw JSON files and the shared DuckDB catalog. **Neither imports from the other.**
+**Four products**: `iron_abacus_translator/` (translation), `jade_shuttle/` (extraction), `crimson_folio/` (EPUB generation), and `amber_inkstone/` (period artwork curation). They communicate through JSON files and shared DuckDB databases. **No product imports from another.**
 
-- Both products use **no LLMs at extraction time** — jade_shuttle is purely deterministic
+- jade_shuttle uses **no LLMs** — purely deterministic extraction
 - iron_abacus_translator uses **OpenAI and DeepSeek** for translation
-- Claude's role is as the **developer** of both products, operating from this workspace
+- crimson_folio uses **DeepSeek** for cover art composition only
+- amber_inkstone uses **DeepSeek** for dynasty art research, searches Wikimedia/Met Museum APIs
+- Claude's role is as the **developer** of all four products, operating from this workspace
 - For iron_abacus architecture: **see `iron_abacus_translator/CLAUDE.md`**
 - For jade_shuttle architecture: **see `jade_shuttle/CLAUDE.md`**
+- For crimson_folio architecture: **see `crimson_folio/CLAUDE.md`**
+- For amber_inkstone architecture: **see `amber_inkstone/CLAUDE.md`**
 - For coding standards: **see `docs/BEST_PRACTICES.md`**
 
 ## Data Flow
 
 ```
-EPUB files  →  jade_shuttle  →  raw JSON  →  iron_abacus_translator  →  translated EPUB
+EPUB files  →  jade_shuttle  →  raw JSON  →  iron_abacus_translator  →  translated JSON  →  crimson_folio  →  EPUB file
+                                    ↕                                                            ↕
+                            DuckDB catalog                                              DuckDB catalog
+                                    ↕                                                            ↑
+                            amber_inkstone  →  artwork_portfolio.duckdb  →  --cover-from-portfolio
                                     ↕
-                            DuckDB catalog
+                            DeepSeek (art research)
+                            Wikimedia + Met Museum APIs
 ```
 
-Jade Shuttle produces raw JSON in the contract format. Iron Abacus consumes it. The DuckDB catalog (`works_translator.duckdb`) is shared state for deduplication and work tracking.
+Jade Shuttle produces raw JSON. Iron Abacus translates it. Amber Inkstone curates period artwork portfolios by dynasty. Crimson Folio renders EPUBs, using either direct image paths or portfolio-assigned covers. The DuckDB catalog (`works_translator.duckdb`) is shared state for deduplication, series metadata, and work tracking.
 
 ## LLM Provider Concurrency
 
@@ -112,6 +144,59 @@ python -m cli.ingest
 python -m cli.ingest --report /tmp/ingest_report.json
 ```
 
+### Crimson Folio (EPUB generation)
+
+```bash
+cd crimson_folio
+
+# Build EPUB from translated JSON
+python -m cli.build --input /path/to/translated.json --output book.epub
+python -m cli.build --input /path/to/translated.json  # auto-names from metadata
+
+# Build with AI-researched period artwork cover (legacy)
+python -m cli.build --input /path/to/translated.json --cover
+
+# Build with specific cover image
+python -m cli.build --input /path/to/translated.json --cover-image /path/to/art.jpg
+
+# Build with portfolio-assigned cover (from amber_inkstone)
+python -m cli.build --input /path/to/translated.json --cover-from-portfolio
+
+# Send to Kindle
+python -m delivery.send_to_kindle /path/to/book.epub
+python -m delivery.send_to_kindle /path/to/book.epub --dry-run
+
+# Tests
+pytest tests/
+```
+
+### Amber Inkstone (period artwork)
+
+```bash
+cd amber_inkstone
+
+# List period groups from catalog
+python -m cli.curate --list-periods
+
+# Build portfolio for one period
+python -m cli.curate --period "Ming Dynasty" --limit 20
+
+# Dry run — show queries without downloading
+python -m cli.curate --period "Ming Dynasty" --dry-run
+
+# Build for all periods
+python -m cli.curate --all --limit 10
+
+# Browse portfolio
+python -m cli.browse
+python -m cli.browse --period "Ming Dynasty"
+
+# Assign image to work
+python -m cli.assign --work D1379 --image ~/.amber_inkstone/images/ming_dynasty/abc123.jpg
+python -m cli.assign --list
+python -m cli.assign --work D1379 --clear
+```
+
 ## Running Dev Scripts
 
 Dev scripts resolve their own paths via `sys.path.insert`:
@@ -129,6 +214,7 @@ streamlit run dev/app_discover.py
 Agent definitions live in `.claude/agents/`:
 - Iron Abacus agents reference paths prefixed with `iron_abacus_translator/`
 - The `extractor-builder` agent works with `jade_shuttle/`
+- The `epub-builder` agent works with `crimson_folio/`
 - See each product's `CLAUDE.md` for details
 
 ## Environment
@@ -154,6 +240,8 @@ python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 pip install -r ../jade_shuttle/requirements.txt
+pip install -r ../crimson_folio/requirements.txt
+pip install -r ../amber_inkstone/requirements.txt
 ```
 
 ## Source Data
@@ -172,7 +260,8 @@ The pipeline uses **local DuckDB** files (not MotherDuck or any remote database)
 /Users/jacki/project_files/translation_project/db/
 ├── works_translator.duckdb    # Work catalog: titles, authors, series, enrichment metadata
 ├── pipeline_progress.duckdb   # DAG pipeline: per-stage progress tracking per work/volume
-└── glossary.duckdb            # Glossary data
+├── glossary.duckdb            # Glossary data
+└── artwork_portfolio.duckdb   # Amber Inkstone: artwork images, assignments, research cache
 ```
 
 These are local files — connect with `duckdb.connect(path)` directly, no network required.

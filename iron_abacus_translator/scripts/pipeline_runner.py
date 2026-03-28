@@ -31,6 +31,8 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+# Crimson Folio (EPUB builder) lives in a sibling product directory
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "crimson_folio"))
 
 from utils.progress_db import ProgressDB, ProgressEvent
 from workflows.dag_engine import DAGDefinition, NodeStatus
@@ -1605,7 +1607,7 @@ class EpubBuildProcessor(StageProcessor):
         return "epub_build"
 
     def process(self, data, filename, ctx):
-        from processors.epub_builder import EpubBuilder
+        from builders.epub_builder import EpubBuilder
 
         builder = EpubBuilder()
         output_dir = self.config.output_dir / ctx.work_id
@@ -1629,7 +1631,7 @@ class SendKindleProcessor(StageProcessor):
         return "send_kindle"
 
     def process(self, data, filename, ctx):
-        from utils.kindle_sender import KindleSender
+        from delivery.kindle_sender import KindleSender
 
         # In series mode, Kindle delivery is deferred to batch send at end
         if getattr(ctx, 'kindle_defer', False):
@@ -1843,7 +1845,7 @@ def run_series(
 
 def _send_series_to_kindle(series_name: str, epub_paths: List[Path]) -> List[str]:
     """Send all EPUBs from a series to Kindle in batch."""
-    from utils.kindle_sender import KindleSender
+    from delivery.kindle_sender import KindleSender
 
     sender = KindleSender()
     if not sender.kindle_emails:

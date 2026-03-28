@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Glossary Appendix Generator for EPUB
+Glossary Appendix Generator
 
 Generates a "Glossary of Terms" appendix from the FootnoteContextAccumulator
 and TranslationGlossary database. Filters to include only terms with reference value
 for the reader.
 
 Usage:
-    from utils.epub_glossary_generator import generate_glossary_appendix
+    from utils.glossary_generator import generate_glossary_appendix
 
     entries = generate_glossary_appendix(accumulator, glossary, character_classifications)
 """

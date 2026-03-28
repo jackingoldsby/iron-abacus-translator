@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Per-Chapter Footnote Renumbering for EPUB
+Per-Chapter Footnote Renumbering
 
 Current translated JSON has per-block footnotes [1], [2], [3]...
-For EPUB popup links, renumber per-chapter: Chapter 1 gets [1] through [N],
+For chapter-level display, renumber per-chapter: Chapter 1 gets [1] through [N],
 Chapter 2 restarts at [1].
 
 Usage:
-    from utils.epub_footnote_renumber import renumber_footnotes_per_chapter
+    from utils.footnote_renumber import renumber_footnotes_per_chapter
 
     data, chapter_map = renumber_footnotes_per_chapter(data)
 """
@@ -110,7 +110,7 @@ def main():
     from pathlib import Path
 
     if len(sys.argv) < 2:
-        print("Usage: python utils/epub_footnote_renumber.py <input.json> [output.json]")
+        print("Usage: python utils/footnote_renumber.py <input.json> [output.json]")
         return 1
 
     input_path = Path(sys.argv[1])

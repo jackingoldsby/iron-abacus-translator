@@ -3,10 +3,9 @@
 Send an EPUB file to Kindle via email.
 
 Usage:
-    python cli/send_to_kindle.py /path/to/book.epub
-    python cli/send_to_kindle.py /path/to/book.epub --dry-run
-    python cli/send_to_kindle.py /path/to/book.epub --email extra@kindle.com
-    python cli/send_to_kindle.py /path/to/book.epub --email a@kindle.com --email b@kindle.com
+    python -m delivery.send_to_kindle /path/to/book.epub
+    python -m delivery.send_to_kindle /path/to/book.epub --dry-run
+    python -m delivery.send_to_kindle /path/to/book.epub --email addr@kindle.com
 """
 
 import argparse
@@ -19,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from dotenv import load_dotenv
 load_dotenv()
 
-from utils.kindle_sender import KindleSender
+from delivery.kindle_sender import KindleSender
 
 
 def main():
@@ -34,10 +33,8 @@ def main():
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-    # Build recipient list: env + CLI overrides
     sender = KindleSender()
     if args.emails:
-        # Append CLI emails to any from env
         for addr in args.emails:
             if addr not in sender.kindle_emails:
                 sender.kindle_emails.append(addr)

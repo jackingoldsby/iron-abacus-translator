@@ -1,0 +1,8 @@
+/* Modern theme — placeholder for future development */
+/* Import base styles and override for a cleaner, modern look */
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  line-height: 1.7;
+  margin: 1em;
+}

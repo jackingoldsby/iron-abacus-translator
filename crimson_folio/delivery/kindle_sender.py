@@ -6,7 +6,7 @@ Sends EPUB files to Kindle device(s) via Amazon's Send-to-Kindle email service.
 Uses SMTP with stdlib only (no extra dependencies).
 
 Usage:
-    from utils.kindle_sender import KindleSender
+    from delivery.kindle_sender import KindleSender
 
     sender = KindleSender()
     results = sender.send("/path/to/book.epub")
@@ -97,7 +97,6 @@ class KindleSender:
         """
         epub_path = Path(epub_path)
 
-        # Validate file
         if not epub_path.exists():
             raise FileNotFoundError(f"File not found: {epub_path}")
 
@@ -110,7 +109,6 @@ class KindleSender:
                 f"File too large: {file_size_mb:.1f}MB (max {MAX_FILE_SIZE_MB}MB)"
             )
 
-        # Validate config
         missing = self.validate_config()
         if missing:
             raise RuntimeError(
@@ -128,7 +126,6 @@ class KindleSender:
             logger.info("[DRY RUN] Would send via %s:%d as %s", self.smtp_host, self.smtp_port, self.smtp_user)
             return {email: True for email in recipients}
 
-        # Read EPUB once for all recipients
         epub_data = epub_path.read_bytes()
 
         results = {}
@@ -149,7 +146,6 @@ class KindleSender:
 
         except smtplib.SMTPException as e:
             logger.error("SMTP connection error: %s", e)
-            # Mark all unsent recipients as failed
             for email in recipients:
                 if email not in results:
                     results[email] = False
@@ -165,7 +161,7 @@ class KindleSender:
         msg["To"] = to_email
         msg["Subject"] = "convert"  # Amazon converts EPUB to Kindle format
 
-        msg.attach(MIMEText("Sent by Iron Abacus Translator", "plain"))
+        msg.attach(MIMEText("Sent by Crimson Folio", "plain"))
 
         part = MIMEBase("application", "epub+zip")
         part.set_payload(epub_data)

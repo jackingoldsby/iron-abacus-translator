@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "amber-inkstone"
+version = "0.1.0"
+description = "Amber Inkstone (琥珀硯) — Period artwork portfolio curator for wuxia novel covers"
+requires-python = ">=3.11"
+
+dependencies = [
+    "Pillow>=10.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.31.0",
+    "tqdm>=4.65.0",
+    "duckdb>=0.9.0",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+amber-curate = "cli.curate:main"
+amber-browse = "cli.browse:main"
+amber-assign = "cli.assign:main"
+
+[tool.setuptools.packages.find]
+where = ["."]

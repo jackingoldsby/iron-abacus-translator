@@ -47,7 +47,7 @@ book-clean = "cli.clean:main"
 book-structure = "cli.structure:main"
 book-translate = "cli.translate:main"
 book-footnotes = "cli.footnotes:main"
-book-epub = "cli.build_epub:main"
+# EPUB building moved to crimson_folio product — use: cd ../crimson_folio && python -m cli.build
 
 [tool.setuptools.packages.find]
 include = ["processors*", "ai*", "utils*", "cli*", "wrappers*"]

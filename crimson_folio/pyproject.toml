@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "crimson-folio"
+version = "0.1.0"
+description = "Crimson Folio (丹帙) — EPUB builder for translated wuxia novels"
+requires-python = ">=3.11"
+
+dependencies = [
+    "ebooklib>=0.18",
+    "Pillow>=10.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.31.0",
+    "tqdm>=4.65.0",
+    "duckdb>=0.9.0",
+]
+
+[project.scripts]
+crimson-build = "cli.build:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
