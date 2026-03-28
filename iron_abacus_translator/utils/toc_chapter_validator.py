@@ -22,8 +22,9 @@ import re
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
-from openai import OpenAI
 from dotenv import load_dotenv
+
+from utils.clients import get_llm_client, LLMRequest
 
 # Load environment variables
 load_dotenv(override=True)
@@ -83,28 +84,28 @@ class ValidationReport:
 class TOCChapterValidator:
     """Comprehensive TOC/Chapter alignment validator"""
 
-    def __init__(self, use_ai: bool = True, model: str = "gpt-4.1-nano", temperature: float = 0.1):
+    def __init__(self, use_ai: bool = True, model: str = None, temperature: float = 0.1):
         """
         Initialize validator.
 
         Args:
-            use_ai: Use OpenAI for semantic validation
-            model: OpenAI model to use
+            use_ai: Use LLM for semantic validation
+            model: Explicit model override (if None, resolved from provider config)
             temperature: Temperature for generation (low for consistency)
         """
         self.use_ai = use_ai
-        self.model = model
         self.temperature = temperature
         self.client = None
 
         if use_ai:
-            api_key = os.environ.get("OPENAI_API_KEY")
-            if api_key:
-                self.client = OpenAI(api_key=api_key)
-                logger.info(f"OpenAI client initialized with model: {model}")
-            else:
-                logger.warning("OPENAI_API_KEY not found, AI validation disabled")
+            try:
+                self.client = get_llm_client(component="validator", model=model)
+                self.model = self.client.model
+                logger.info(f"LLM client initialized with model: {self.model}")
+            except Exception as e:
+                logger.warning(f"LLM client init failed ({e}), AI validation disabled")
                 self.use_ai = False
+                self.model = model
 
     def extract_chapter_headings(self, chapters: List[Dict[str, Any]]) -> List[ChapterHeading]:
         """
@@ -361,7 +362,7 @@ class TOCChapterValidator:
                     ))
 
     def _ai_validate_mismatches(self, report: ValidationReport):
-        """Use AI to validate mismatches semantically"""
+        """Use LLM to validate mismatches semantically"""
         if not self.client:
             return
 
@@ -383,7 +384,7 @@ class TOCChapterValidator:
             self._ai_validate_batch(batch)
 
     def _ai_validate_batch(self, mismatches: List[AlignmentIssue]):
-        """Validate a batch of mismatches with AI"""
+        """Validate a batch of mismatches with LLM"""
         if not self.client:
             return
 
@@ -428,18 +429,16 @@ Respond with JSON:
 """
 
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
+            response = self.client.chat(LLMRequest(
                 messages=[
                     {"role": "system", "content": "You are a precise book structure validator. Return only valid JSON."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=self.temperature,
-                response_format={"type": "json_object"}
-            )
+                json_mode=True,
+            ))
 
-            content = response.choices[0].message.content
-            data = json.loads(content)
+            data = response.parsed
 
             # Update issues with AI results
             for validation in data.get('validations', []):

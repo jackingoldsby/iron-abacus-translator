@@ -193,6 +193,9 @@ class MissingChapterFinder:
 
     def _parse_chinese_number(self, numeral_text: str) -> Optional[int]:
         """Parse Chinese numerals to integers"""
+        if not isinstance(numeral_text, str):
+            return int(numeral_text) if isinstance(numeral_text, (int, float)) else None
+
         numerals = {
             '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
             '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,

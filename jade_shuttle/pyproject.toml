@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jade-shuttle"
+version = "0.1.0"
+description = "Ebook extraction pipeline — transforms ebook collections into structured JSON for translation"
+requires-python = ">=3.10"
+dependencies = [
+    "ebooklib>=0.18",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=4.9.0",
+    "opencc-python-reimplemented>=0.1.7",
+    "duckdb>=1.0.0",
+    "tqdm>=4.65.0",
+]
+
+[project.scripts]
+jade-ingest = "cli.ingest:main"

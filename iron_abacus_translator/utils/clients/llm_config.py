@@ -48,12 +48,15 @@ _PROVIDER_API_KEY_ENV = {
 _COMPONENT_MODEL_DEFAULTS = {
     "openai": {
         "translator": "gpt-4.1-mini",
+        "validator": "gpt-4.1-nano",
     },
     "anthropic": {
         "translator": "claude-sonnet-4-20250514",
+        "validator": "claude-sonnet-4-20250514",
     },
     "deepseek": {
         "translator": "deepseek-chat",
+        "validator": "deepseek-chat",
     },
 }
 

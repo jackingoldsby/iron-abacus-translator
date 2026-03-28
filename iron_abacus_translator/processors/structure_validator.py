@@ -102,7 +102,7 @@ class StructureValidator:
 
     def __init__(
         self,
-        model: str = DEFAULT_MODEL,
+        model: str = None,
         temperature: float = DEFAULT_TEMPERATURE,
         timeout: int = DEFAULT_TIMEOUT,
         api_key: Optional[str] = None,
@@ -112,19 +112,19 @@ class StructureValidator:
         Initialize the validator.
 
         Args:
-            model: Model to use
+            model: Explicit model override (if None, resolved from provider config)
             temperature: Model temperature (lower = more consistent)
             timeout: Timeout in seconds
             api_key: API key (defaults to env var)
             llm_client: Pre-configured LLMClient (overrides provider lookup)
         """
-        self.model = model
         self.temperature = temperature
         self.timeout = timeout
         self.llm = llm_client or get_llm_client(
             component="validator", model=model, api_key=api_key
         )
-        logger.info(f"StructureValidator initialized with model: {model}")
+        self.model = self.llm.model
+        logger.info(f"StructureValidator initialized with model: {self.model}")
 
     def validate(self, data: Dict[str, Any]) -> ValidationResult:
         """
@@ -593,8 +593,8 @@ def main():
     )
     parser.add_argument(
         "--model",
-        default=DEFAULT_MODEL,
-        help=f"OpenAI model (default: {DEFAULT_MODEL})"
+        default=None,
+        help=f"Model override (default: resolved from LLM_PROVIDER config)"
     )
     parser.add_argument(
         "--no-report",
