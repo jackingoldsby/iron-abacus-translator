@@ -760,8 +760,8 @@ def clean_book_json(
     Args:
         input_path: Path to input JSON file
         language_hint: Optional language hint (zh, zh-Hans, zh-Hant, en, etc.)
-        catalog_path: Path to wuxia_catalog.db for metadata enrichment
-        directory_name: Directory name for catalog lookup (e.g., 'wuxia_0114')
+        catalog_path: Path to works_translator.duckdb for metadata enrichment
+        directory_name: Directory name for catalog lookup (e.g., 'work_0114')
         use_ai_validation: Use OpenAI for topology validation
 
     Returns:
@@ -1192,12 +1192,12 @@ def main():
 
     parser.add_argument(
         '--catalog-path',
-        help='Path to wuxia_catalog.db for metadata enrichment'
+        help='Path to works_translator.duckdb for metadata enrichment'
     )
 
     parser.add_argument(
         '--directory-name',
-        help='Directory name for catalog lookup (e.g., wuxia_0114)'
+        help='Directory name for catalog lookup (e.g., work_0114)'
     )
 
     parser.add_argument(

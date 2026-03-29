@@ -63,7 +63,7 @@ class VolumeAwareValidator:
         Initialize validator.
 
         Args:
-            catalog_path: Path to wuxia_catalog.db
+            catalog_path: Path to works_translator.duckdb
         """
         self.catalog_path = Path(catalog_path)
         if not self.catalog_path.exists():
@@ -394,7 +394,7 @@ def main():
 
     if len(sys.argv) < 6:
         print("Usage: python volume_aware_validator.py <catalog_path> <work_number> <volume> <chapter_start> <chapter_end> <chapter_count>")
-        print("Example: python volume_aware_validator.py wuxia_catalog.db D61 002 12 22 11")
+        print("Example: python volume_aware_validator.py works_translator.duckdb D61 002 12 22 11")
         return 1
 
     catalog_path = sys.argv[1]

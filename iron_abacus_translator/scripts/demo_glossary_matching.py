@@ -23,17 +23,17 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    """Demonstrate glossary matching on wuxia_0004 source text"""
+    """Demonstrate glossary matching on work_0004 source text"""
 
-    # Load cleaned JSON (use wuxia_0004 which is "書劍恩仇錄")
+    # Load cleaned JSON (use work_0004 which is "書劍恩仇錄")
     from utils.environment_config import get_or_create_config
     _raw = get_or_create_config().raw_dir
-    input_path = _raw / "wuxia_0004" / "D58a_書劍恩仇錄上_金庸.json"
+    input_path = _raw / "work_0004" / "D58a_書劍恩仇錄上_金庸.json"
 
     if not input_path.exists():
         logger.error(f"Input file not found: {input_path}")
         logger.error("Available alternatives:")
-        alt_path = _raw / "wuxia_0004" / "D58b_書劍恩仇錄下_金庸.json"
+        alt_path = _raw / "work_0004" / "D58b_書劍恩仇錄下_金庸.json"
         if alt_path.exists():
             logger.info(f"  Found: {alt_path}")
         return 1

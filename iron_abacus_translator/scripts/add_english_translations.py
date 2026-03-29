@@ -21,7 +21,7 @@ def add_translations_to_file(json_file: Path, catalog_path: str) -> bool:
     Returns:
         True if updated, False if skipped
     """
-    # Get directory name (e.g., wuxia_0001)
+    # Get directory name (e.g., work_0001)
     directory_name = json_file.parent.name
 
     # Load JSON
@@ -86,7 +86,7 @@ def main():
     parser.add_argument(
         '--catalog-path',
         required=True,
-        help='Path to catalog database (wuxia_catalog.db)'
+        help='Path to catalog database (works_translator.duckdb)'
     )
     parser.add_argument(
         '--dry-run',

@@ -132,7 +132,7 @@ docs/
 └── reports/                       # Analysis reports & bug reports
     ├── TOC_REGENERATION_BUG_FIX.md
     ├── glossary_integration_complete.md
-    └── wuxia_deduplication_guide.md
+    └── deduplication_guide.md
 ```
 
 **Rules**:
@@ -148,10 +148,10 @@ docs/
 ```
 data/
 ├── glossaries/                    # Glossary CSV files
-│   ├── wuxia_translation_glossary.csv
-│   ├── wuxia_translation_glossary_additions.csv
-│   ├── wuxia_glossary_merged.csv
-│   └── candidate_wuxia_terms.csv
+│   ├── translation_glossary.csv
+│   ├── translation_glossary_additions.csv
+│   ├── glossary_merged.csv
+│   └── candidate_terms.csv
 │
 └── analysis/                      # Generated analysis outputs
     ├── classification_data.json
@@ -222,7 +222,7 @@ project_root/
 ├── EPUB_FORMATTING_STRATEGY.md          ❌ Should be in docs/formatting/
 ├── GLOSSARY_INTEGRATION_GUIDE.md        ❌ Should be in docs/translation/
 ├── TOC_REGENERATION_BUG_FIX_REPORT.md   ❌ Should be in docs/reports/
-└── wuxia_deduplication_guide.md         ❌ Should be in docs/reports/
+└── deduplication_guide.md         ❌ Should be in docs/reports/
 ```
 
 ```
@@ -237,7 +237,7 @@ project_root/
     │   └── GLOSSARY_INTEGRATION_GUIDE.md ✓
     └── reports/
         ├── TOC_REGENERATION_BUG_FIX.md   ✓
-        └── wuxia_deduplication_guide.md  ✓
+        └── deduplication_guide.md  ✓
 ```
 
 #### Violation: Scripts in Root
@@ -267,10 +267,10 @@ project_root/
 ```
 # BAD - Data files everywhere
 project_root/
-├── wuxia_translation_glossary.csv       ❌ Should be in data/glossaries/
+├── translation_glossary.csv       ❌ Should be in data/glossaries/
 ├── classification_data.json             ❌ Should be in data/analysis/
 ├── deduplication_report.json            ❌ Should be in data/analysis/
-└── candidate_wuxia_terms.csv            ❌ Should be in data/glossaries/
+└── candidate_terms.csv            ❌ Should be in data/glossaries/
 ```
 
 ```
@@ -278,8 +278,8 @@ project_root/
 project_root/
 └── data/
     ├── glossaries/
-    │   ├── wuxia_translation_glossary.csv    ✓
-    │   └── candidate_wuxia_terms.csv         ✓
+    │   ├── translation_glossary.csv    ✓
+    │   └── candidate_terms.csv         ✓
     └── analysis/
         ├── classification_data.json          ✓
         └── deduplication_report.json         ✓
@@ -682,8 +682,8 @@ if char == '廿':
 ### Input Data
 
 - **Location**: Symlinked to `translation_data/` (not in git)
-- **Source**: `/Users/jacki/project_files/translation_project/wuxia_individual_files/`
-- **Format**: Raw JSON files organized by work directory (`wuxia_NNNN/`)
+- **Source**: `/Users/jacki/project_files/translation_project/work_individual_files/`
+- **Format**: Raw JSON files organized by work directory (`work_NNNN/`)
 
 ### Output Data
 
@@ -698,15 +698,15 @@ if char == '廿':
 ### Database Files
 
 - **Location**: Not in git (too large, contains data)
-- **Catalog**: `/Users/jacki/project_files/translation_project/wuxia_catalog.db`
+- **Catalog**: `/Users/jacki/project_files/translation_project/db/works_translator.duckdb`
 - **Schema**: See `utils/catalog_metadata.py` for structure
 - **Access**: Use provided helper classes, don't write raw SQL
 
 ```python
 from utils.catalog_metadata import CatalogMetadataExtractor
 
-extractor = CatalogMetadataExtractor('wuxia_catalog.db')
-metadata = extractor.get_metadata_by_directory('wuxia_0117')
+extractor = CatalogMetadataExtractor('works_translator.duckdb')
+metadata = extractor.get_metadata_by_directory('work_0117')
 ```
 
 ### Logs
@@ -1002,8 +1002,8 @@ nano .env  # or use your favorite editor
 ```bash
 # Source data paths
 WUXIA_SOURCE_DIR=/path/to/your/cleaned/source/files
-WUXIA_CATALOG_PATH=/path/to/your/wuxia_catalog.db
-WUXIA_GLOSSARY_DB_PATH=./wuxia_glossary.db
+WUXIA_CATALOG_PATH=/path/to/your/works_translator.duckdb
+WUXIA_GLOSSARY_DB_PATH=./glossary.duckdb
 
 # Output paths (project-relative is recommended)
 WUXIA_OUTPUT_DIR=./translation_data/outputs
@@ -1025,14 +1025,14 @@ OPENAI_API_KEY=your-openai-api-key-here
 
 **WUXIA_CATALOG_PATH**
 - Purpose: Path to wuxia catalog SQLite database
-- Default: `/Users/jacki/project_files/translation_project/wuxia_catalog.db`
-- Example: `/path/to/your/wuxia_catalog.db`
+- Default: `/Users/jacki/project_files/translation_project/works_translator.duckdb`
+- Example: `/path/to/your/works_translator.duckdb`
 - Used by: Metadata extraction, catalog queries
 
 **WUXIA_GLOSSARY_DB_PATH**
 - Purpose: Path to wuxia glossary SQLite database
-- Default: `./wuxia_glossary.db` (project root)
-- Example: `./wuxia_glossary.db` or `/path/to/glossary.db`
+- Default: `./glossary.duckdb` (project root)
+- Example: `./glossary.duckdb` or `/path/to/glossary.db`
 - Used by: Translation glossary lookup, term matching
 
 #### Output Paths
@@ -1185,7 +1185,7 @@ WUXIA_LOG_DIR=/Users/jacki/logs
 **Good** (explicit, clear):
 ```bash
 WUXIA_SOURCE_DIR=/path/to/external/data/source
-WUXIA_CATALOG_PATH=/path/to/external/data/wuxia_catalog.db
+WUXIA_CATALOG_PATH=/path/to/external/data/works_translator.duckdb
 ```
 
 **Why**: External data locations vary by environment and shouldn't be inside the project.
@@ -1222,8 +1222,8 @@ Python's `Path` handles forward slashes correctly on all platforms.
 ```bash
 # .env
 WUXIA_SOURCE_DIR=/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS
-WUXIA_CATALOG_PATH=/Users/jacki/project_files/translation_project/wuxia_catalog.db
-WUXIA_GLOSSARY_DB_PATH=./wuxia_glossary.db
+WUXIA_CATALOG_PATH=/Users/jacki/project_files/translation_project/works_translator.duckdb
+WUXIA_GLOSSARY_DB_PATH=./glossary.duckdb
 WUXIA_OUTPUT_DIR=./translation_data/outputs
 WUXIA_LOG_DIR=./logs/translation
 OPENAI_API_KEY=sk-proj-your-key-here
@@ -1273,7 +1273,7 @@ cp .env.example .env
 
 **Before** (hardcoded):
 ```python
-catalog_path = "/Users/jacki/project_files/translation_project/wuxia_catalog.db"
+catalog_path = "/Users/jacki/project_files/translation_project/works_translator.duckdb"
 ```
 
 **After** (environment-based):
@@ -1298,8 +1298,8 @@ python utils/environment_config.py
 # Project Root: /Users/jacki/PycharmProjects/iron_abacus_translator
 # Source Paths:
 #   Source Dir: /Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS
-#   Catalog DB: /Users/jacki/project_files/translation_project/wuxia_catalog.db
-#   Glossary DB: /Users/jacki/PycharmProjects/iron_abacus_translator/wuxia_glossary.db
+#   Catalog DB: /Users/jacki/project_files/translation_project/works_translator.duckdb
+#   Glossary DB: /Users/jacki/PycharmProjects/iron_abacus_translator/glossary.duckdb
 # Output Paths:
 #   Output Dir: /Users/jacki/PycharmProjects/iron_abacus_translator/translation_data/outputs
 #   Log Dir: /Users/jacki/PycharmProjects/iron_abacus_translator/logs/translation

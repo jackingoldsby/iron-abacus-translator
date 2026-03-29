@@ -925,7 +925,91 @@ AUTHOR_STYLES = {
 
 
 # =============================================================================
-# RESOLUTION
+# 3-AXIS PROMPT REGISTRY
+# =============================================================================
+#
+# Keys: (genre, target_lang, author)
+#   - author = None for genre defaults
+#   - All existing flat PROMPT_REGISTRY entries are indexed as
+#     ("wuxia", "en", author) for author-specific prompts and
+#     (genre, "en", None) for genre defaults.
+#
+# Resolution order (most specific → least):
+#   1. (genre, lang, author)   — author-specific, language-specific
+#   2. (genre, lang, None)     — genre default for this language
+#   3. (genre, "en", author)   — fall back to English for this author
+#   4. (genre, "en", None)     — ultimate fallback: English genre default
+#
+# Mechanical rules (_MECHANICAL_RULES_GPT / _MECHANICAL_RULES_DEEPSEEK)
+# are invariant hard constraints applied independently of all three axes.
+# They are appended by build_system_prompt() regardless of the registry key.
+
+_PROMPT_REGISTRY_3AXIS = {}
+
+# Populate from existing flat registry — all current entries are English
+for _key, _prompt in PROMPT_REGISTRY.items():
+    if _key in ("wuxia", "classical"):
+        # Genre defaults
+        _PROMPT_REGISTRY_3AXIS[(_key, "en", None)] = _prompt
+    else:
+        # Author-specific (default genre = wuxia)
+        _PROMPT_REGISTRY_3AXIS[("wuxia", "en", _key)] = _prompt
+
+# Language-specific mechanical rules.
+# The hard constraints (zero ideograms, tone marks, gender tracking,
+# footnote marker validation) are INVARIANT — they appear in all
+# mechanical rule variants and must remain so for every target language.
+_MECHANICAL_RULES_BY_LANG = {
+    "en": {
+        "gpt": _MECHANICAL_RULES_GPT,
+        "deepseek": _MECHANICAL_RULES_DEEPSEEK,
+    },
+    # Future languages inherit English rules until language-specific
+    # variants are written.  The hard constraints remain invariant.
+}
+
+
+def _get_mechanical_rules(target_lang: str = "en", provider: str = None) -> str:
+    """Return the appropriate mechanical rules for a target language and provider.
+
+    Hard constraints (zero ideograms, tone marks, gender pronouns,
+    footnote marker validation) are invariant across all dimensions.
+    """
+    lang_rules = _MECHANICAL_RULES_BY_LANG.get(target_lang,
+                                                 _MECHANICAL_RULES_BY_LANG["en"])
+    if provider == "deepseek":
+        return lang_rules.get("deepseek", lang_rules["gpt"])
+    return lang_rules.get("gpt", _MECHANICAL_RULES_GPT)
+
+
+def resolve_3axis_prompt(
+    genre: str = "wuxia",
+    target_lang: str = "en",
+    author: str = None,
+) -> str:
+    """Look up the creative brief from the 3-axis registry with fallback.
+
+    Resolution order:
+      1. (genre, lang, author)
+      2. (genre, lang, None)
+      3. (genre, "en", author)
+      4. (genre, "en", None)
+    """
+    for key in [
+        (genre, target_lang, author),
+        (genre, target_lang, None),
+        (genre, "en", author),
+        (genre, "en", None),
+    ]:
+        prompt = _PROMPT_REGISTRY_3AXIS.get(key)
+        if prompt is not None:
+            return prompt
+    # Ultimate fallback
+    return PROMPT_REGISTRY.get("wuxia", "")
+
+
+# =============================================================================
+# RESOLUTION (backward-compatible helpers)
 # =============================================================================
 
 # Mapping from catalog category_english values to genre keys
@@ -969,7 +1053,7 @@ def get_author_key(author_chinese: str = None) -> str:
 
 
 def resolve_prompt_key(author_chinese: str = None, category_english: str = None) -> str:
-    """Resolve author + category to a single prompt key.
+    """Resolve author + category to a single prompt key (flat registry).
 
     Priority: author (if we have a prompt for them) → genre → "wuxia".
 
@@ -1039,12 +1123,16 @@ def build_system_prompt(
     genre: str = "wuxia",
     author: str = None,
     provider: str = None,
+    target_lang: str = "en",
 ) -> str:
     """
     Build the complete system prompt with suppress list injected.
 
-    Resolution: author → genre → "wuxia" default.
-    Mechanical rules variant selected by provider (deepseek → lighter rules).
+    Uses the 3-axis registry ``(genre, target_lang, author)`` with
+    automatic fallback to English defaults.  Mechanical rules (hard
+    constraints: zero ideograms, tone marks, gender pronouns, footnote
+    marker validation) are **invariant** across all three dimensions
+    and are appended regardless of the creative-brief selection.
 
     Args:
         suppress_list_path: Path to suppress list JSON (uses default if None).
@@ -1053,32 +1141,37 @@ def build_system_prompt(
         author: Author key (author_chinese). Takes priority over genre.
         provider: LLM provider ("openai", "deepseek", "anthropic", etc.).
             DeepSeek gets lighter mechanical rules; all others get full GPT rules.
+        target_lang: ISO 639-1 target language code (default "en").
 
     Returns:
         Complete system prompt string ready for API call.
     """
     suppress_section = build_suppress_section(suppress_list_path)
 
-    key = resolve_prompt_key(author, genre if genre != "wuxia" else None)
-    # If genre was explicitly passed and author didn't match, use genre
-    if not get_author_key(author):
-        key = genre if genre in PROMPT_REGISTRY else "wuxia"
+    # Resolve creative brief from 3-axis registry
+    author_key = get_author_key(author)
+    effective_genre = genre if genre in PROMPT_REGISTRY else "wuxia"
+    template = resolve_3axis_prompt(
+        genre=effective_genre,
+        target_lang=target_lang,
+        author=author_key,
+    )
 
-    # Select mechanical rules based on provider
-    if provider == "deepseek":
-        rules = _MECHANICAL_RULES_DEEPSEEK
-    else:
-        rules = _MECHANICAL_RULES_GPT  # default for openai, anthropic, unknown
+    # Mechanical rules are invariant hard constraints — selected by
+    # (target_lang, provider) only, never by genre or author.
+    rules = _get_mechanical_rules(target_lang=target_lang, provider=provider)
 
-    template = PROMPT_REGISTRY.get(key, PROMPT_REGISTRY["wuxia"])
     # Append mechanical rules, then inject suppress list into the combined text
     prompt = (template + rules).replace("{suppress_list_section}", suppress_section)
 
     if already_footnoted_context:
         prompt += f"\n\n{already_footnoted_context}"
 
-    _logger.info(f"Built system prompt: key={key}, provider={provider or 'default'}, "
-                 f"rules={'deepseek' if provider == 'deepseek' else 'gpt'}")
+    _logger.info(
+        f"Built system prompt: genre={effective_genre}, lang={target_lang}, "
+        f"author={author_key or 'default'}, provider={provider or 'default'}, "
+        f"rules={'deepseek' if provider == 'deepseek' else 'gpt'}"
+    )
 
     return prompt
 

@@ -25,7 +25,7 @@ The wrapper is located at:
 ```python
 # Required
 from processors.translator import TranslationService
-from utils.wuxia_glossary import WuxiaGlossary  # Optional
+from utils.glossary import TranslationGlossary  # Optional
 
 # External
 import openai  # openai>=1.0.0
@@ -86,7 +86,7 @@ wrapper = ContentBlockTranslationWrapper(
     max_retries=10,
     quality_threshold=8.0,
     timeout=180,
-    glossary_path=Path("./wuxia_glossary.db")
+    glossary_path=Path("./glossary.db")
 )
 ```
 

@@ -238,7 +238,7 @@ class CatalogInterface(ABC):
         Get metadata for a work by its directory name.
 
         Args:
-            directory_name: Directory name (e.g., "wuxia_0117")
+            directory_name: Directory name (e.g., "work_0117")
 
         Returns:
             WorkMetadata if found, None otherwise

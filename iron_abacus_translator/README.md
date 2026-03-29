@@ -85,7 +85,7 @@ iron-abacus-translator/
 │   └── translate_work.py         Translation orchestration
 │
 ├── config/                  # Configuration files
-│   └── wuxia_suppress_list.json  Footnote suppress list (100+ terms)
+│   └── suppress_list.json       Footnote suppress list (100+ terms)
 │
 ├── cli/                     # Command-line interfaces
 ├── wrappers/                # Translation wrappers

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The wuxia glossary database (`wuxia_glossary.db`) has been successfully integrated into the translation pipeline. This ensures **consistent terminology, exact pinyin romanization, and standardized footnotes** across all translations.
+The wuxia glossary database (`glossary.duckdb`) has been successfully integrated into the translation pipeline. This ensures **consistent terminology, exact pinyin romanization, and standardized footnotes** across all translations.
 
 ## What Was Updated
 
@@ -41,10 +41,10 @@ The wuxia glossary database (`wuxia_glossary.db`) has been successfully integrat
 - No changes needed - glossary integration is transparent
 - Works with existing checkpoint/resume functionality
 
-### 3. Glossary Utility (`utils/wuxia_glossary.py`)
+### 3. Glossary Utility (`utils/glossary.py`)
 
 **Already Implemented:**
-- `WuxiaGlossary` class for SQLite lookups
+- `TranslationGlossary` class for SQLite lookups
 - `find_in_text()` - Pattern matching in Chinese text
 - `GlossaryEntry` dataclass with all metadata
 - Caching for performance
@@ -63,7 +63,7 @@ python scripts/translate_work.py D58 --volume a
 ```
 
 **Default behavior:**
-- Glossary loaded from `wuxia_glossary.db` in project root
+- Glossary loaded from `glossary.duckdb` in project root
 - If not found, proceeds without glossary (with warning)
 - No configuration needed - just works
 
@@ -76,7 +76,7 @@ from pathlib import Path
 # Use custom glossary location
 service = TranslationService(
     model='gpt-4.1-nano',
-    glossary_path=Path('/custom/path/wuxia_glossary.db')
+    glossary_path=Path('/custom/path/glossary.duckdb')
 )
 ```
 
@@ -272,7 +272,7 @@ Translation Request Flow:
 ┌─────────────────────────────────────────────────────────────┐
 │ 2. TranslationService.translate()                           │
 │    - Calls _scan_glossary_terms(source_text)                │
-│    - WuxiaGlossary.find_in_text() → List[GlossaryEntry]     │
+│    - TranslationGlossary.find_in_text() → List[GlossaryEntry]     │
 │    - Up to 30 terms matched by position                     │
 └────────────────────┬────────────────────────────────────────┘
                      │
@@ -346,13 +346,13 @@ Output shows:
 
 ### Glossary Not Loading
 ```
-WARNING - Wuxia glossary not found at wuxia_glossary.db, proceeding without glossary
+WARNING - Glossary not found at glossary.duckdb, proceeding without glossary
 ```
 
 **Solution:**
-- Ensure `wuxia_glossary.db` exists in project root
+- Ensure `glossary.duckdb` exists in project root
 - Or specify custom path in config
-- Database created by `scripts/deduplicate_wuxia_glossary.py`
+- Database created by `scripts/deduplicate_glossary.py`
 
 ### No Terms Matched
 ```
@@ -391,12 +391,12 @@ After translation, a separate deduplication stage will:
 ### Glossary Expansion
 To add more terms:
 ```bash
-# Edit wuxia_translation_glossary.csv
+# Edit translation_glossary.csv
 # Add new rows with required fields
 # Run deduplication script
-python scripts/deduplicate_wuxia_glossary.py
+python scripts/deduplicate_glossary.py
 
-# This regenerates wuxia_glossary.db
+# This regenerates glossary.duckdb
 # No code changes needed - translation picks up new terms automatically
 ```
 
@@ -427,8 +427,8 @@ python scripts/deduplicate_wuxia_glossary.py
 
 - **WUXIA_TRANSLATION_EXAMPLES.md** - Example translations with glossary terms
 - **GLOSSARY_UPDATE_CHANGELOG.md** - Glossary update history
-- **wuxia_deduplication_guide.md** - Deduplication strategy reference
-- **utils/wuxia_glossary.py** - Glossary API documentation
+- **deduplication_guide.md** - Deduplication strategy reference
+- **utils/glossary.py** - Glossary API documentation
 
 ## Summary
 

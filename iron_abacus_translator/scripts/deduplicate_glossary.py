@@ -472,13 +472,13 @@ def main():
     parser.add_argument(
         '--glossary',
         type=Path,
-        default=Path('data/glossaries/wuxia_translation_glossary.csv'),
+        default=Path('data/glossaries/translation_glossary.csv'),
         help='Path to main glossary CSV (authoritative)'
     )
     parser.add_argument(
         '--candidates',
         type=Path,
-        default=Path('data/glossaries/candidate_wuxia_terms.csv'),
+        default=Path('data/glossaries/candidate_terms.csv'),
         help='Path to candidate terms CSV'
     )
     parser.add_argument(

@@ -33,15 +33,15 @@ class ChapterAlignmentFixer:
     # Ordered by specificity (most specific first)
     CHAPTER_PATTERNS = [
         # Chinese traditional formats (回 = hui/episode)
-        r'第[一二三四五六七八九十百千\d]+回[　\s]+(.+)',      # 第N回 Title (with title)
-        r'第[一二三四五六七八九十百千\d]+回[　\s]*$',        # 第N回 (no title)
+        r'第[一二三四五六七八九十百千○〇\d]+回[　\s]+(.+)',      # 第N回 Title (with title)
+        r'第[一二三四五六七八九十百千○〇\d]+回[　\s]*$',        # 第N回 (no title)
 
         # Chinese modern formats (章 = zhang/chapter)
-        r'第[一二三四五六七八九十百千\d]+章[　\s]+(.+)',      # 第N章 Title (with title)
-        r'第[一二三四五六七八九十百千\d]+章[　\s]*$',        # 第N章 (no title)
+        r'第[一二三四五六七八九十百千○〇\d]+章[　\s]+(.+)',      # 第N章 Title (with title)
+        r'第[一二三四五六七八九十百千○〇\d]+章[　\s]*$',        # 第N章 (no title)
 
         # Without 第 prefix
-        r'([一二三四五六七八九十百千]+)　(.+)',              # N　Title (traditional)
+        r'([一二三四五六七八九十百千○〇]+)　(.+)',              # N　Title (traditional)
         r'(\d+)　(.+)',                                      # 1　Title (numeric)
 
         # English formats

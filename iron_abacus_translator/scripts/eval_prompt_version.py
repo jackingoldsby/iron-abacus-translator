@@ -20,8 +20,8 @@ from processors.translator import TranslationService, TranslationRequest
 from utils.environment_config import get_or_create_config
 BASE = get_or_create_config().source_dir
 BOOKS = [
-    BASE / "wuxia_0120/cleaned_D13G9_大唐游俠傳_梁羽生.json",
-    BASE / "wuxia_0123/cleaned_I09B3_武林天驕_梁羽生.json",
+    BASE / "work_0120/cleaned_D13G9_大唐游俠傳_梁羽生.json",
+    BASE / "work_0123/cleaned_I09B3_武林天驕_梁羽生.json",
 ]
 
 # Terms that should NEVER be footnoted

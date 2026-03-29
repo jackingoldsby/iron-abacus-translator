@@ -45,7 +45,7 @@ class BookSanityChecker:
         Initialize sanity checker.
 
         Args:
-            catalog_path: Path to wuxia_catalog.db
+            catalog_path: Path to works_translator.duckdb
         """
         self.catalog_path = catalog_path
         self.catalog_extractor = CatalogMetadataExtractor(catalog_path)
@@ -63,7 +63,7 @@ class BookSanityChecker:
 
         Args:
             json_file: Path to book JSON file
-            directory_name: Directory name (e.g., 'wuxia_0008')
+            directory_name: Directory name (e.g., 'work_0008')
             strict_sequence: If True, sequence gaps are errors; if False, warnings
 
         Returns:

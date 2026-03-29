@@ -8,7 +8,7 @@
 ## Issue 1: TOC/Chapter Mismatch in D1379
 
 ### Problem
-The cleaned file `/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0116/cleaned_D1379_偷拳_白羽.json` had:
+The cleaned file `/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/work_0116/cleaned_D1379_偷拳_白羽.json` had:
 - **TOC entries**: 24
 - **Body chapters**: 2
 - **Missing**: 22 chapters!
@@ -23,8 +23,8 @@ from processors.json_cleaner import clean_book_json
 
 result = clean_book_json(
     input_file,
-    catalog_path='/Users/jacki/project_files/translation_project/wuxia_catalog.db',
-    directory_name='wuxia_0116'
+    catalog_path='/Users/jacki/project_files/translation_project/works_translator.duckdb',
+    directory_name='work_0116'
 )
 ```
 
@@ -128,7 +128,7 @@ class PipelineStage(Enum):
 2. ✅ Moved body translation to Stage 1 (was Stage 4)
 
 **Files Modified**:
-- `/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/wuxia_0116/cleaned_D1379_偷拳_白羽.json` (replaced)
+- `/Users/jacki/project_files/translation_project/cleaned/COMPLETE_ALL_BOOKS/work_0116/cleaned_D1379_偷拳_白羽.json` (replaced)
 - `/Users/jacki/PycharmProjects/iron_abacus_translator/scripts/orchestrate_translation_pipeline.py` (enum order updated)
 
 **Status**: Ready for testing

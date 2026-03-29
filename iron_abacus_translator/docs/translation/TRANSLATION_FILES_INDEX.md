@@ -122,7 +122,7 @@ Complete list of files created for the translation and annotation pipeline.
 
 ### Input Sources
 - **Cleaned JSON**: `/Users/jacki/project_files/translation_project/test_cleaned_json_v2/COMPLETE_ALL_BOOKS/`
-- **Catalog DB**: `/Users/jacki/project_files/translation_project/wuxia_catalog.db`
+- **Catalog DB**: `/Users/jacki/project_files/translation_project/works_translator.duckdb`
 - **API Key**: `~/.zshrc` (OPENAI_API_KEY)
 
 ### Output Destinations

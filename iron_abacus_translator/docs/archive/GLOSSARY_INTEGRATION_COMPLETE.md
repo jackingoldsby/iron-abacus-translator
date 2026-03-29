@@ -2,7 +2,7 @@
 
 ## Summary
 
-The wuxia glossary database (`wuxia_glossary.db`) has been successfully integrated into the translation pipeline. The system now automatically:
+The wuxia glossary database (`glossary.duckdb`) has been successfully integrated into the translation pipeline. The system now automatically:
 
 1. ✅ Scans Chinese source text for 186 glossary terms
 2. ✅ Uses exact recommended translation forms from database
@@ -18,13 +18,13 @@ The wuxia glossary database (`wuxia_glossary.db`) has been successfully integrat
 #### 1. `processors/translator.py`
 ```python
 # Added imports
-from utils.wuxia_glossary import WuxiaGlossary, GlossaryEntry
+from utils.glossary import TranslationGlossary, GlossaryEntry
 
 # Updated __init__ (line ~259-299)
 def __init__(self, ..., glossary_path: Optional[Path] = None):
     # Load glossary automatically from project root
     if glossary_path is None:
-        glossary_path = Path(__file__).parent.parent / "wuxia_glossary.db"
+        glossary_path = Path(__file__).parent.parent / "glossary.duckdb"
 
     try:
         self.glossary = WuxiaGlossary(glossary_path)
@@ -136,8 +136,8 @@ python scripts/test_glossary_translation.py
 ```
 
 **Test File:**
-- Input: `wuxia_0124/cleaned_I1046_飛鳳潛龍_梁羽生.json`
-- Output: `translation_data/test_translations/wuxia_0124/translated_I1046_飛鳳潛龍_梁羽生.json`
+- Input: `work_0124/cleaned_I1046_飛鳳潛龍_梁羽生.json`
+- Output: `translation_data/test_translations/work_0124/translated_I1046_飛鳳潛龍_梁羽生.json`
 
 ### New Documentation
 
@@ -177,7 +177,7 @@ python scripts/translate_work.py I1046
 ```
 
 The system will:
-1. Load `wuxia_glossary.db` from project root
+1. Load `glossary.duckdb` from project root
 2. Scan each content block for glossary terms
 3. Pass exact forms and footnotes to translator
 4. Ensure consistent pinyin for deduplication
@@ -188,7 +188,7 @@ from processors.translator import TranslationService
 
 service = TranslationService(
     model='gpt-4.1-nano',
-    glossary_path=Path('/custom/path/wuxia_glossary.db')
+    glossary_path=Path('/custom/path/glossary.duckdb')
 )
 ```
 
@@ -393,7 +393,7 @@ OpenAI receives the source text + glossary context and produces:
 
 ### Demo Script (demo_glossary_simple.py)
 ```
-✅ Successfully loaded 186 terms from wuxia_glossary.db
+✅ Successfully loaded 186 terms from glossary.duckdb
 ✅ Detected 5 terms in sample text 1 (內功, 內力, 武林, etc.)
 ✅ Detected 2 terms in sample text 2 (輕功 x2)
 ✅ Detected 3 terms in sample text 3 (武林, 招式, 武功)
@@ -418,7 +418,7 @@ To add new terms:
 ```bash
 # 1. Edit wuxia_translation_glossary.csv
 # 2. Run deduplication script
-python scripts/deduplicate_wuxia_glossary.py
+python scripts/deduplicate_glossary.py
 
 # New terms automatically available - no code changes needed
 ```
@@ -442,8 +442,8 @@ Track glossary usage:
 5. ✅ `GLOSSARY_INTEGRATION_COMPLETE.md` (this file)
 
 ### Existing (Leveraged)
-1. ✅ `utils/wuxia_glossary.py` (already implemented)
-2. ✅ `wuxia_glossary.db` (186-term database)
+1. ✅ `utils/glossary.py` (already implemented)
+2. ✅ `glossary.duckdb` (186-term database)
 3. ✅ `processors/book_translator.py` (no changes needed)
 
 ## Conclusion

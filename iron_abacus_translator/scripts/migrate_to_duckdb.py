@@ -129,7 +129,7 @@ def main():
     migrate_glossary = not args.catalog_only
 
     if migrate_catalog:
-        sqlite_catalog = args.sqlite_catalog or env.data_root / "wuxia_catalog.db"
+        sqlite_catalog = args.sqlite_catalog or env.data_root / "works_translator.db"
         duckdb_catalog = env.catalog_path  # .duckdb path from config
         if sqlite_catalog.exists():
             if not migrate_sqlite_to_duckdb(sqlite_catalog, duckdb_catalog, args.dry_run):
@@ -140,16 +140,12 @@ def main():
                 success = False
 
     if migrate_glossary:
-        sqlite_glossary = args.sqlite_glossary or env.data_root / "wuxia_glossary.db"
+        sqlite_glossary = args.sqlite_glossary or env.data_root / "glossary.db"
         # Also check project root for glossary.db
         if not sqlite_glossary.exists():
             alt = env.project_root / "glossary.db"
             if alt.exists():
                 sqlite_glossary = alt
-            else:
-                alt2 = env.project_root / "wuxia_glossary.db"
-                if alt2.exists():
-                    sqlite_glossary = alt2
 
         duckdb_glossary = env.glossary_path
         if sqlite_glossary.exists():

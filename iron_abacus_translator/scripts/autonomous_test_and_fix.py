@@ -75,7 +75,7 @@ class TestOrchestrator:
     # Non-book file patterns to skip
     SKIP_PATTERNS = [
         r'.*_haodoo_page\.json$',  # Haodoo website metadata
-        r'.*wuxia_work_summary.*\.json$',  # Work summaries
+        r'.*work_summary.*\.json$',  # Work summaries
         r'.*summary_translated.*\.json$',  # Translated summaries
         r'.*invalid.*\.json$',  # Files marked as invalid
     ]
@@ -123,7 +123,7 @@ class TestOrchestrator:
         logger.info(f"{'='*80}\n")
 
         # Import test modules
-                from processors.json_cleaner import clean_book_json
+        from processors.json_cleaner import clean_book_json
         from utils.toc_body_count_validator import validate_toc_body_alignment
 
         test_limit = limit or self.test_sample_size
@@ -363,7 +363,7 @@ class TestOrchestrator:
         logger.info(f"Testing {len(previous_passed)} previously passing files...")
 
         # Import modules
-                from processors.json_cleaner import clean_book_json
+        from processors.json_cleaner import clean_book_json
         from utils.toc_body_count_validator import validate_toc_body_alignment
 
         still_passing = 0

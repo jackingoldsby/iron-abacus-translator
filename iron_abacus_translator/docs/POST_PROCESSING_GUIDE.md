@@ -270,7 +270,7 @@ python scripts/batch_process_books.py \
   },
   "files": [
     {
-      "folder": "wuxia_0001",
+      "folder": "work_0001",
       "file": "book.json",
       "status": "SUCCESS",
       "stages": {...},
@@ -287,40 +287,40 @@ python scripts/batch_process_books.py \
 
 ---
 
-## Workflow Example: wuxia_0120
+## Workflow Example: work_0120
 
 ```bash
 # Stage 1: Analyze topology
 python utils/topology_analyzer.py \
-  --input translation_data/wuxia_individual_files/wuxia_0120/D13G9_大唐游俠傳_梁羽生.json
+  --input translation_data/work_individual_files/work_0120/D13G9_大唐游俠傳_梁羽生.json
 
 # Stage 2: Clean the file
 python cli/clean.py \
-  --input translation_data/wuxia_individual_files/wuxia_0120/D13G9_大唐游俠傳_梁羽生.json \
+  --input translation_data/work_individual_files/work_0120/D13G9_大唐游俠傳_梁羽生.json \
   --output-dir /Users/jacki/project_files/translation_project/01_clean_json \
   --language zh-Hant
 
 # Stage 3: Fix chapter alignment (if needed)
 python utils/fix_chapter_alignment.py \
-  --input /Users/jacki/project_files/translation_project/01_clean_json/wuxia_0120/cleaned_D13G9_大唐游俠傳_梁羽生.json \
+  --input /Users/jacki/project_files/translation_project/01_clean_json/work_0120/cleaned_D13G9_大唐游俠傳_梁羽生.json \
   --dry-run  # Preview first
 
 # Apply fix
 python utils/fix_chapter_alignment.py \
-  --input /Users/jacki/project_files/translation_project/01_clean_json/wuxia_0120/cleaned_D13G9_大唐游俠傳_梁羽生.json
+  --input /Users/jacki/project_files/translation_project/01_clean_json/work_0120/cleaned_D13G9_大唐游俠傳_梁羽生.json
 
 # Stage 4: Restructure TOC for EPUB navigation
 python utils/restructure_toc.py \
-  --input /Users/jacki/project_files/translation_project/01_clean_json/wuxia_0120/cleaned_D13G9_大唐游俠傳_梁羽生.json \
+  --input /Users/jacki/project_files/translation_project/01_clean_json/work_0120/cleaned_D13G9_大唐游俠傳_梁羽生.json \
   --dry-run  # Preview first
 
 # Apply restructuring
 python utils/restructure_toc.py \
-  --input /Users/jacki/project_files/translation_project/01_clean_json/wuxia_0120/cleaned_D13G9_大唐游俠傳_梁羽生.json
+  --input /Users/jacki/project_files/translation_project/01_clean_json/work_0120/cleaned_D13G9_大唐游俠傳_梁羽生.json
 
 # Validate the result
 python utils/restructure_toc.py \
-  --input /Users/jacki/project_files/translation_project/01_clean_json/wuxia_0120/cleaned_D13G9_大唐游俠傳_梁羽生.json \
+  --input /Users/jacki/project_files/translation_project/01_clean_json/work_0120/cleaned_D13G9_大唐游俠傳_梁羽生.json \
   --validate
 ```
 

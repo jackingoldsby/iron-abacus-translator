@@ -40,12 +40,12 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 BOOKS = [
     {
         "work_id": "D13G9",
-        "path": BASE / "wuxia_0120/cleaned_D13G9_大唐游俠傳_梁羽生.json",
+        "path": BASE / "work_0120/cleaned_D13G9_大唐游俠傳_梁羽生.json",
         "chapters": 3,
     },
     {
         "work_id": "I09B3",
-        "path": BASE / "wuxia_0123/cleaned_I09B3_武林天驕_梁羽生.json",
+        "path": BASE / "work_0123/cleaned_I09B3_武林天驕_梁羽生.json",
         "chapters": 3,
     },
 ]

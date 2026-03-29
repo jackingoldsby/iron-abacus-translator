@@ -13,7 +13,7 @@ translation:
 
 glossary:
   enabled: true
-  path: "/Users/jacki/project_files/glossaries/wuxia_martial_arts_glossary.db"
+  path: "/Users/jacki/project_files/glossaries/martial_arts_glossary.db"
 
 logging:
   level: "DEBUG"  # Detailed logging for this work

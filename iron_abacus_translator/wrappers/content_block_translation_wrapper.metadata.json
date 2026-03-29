@@ -146,7 +146,7 @@
       "wrappers.translation_config.TranslationConfig"
     ],
     "utilities": [
-      "utils.wuxia_glossary.WuxiaGlossary"
+      "utils.glossary.TranslationGlossary"
     ],
     "external": [
       "openai>=1.0.0",

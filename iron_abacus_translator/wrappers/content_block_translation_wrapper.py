@@ -86,6 +86,7 @@ class ContentBlockTranslationWrapper:
         glossary_path: Optional[Path] = None,
         suppress_list_path: Optional[Path] = None,
         llm_client=None,
+        target_lang: str = "en",
     ):
         """Initialize the content-block translation wrapper.
 
@@ -99,12 +100,14 @@ class ContentBlockTranslationWrapper:
             suppress_list_path: Path to wuxia suppress-list JSON
                 (ideograms that should never get footnotes).
             llm_client: Pre-built LLM client; created via factory if None.
+            target_lang: ISO 639-1 target language code (default "en").
         """
         self.accumulator = accumulator or FootnoteContextAccumulator()
         self.temperature = temperature
         self.max_retries = max_retries
         self.timeout = timeout
         self.suppress_list_path = suppress_list_path
+        self.target_lang = target_lang
         self._suppress_ideograms = get_suppress_ideograms(suppress_list_path)
 
         # Initialize LLM client — model resolved by factory if not explicit
@@ -125,10 +128,12 @@ class ContentBlockTranslationWrapper:
         self._base_system_prompt = build_system_prompt(
             suppress_list_path=suppress_list_path,
             provider=self.provider,
+            target_lang=self.target_lang,
         )
 
         logger.info(
             f"Initialized wrapper: model={model}, provider={self.provider}, "
+            f"target_lang={self.target_lang}, "
             f"suppress_list={len(self._suppress_ideograms)} terms, "
             f"accumulator={self.accumulator}"
         )
@@ -175,6 +180,7 @@ class ContentBlockTranslationWrapper:
             suppress_list_path=self.suppress_list_path,
             already_footnoted_context=already_context,
             provider=self.provider,
+            target_lang=self.target_lang,
         )
 
         # Build user message

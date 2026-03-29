@@ -179,8 +179,8 @@ Eighteen Dragon-Subduing Palms (降龍十八掌 *Jiàng Lóng Shíbā Zhǎng*): 
 
 ## File Locations
 
-- **Main Glossary**: `/wuxia_translation_glossary.csv`
-- **Additional Named Techniques**: `/wuxia_translation_glossary_additions.csv`
+- **Main Glossary**: `/translation_glossary.csv`
+- **Additional Named Techniques**: `/translation_glossary_additions.csv`
 - **Full Documentation**: `/WUXIA_GLOSSARY_UPDATE_SUMMARY.md`
 - **Examples**: `/WUXIA_TRANSLATION_EXAMPLES.md`
 

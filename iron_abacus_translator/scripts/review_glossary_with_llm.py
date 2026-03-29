@@ -37,8 +37,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 GLOSSARY_DIR = Path(__file__).parent.parent / "data" / "glossaries"
-MAIN_CSV = GLOSSARY_DIR / "wuxia_translation_glossary.csv"
-ADDITIONS_CSV = GLOSSARY_DIR / "wuxia_translation_glossary_additions.csv"
+MAIN_CSV = GLOSSARY_DIR / "translation_glossary.csv"
+ADDITIONS_CSV = GLOSSARY_DIR / "translation_glossary_additions.csv"
 OUTPUT_PATH = GLOSSARY_DIR / "glossary_review_report.json"
 
 REVIEW_SYSTEM_PROMPT = """\

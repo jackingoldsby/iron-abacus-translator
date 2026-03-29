@@ -194,8 +194,8 @@ As part of the implementation, cleaned up `/Users/jacki/project_files/translatio
 
 **Preserved**:
 - `cleaned/` (cleaned source files)
-- `wuxia_individual_files/` (source JSON files)
-- `wuxia_catalog.db` (catalog database)
+- `work_individual_files/` (source JSON files)
+- `works_translator.duckdb` (catalog database)
 - `works.csv` (catalog CSV)
 - `tests/` (proper test directory)
 - `translated_files/` (final outputs)
@@ -218,8 +218,8 @@ As part of the implementation, cleaned up `/Users/jacki/project_files/translatio
 │   └── logs/
 │       ├── checkpoints/
 │       └── *.log, *.json
-├── wuxia_individual_files/     # Source JSON files
-├── wuxia_catalog.db            # Catalog database
+├── work_individual_files/     # Source JSON files
+├── works_translator.duckdb            # Catalog database
 └── works.csv                   # Catalog CSV
 ```
 
@@ -261,7 +261,7 @@ pip install python-dotenv
 
 ### Phase 5: Create WIP-Compliant Test Scripts
 - Create integration test that uses orchestration script
-- Test full pipeline with wuxia_0116
+- Test full pipeline with work_0116
 - Verify WIP saves at each stage
 - Test resume functionality
 - Validate stage outputs

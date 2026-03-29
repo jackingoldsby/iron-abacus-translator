@@ -4,7 +4,7 @@
 
 1. **API Key**: Ensure `OPENAI_API_KEY` is exported in `~/.zshrc`
 2. **Cleaned JSON**: Books processed through restructuring pipeline
-3. **Catalog Database**: `wuxia_catalog.db` with work metadata
+3. **Catalog Database**: `works_translator.duckdb` with work metadata
 
 ## 5-Minute Quick Start
 
@@ -163,7 +163,7 @@ python scripts/verify_api_key.py
 python scripts/list_works.py <work_number> --details
 
 # Verify source files
-ls -la /Users/jacki/project_files/translation_project/test_cleaned_json_v2/COMPLETE_ALL_BOOKS/wuxia_*/
+ls -la /Users/jacki/project_files/translation_project/test_cleaned_json_v2/COMPLETE_ALL_BOOKS/work_*/
 ```
 
 ### Rate Limit Errors

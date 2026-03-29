@@ -186,7 +186,7 @@ from processors.volume_manager import VolumeManager
 
 ### Next Steps
 1. Create WIP-compliant integration test
-2. Test orchestration with wuxia_0116 (full pipeline)
+2. Test orchestration with work_0116 (full pipeline)
 3. Verify WIP saves at each stage
 4. Test resume functionality
 5. Update documentation (CLAUDE.md, TRANSLATION_PIPELINE_SPEC.md)

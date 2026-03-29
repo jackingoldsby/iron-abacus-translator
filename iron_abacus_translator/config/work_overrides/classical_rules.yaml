@@ -18,7 +18,7 @@ translation:
 
 glossary:
   enabled: true
-  path: "/Users/jacki/project_files/glossaries/wuxia_glossary.db"
+  path: "/Users/jacki/project_files/glossaries/glossary.db"
 
 logging:
   level: "INFO"

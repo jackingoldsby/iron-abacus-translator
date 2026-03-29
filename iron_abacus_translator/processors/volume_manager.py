@@ -55,7 +55,7 @@ class VolumeManager:
         Initialize volume manager.
 
         Args:
-            catalog_path: Path to wuxia_catalog.db
+            catalog_path: Path to works_translator.duckdb
             source_dir: Directory containing cleaned JSON files (organized by directory)
             output_dir: Directory for translated output
         """
@@ -175,7 +175,7 @@ class VolumeManager:
         Find cleaned JSON file for a volume.
 
         Args:
-            directory_name: Directory like "wuxia_0001"
+            directory_name: Directory like "work_0001"
             work_number: Work number like "D55"
             volume: Volume letter like "a", "b", "c"
 

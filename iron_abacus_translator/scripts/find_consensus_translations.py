@@ -265,16 +265,16 @@ def main():
         epilog="""
 Examples:
   # Process all works (skip those already done)
-  %(prog)s --db-path /path/to/wuxia_catalog.db
+  %(prog)s --db-path /path/to/works_translator.duckdb
 
   # Process first 10 works
-  %(prog)s --db-path /path/to/wuxia_catalog.db --limit 10
+  %(prog)s --db-path /path/to/works_translator.duckdb --limit 10
 
   # Reprocess works even if already have consensus
-  %(prog)s --db-path /path/to/wuxia_catalog.db --no-skip-existing
+  %(prog)s --db-path /path/to/works_translator.duckdb --no-skip-existing
 
   # Show comparison of original vs consensus
-  %(prog)s --db-path /path/to/wuxia_catalog.db --compare-only
+  %(prog)s --db-path /path/to/works_translator.duckdb --compare-only
 
   # Default database location
   %(prog)s
@@ -319,7 +319,7 @@ Examples:
         return 1
 
     print("=" * 70)
-    print("Wuxia Consensus Translations Finder")
+    print("Consensus Translations Finder")
     print("=" * 70)
     print(f"Database: {db_path}")
     print()

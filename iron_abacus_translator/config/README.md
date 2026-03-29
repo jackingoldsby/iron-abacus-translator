@@ -11,7 +11,7 @@ config/
 ├── translation_rules.fast.yaml     # Fast mode (lower quality, faster)
 └── work_overrides/                 # Work-specific configurations
     ├── D1379_rules.yaml            # Config for work D1379
-    └── wuxia_classical_rules.yaml  # Generic classical wuxia config
+    └── classical_rules.yaml        # Generic classical wuxia config
 ```
 
 ## Configuration Priority

@@ -34,8 +34,8 @@ We use a hybrid approach where:
 ### translation_project/ (Data Project)
 ```
 /Users/jacki/project_files/translation_project/
-├── wuxia_individual_files/            # SOURCE: Raw JSON files
-├── wuxia_catalog.db                   # SOURCE: Catalog database
+├── work_individual_files/            # SOURCE: Raw JSON files
+├── works_translator.duckdb                   # SOURCE: Catalog database
 ├── works.csv                          # SOURCE: Catalog CSV
 ├── cleaned/                           # PROCESSED: Cleaned JSON files
 │   └── COMPLETE_ALL_BOOKS/
@@ -99,11 +99,11 @@ We use a hybrid approach where:
 class OrchestrationConfig:
     """Orchestration configuration"""
     # Paths
-    source_dir: Path = Path("/Users/jacki/project_files/translation_project/wuxia_individual_files")
+    source_dir: Path = Path("/Users/jacki/project_files/translation_project/work_individual_files")
     output_dir: Path = Path("/Users/jacki/project_files/translation_project/translated_files")
     wip_dir: Path = Path("/Users/jacki/project_files/translation_project/wip")
     log_dir: Path = Path("/Users/jacki/project_files/translation_project/translation_data/logs")  # ← Fixed!
-    catalog_path: Path = Path("/Users/jacki/project_files/translation_project/wuxia_catalog.db")
+    catalog_path: Path = Path("/Users/jacki/project_files/translation_project/works_translator.duckdb")
 ```
 
 **Change**: `log_dir` now points to `translation_data/logs` instead of `logs`
@@ -181,7 +181,7 @@ rm /Users/jacki/project_files/translation_project/translation_data/logs/test.txt
 ```
 INPUT (Source)
 ↓
-/translation_project/wuxia_individual_files/wuxia_0116/D1379_偷拳_白羽.json
+/translation_project/work_individual_files/work_0116/D1379_偷拳_白羽.json
 
 STAGE 1: Metadata Translation
 ↓
@@ -246,8 +246,8 @@ rm -rf /translation_project/tests/outputs/*
 - translation_data/logs/checkpoints/  # Resume functionality depends on this
 - translation_data/logs/*.log         # Important for debugging
 - translated_files/                   # Final outputs
-- wuxia_individual_files/             # Source data
-- wuxia_catalog.db                    # Catalog database
+- work_individual_files/             # Source data
+- works_translator.duckdb                    # Catalog database
 ```
 
 ---
@@ -294,7 +294,7 @@ You can override paths via environment variables or `.env` file:
 WUXIA_SOURCE_DIR=/custom/path/to/source
 WUXIA_OUTPUT_DIR=/custom/path/to/output
 WUXIA_LOG_DIR=/custom/path/to/logs
-WUXIA_CATALOG_PATH=/custom/path/to/wuxia_catalog.db
+WUXIA_CATALOG_PATH=/custom/path/to/works_translator.duckdb
 ```
 
 **When to use**:

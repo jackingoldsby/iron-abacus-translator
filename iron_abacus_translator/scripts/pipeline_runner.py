@@ -19,6 +19,7 @@ Usage (programmatic):
     runner.run("D60")
 """
 
+import hashlib
 import json
 import logging
 import sys
@@ -77,6 +78,9 @@ class RunnerConfig:
     preserve_legendary: bool = True
     preserve_cultural: bool = True
 
+    # Target language (ISO 639-1 code)
+    target_lang: str = "en"
+
     verbose: bool = False
 
     def __post_init__(self):
@@ -96,8 +100,14 @@ class RunnerConfig:
             d.mkdir(parents=True, exist_ok=True)
 
     def get_node_wip_dir(self, node_id: str) -> Path:
-        """Get WIP directory for a DAG node."""
+        """Get WIP directory for a DAG node.
+
+        Non-English targets get a language subdirectory to keep
+        translations for different languages separate.
+        """
         d = self.wip_dir / f"node_{node_id}"
+        if self.target_lang != "en":
+            d = d / self.target_lang
         d.mkdir(parents=True, exist_ok=True)
         return d
 
@@ -133,6 +143,7 @@ class RunContext:
     config: RunnerConfig
     db: ProgressDB
     dag: DAGDefinition
+    target_lang: str = "en"
     kindle_defer: bool = False  # True during series mode — batch send at end
 
     def emit(self, stage: str, event_type: str, status: str = "running",
@@ -148,6 +159,7 @@ class RunContext:
             volume=self.volume,
             chapter_num=chapter_num,
             block_id=block_id,
+            target_lang=self.target_lang,
             metadata=metadata,
         ))
 
@@ -217,7 +229,8 @@ class PipelineRunner:
         self.processors[node_id] = processor
 
     def resolve_start_node(self, work_id: str,
-                           from_node: Optional[str] = None) -> str:
+                           from_node: Optional[str] = None,
+                           target_lang: str = "en") -> str:
         """
         Determine where to start execution.
 
@@ -236,8 +249,8 @@ class PipelineRunner:
                 )
             return from_node
 
-        # Auto-detect from progress DB
-        state = self.db.get_latest_state(work_id)
+        # Auto-detect from progress DB (filtered by target language)
+        state = self.db.get_latest_state(work_id, target_lang=target_lang)
         last_done = state.get("last_completed_stage")
 
         if last_done and last_done in self.dag.nodes:
@@ -328,9 +341,9 @@ class PipelineRunner:
 
         # Resolve start node
         if resume:
-            start_node = self.resolve_start_node(work_id)
+            start_node = self.resolve_start_node(work_id, target_lang=self.config.target_lang)
         elif from_node:
-            start_node = self.resolve_start_node(work_id, from_node)
+            start_node = self.resolve_start_node(work_id, from_node, target_lang=self.config.target_lang)
         else:
             topo = self.dag.topological_sort()
             start_node = topo[0]
@@ -354,6 +367,7 @@ class PipelineRunner:
             config=self.config,
             db=self.db,
             dag=self.dag,
+            target_lang=self.config.target_lang,
             kindle_defer=kindle_defer,
         )
 
@@ -465,6 +479,9 @@ class PipelineRunner:
         # Save final output
         if not self.config.dry_run and stage_results and stage_results[-1]["success"]:
             output_path = self.config.output_dir / work_id
+            # Non-English targets get a language subdirectory
+            if self.config.target_lang != "en":
+                output_path = output_path / self.config.target_lang
             output_path.mkdir(parents=True, exist_ok=True)
             final_path = output_path / f"translated_{filename}.json"
             with open(final_path, "w", encoding="utf-8") as f:
@@ -751,6 +768,63 @@ def _ensure_chapters(data: Dict[str, Any], work_id: str) -> Dict[str, Any]:
         f"{len(content_blocks)} blocks from front_matter"
     )
     return data
+
+
+def compute_block_checksum(text: str) -> str:
+    """Compute SHA256 prefix (16 hex chars) of translated content for dirty detection."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
+def stamp_translation_meta(
+    block: Dict[str, Any],
+    *,
+    run_id: str,
+    provider: Optional[str] = None,
+    model: Optional[str] = None,
+    stage: str = "body",
+    target_lang: str = "en",
+) -> None:
+    """Stamp _translation_meta onto a block after translation.
+
+    The checksum is derived from translated_content so downstream stages
+    (and users) can detect manual edits.
+    """
+    translated = block.get("translated_content", "")
+    block["_translation_meta"] = {
+        "job_id": run_id,
+        "translated_at": datetime.utcnow().isoformat(),
+        "provider": provider,
+        "model": model,
+        "stage": stage,
+        "target_lang": target_lang,
+        "checksum": compute_block_checksum(translated),
+    }
+
+
+def recompute_block_checksum(block: Dict[str, Any]) -> None:
+    """Recompute _translation_meta.checksum after modifying translated_content.
+
+    No-op if _translation_meta is absent (backward compat with pre-Phase-1 JSON).
+    """
+    meta = block.get("_translation_meta")
+    if meta is None:
+        return
+    translated = block.get("translated_content", "")
+    meta["checksum"] = compute_block_checksum(translated)
+
+
+def recompute_all_checksums(data: Dict[str, Any]) -> int:
+    """Recompute _translation_meta.checksum on every block in the data.
+
+    Returns the number of blocks updated.
+    """
+    count = 0
+    for chapter in data.get("structure", {}).get("body", {}).get("chapters", []):
+        for block in chapter.get("content_blocks", []):
+            if block.get("_translation_meta"):
+                recompute_block_checksum(block)
+                count += 1
+    return count
 
 
 class SourceLoaderProcessor(StageProcessor):
@@ -1051,6 +1125,7 @@ class BodyProcessor(StageProcessor):
             timeout=self.config.timeout,
             glossary_path=env.glossary_path,
             llm_client=_make_translation_client(self.config),
+            target_lang=ctx.target_lang,
         )
 
         total_blocks = 0
@@ -1127,6 +1202,17 @@ class BodyProcessor(StageProcessor):
                         for fn in annotated.get("content_footnotes", [])
                     ]
                     block["content_type"] = annotated.get("content_type", "narrative")
+
+                    # Phase 1: stamp _translation_meta for dirty detection
+                    stamp_translation_meta(
+                        block,
+                        run_id=ctx.run_id,
+                        provider=wrapper.provider,
+                        model=wrapper.model,
+                        stage="body",
+                        target_lang=ctx.target_lang,
+                    )
+
                     successful_blocks += 1
                     ch_footnotes += len(block["footnotes"])
                     total_footnotes += len(block["footnotes"])
@@ -1284,6 +1370,9 @@ class CharacterCleanupProcessor(StageProcessor):
         remaining = len(remover.extract_footnotes_with_context(data))
         logger.info(f"  After 6a: {remaining} footnotes remain (removed {total_before - remaining})")
 
+        # Recompute checksums after cleanup modified translated_content
+        recompute_all_checksums(data)
+
         # Stash remover on context for 6b to reuse
         ctx._remover = remover
 
@@ -1343,6 +1432,9 @@ class TrivialityCleanupProcessor(StageProcessor):
 
         remaining = len(remover.extract_footnotes_with_context(data))
         logger.info(f"  After 6b: {remaining} footnotes remain")
+
+        # Recompute checksums after cleanup modified translated_content
+        recompute_all_checksums(data)
 
         # Stash remover for 6c
         ctx._remover = remover
@@ -1433,6 +1525,9 @@ class DensityValidationProcessor(StageProcessor):
         )
         logger.info(f"  Final footnote count: {total_fn}")
 
+        # Recompute checksums after all cleanup modifications
+        recompute_all_checksums(data)
+
         # Validate integrity
         validation = validate_footnote_integrity(data)
         logger.info(f"  Integrity: {'PASSED' if validation['passed'] else 'FAILED'}")
@@ -1510,6 +1605,9 @@ class DramatisPersonaeProcessor(StageProcessor):
         )
         logger.info(f"  After DP harvest: {remaining} footnotes remain in body")
 
+        # Recompute checksums after DP harvest modified blocks
+        recompute_all_checksums(data)
+
         return data
 
 
@@ -1581,6 +1679,18 @@ class ValidationProcessor(StageProcessor):
         if not integrity["passed"]:
             issues.extend(integrity["errors"][:10])
 
+        # Check for stale checksums (blocks manually edited after translation)
+        stale_blocks = 0
+        for chapter in chapters:
+            for block in chapter.get("content_blocks", []):
+                meta = block.get("_translation_meta")
+                if meta and block.get("translated_content"):
+                    expected = compute_block_checksum(block["translated_content"])
+                    if meta.get("checksum") != expected:
+                        stale_blocks += 1
+        if stale_blocks:
+            logger.warning(f"  {stale_blocks} blocks have stale checksums (manually edited)")
+
         logger.info(f"  Coverage: {coverage:.1f}% ({translated_blocks}/{total_blocks})")
         logger.info(f"  Footnotes: {total_footnotes}")
         logger.info(f"  Integrity: {'PASSED' if integrity['passed'] else 'FAILED'}")
@@ -1591,6 +1701,7 @@ class ValidationProcessor(StageProcessor):
             "translated_blocks": translated_blocks,
             "total_footnotes": total_footnotes,
             "footnote_integrity": integrity["passed"],
+            "stale_checksum_blocks": stale_blocks,
             "issues": issues,
         }
         return data

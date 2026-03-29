@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
-Enrich Wuxia Catalog Database with CSV Data
+DEPRECATED: Use azure_register instead:
+    cd azure_register && python -m cli.enrich csv --csv /path/to/works.csv
+
+Enrich Catalog Database with CSV Data
 
 Reads works.csv and adds English metadata to the database:
 - Initial_Author_English
@@ -62,9 +65,9 @@ def load_csv_data(csv_path: str):
     with open(csv_path, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            work_key = row['work_key']  # e.g., "wuxia_0001"
-            # Extract directory number (e.g., "0001" from "wuxia_0001")
-            dir_num = work_key.replace('wuxia_', '')
+            work_key = row['work_key']  # e.g., "work_0001"
+            # Extract directory number (e.g., "0001" from "work_0001")
+            dir_num = work_key.replace('work_', '').replace('wuxia_', '')
             csv_data[dir_num] = {
                 'author_english': row.get('Initial_Author_English', ''),
                 'title_english': row.get('Initial_Title_English', ''),
@@ -117,7 +120,7 @@ def enrich_database(csv_data, db_path: str):
             updated_count += 1
         else:
             missing_count += 1
-            print(f"  ⚠ No CSV data for directory: wuxia_{dir_number}")
+            print(f"  ⚠ No CSV data for directory: work_{dir_number}")
 
     conn.commit()
     conn.close()
@@ -154,7 +157,7 @@ def verify_enrichment(db_path: str):
 def parse_args():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
-        description='Enrich wuxia catalog database with CSV metadata',
+        description='Enrich catalog database with CSV metadata',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 Environment Variables:
@@ -192,7 +195,7 @@ Examples:
         '--db',
         '--db-path',
         dest='db_path',
-        help='Path to SQLite database (default: BASE_DIR/wuxia_catalog.db)'
+        help='Path to database (default: BASE_DIR/db/works_translator.duckdb)'
     )
 
     return parser.parse_args()
@@ -204,10 +207,10 @@ def main():
     # Determine paths
     base_dir = args.base_dir
     csv_path = args.csv_path or os.path.join(base_dir, 'works.csv')
-    db_path = args.db_path or os.path.join(base_dir, 'wuxia_catalog.db')
+    db_path = args.db_path or os.path.join(base_dir, 'db', 'works_translator.duckdb')
 
     print("=" * 70)
-    print("Wuxia Catalog Database Enrichment")
+    print("Catalog Database Enrichment")
     print("=" * 70)
     print()
     print(f"Base Directory: {base_dir}")

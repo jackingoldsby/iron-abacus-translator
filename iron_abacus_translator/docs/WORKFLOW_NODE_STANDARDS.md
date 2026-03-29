@@ -829,7 +829,7 @@ Every node MUST provide a **manifest file** (`node_manifest.json`) describing it
 
   "dependencies": {
     "apis": ["OpenAI GPT-4.1-nano"],
-    "files": ["wuxia_glossary.json"],
+    "files": ["glossary.json"],
     "environment": ["OPENAI_API_KEY"]
   },
 

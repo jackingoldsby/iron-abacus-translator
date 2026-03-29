@@ -32,7 +32,7 @@ ls -la | grep translation_data
 
 # Test it works:
 ls translation_data/
-# Should show: works.csv, wuxia_catalog.db, wuxia_individual_files/
+# Should show: works.csv, works_translator.duckdb, work_individual_files/
 ```
 
 ### For Automated Setup Scripts
@@ -67,9 +67,9 @@ create_symlinks(project_root)
 ### Why This Symlink?
 
 All wuxia catalog scripts use this symlink to access:
-- `wuxia_individual_files/` - JSON source files (640 directories)
+- `work_individual_files/` - JSON source files (640 directories)
 - `works.csv` - Metadata CSV file
-- `wuxia_catalog.db` - SQLite database
+- `works_translator.duckdb` - SQLite database
 
 The scripts automatically resolve paths relative to the project root:
 

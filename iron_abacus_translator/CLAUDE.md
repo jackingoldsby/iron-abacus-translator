@@ -275,13 +275,13 @@ scripts/pipeline_runner.py
    → `utils/remove_trivial_footnotes.py` (TrivialFootnoteRemover)
    → Work-level processing (entire work at once)
    → Footnote renumbering + orphan marker sanitization after each phase
-   → Config: `config/wuxia_suppress_list.json` (100+ suppressed terms)
+   → Config: `config/suppress_list.json` (100+ suppressed terms)
    → Typical reduction: 93-98% of raw footnotes removed
    → Only genuinely valuable cultural/historical footnotes survive
 
    [Phase 1] SUPPRESS LIST (programmatic, no API, instant)
-   → Matches footnote ideograms against `config/wuxia_suppress_list.json`
-   → 100+ common wuxia terms: 江湖, 氣, 內功, 武林, 輕功, 劍, 刀, etc.
+   → Matches footnote ideograms against `config/suppress_list.json`
+   → 100+ common terms: 江湖, 氣, 內功, 武林, 輕功, 劍, 刀, etc.
    → Also removes: meta-narrative (下回分解), common nouns (馬, 銀子, 山)
    → Removes footnotes with empty explanations
    → Typical: ~10-40 removed per chapter
@@ -412,7 +412,7 @@ python -m cli.run_pipeline D1379 --status
     (Kangxi Emperor, Wudang, Dalai Lama, Zhuangzi, etc.)
 - Key files:
   - `utils/remove_trivial_footnotes.py` — TrivialFootnoteRemover
-  - `config/wuxia_suppress_list.json` — 100+ suppressed terms
+  - `config/suppress_list.json` — 100+ suppressed terms
   - `processors/translation_prompts_v2.py` — V2 translation prompts with suppress list injection
 
 ## Key Implementation Details
@@ -664,14 +664,14 @@ python ai/assistant_manager.py compare --name structuring --version1 v1 --versio
 python scripts/batch_process_books.py \
   --source-dir /path/to/source_files \
   --output-dir /path/to/output \
-  --catalog-path /path/to/wuxia_catalog.db \
+  --catalog-path /path/to/works_translator.duckdb \
   --log-dir ./logs
 
 # Test on subset
 python scripts/batch_process_books.py \
   --source-dir /path/to/source_files \
   --output-dir /path/to/output \
-  --catalog-path /path/to/wuxia_catalog.db \
+  --catalog-path /path/to/works_translator.duckdb \
   --limit 10  # Process first 10 files only
 ```
 
@@ -877,4 +877,4 @@ When the user does request a commit, follow the standard git commit protocol as 
 **Future Enhancements**:
 - Advanced formatting rules engine
 
-**Source Files Location**: `/Users/jacki/project_files/translation_project/wuxia_individual_files`
+**Source Files Location**: `/Users/jacki/project_files/translation_project/work_individual_files`

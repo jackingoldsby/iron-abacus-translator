@@ -85,9 +85,9 @@ def scan_works(search: Optional[str] = None) -> List[WorkSummary]:
                 print(f"Error loading {json_file}: {e}")
                 continue
 
-    # Sort works by directory_name (wuxia number like wuxia_0001) and volume
+    # Sort works by directory_name (work_0001, work_0002, etc.) and volume
     def sort_key(work: WorkSummary):
-        # Primary sort: directory_name (wuxia_0001, wuxia_0002, etc.)
+        # Primary sort: directory_name (work_0001, work_0002, etc.)
         dir_name = work.directory_name or "ZZZZZ"  # Put None at end
 
         # Secondary sort: volume (handle None and convert to sortable value)

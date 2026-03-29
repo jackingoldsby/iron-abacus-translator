@@ -110,7 +110,7 @@ Per-term deduplication strategies:
 
 ### Suppress List
 
-**File**: `config/wuxia_suppress_list.json`
+**File**: `config/suppress_list.json`
 
 100+ common wuxia terms the translator should NOT footnote because readers already know them:
 ```json
@@ -156,7 +156,7 @@ The raw translator output contains far too many footnotes. This 4-phase pipeline
 
 ### Phase 1: Suppress List (programmatic, instant)
 
-- Match footnote ideograms against `config/wuxia_suppress_list.json`
+- Match footnote ideograms against `config/suppress_list.json`
 - Remove footnotes with empty explanations
 - Typical: ~10-40 removed per chapter
 
@@ -243,7 +243,7 @@ After cleanup removes most footnotes, some italicized pinyin terms (*shīmèi*, 
 1. Scan all translated text for italicized pinyin: *qì*, *shīmèi*, etc.
 2. Check which ones already have footnotes somewhere in the work
 3. For unfootnoted terms, look up definition from:
-   • config/wuxia_suppress_list.json
+   • config/suppress_list.json
    • Built-in glossary (150+ wuxia terms in _BUILTIN_GLOSSARY)
 4. Inject footnote at FIRST occurrence only
 5. Apply insertions in reverse order (maintains valid string positions)
@@ -342,7 +342,7 @@ At chapter end:
 
 ### Series Lookup
 
-Queries SQLite catalog (`wuxia_catalog.db`):
+Queries SQLite catalog (`works_translator.duckdb`):
 ```
 works.work_number → work_series.series_id → series.name, order_in_series, total_in_series
 ```
@@ -391,7 +391,7 @@ Each stage saves work-in-progress files for resumability:
 | API timeout | 120s | translator.py |
 | Cleanup batch size | 25 | remove_trivial_footnotes.py |
 | Max parallel chapters | 3-5 | orchestrator config |
-| Suppress list | 100+ terms | config/wuxia_suppress_list.json |
+| Suppress list | 100+ terms | config/suppress_list.json |
 | Built-in glossary | 150+ terms | inject_pinyin_footnotes.py |
 
 ---
@@ -409,5 +409,5 @@ Each stage saves work-in-progress files for resumability:
 | `utils/remove_trivial_footnotes.py` | 4-phase footnote cleanup |
 | `utils/inject_pinyin_footnotes.py` | First-occurrence pinyin injection |
 | `processors/epub_builder_v2.py` | EPUB3 generation |
-| `config/wuxia_suppress_list.json` | Suppress list (100+ terms) |
-| `styles/wuxia_kindle.css` | EPUB CSS stylesheet |
+| `config/suppress_list.json` | Suppress list (100+ terms) |
+| `styles/kindle.css` | EPUB CSS stylesheet |

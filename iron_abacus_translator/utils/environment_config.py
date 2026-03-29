@@ -47,6 +47,9 @@ class EnvironmentConfig:
     epub_dir: Path = None
     log_dir: Path = None
 
+    # Target language (ISO 639-1 code, default English)
+    target_lang: str = "en"
+
     # Project root (code directory, auto-detected)
     project_root: Path = None
 

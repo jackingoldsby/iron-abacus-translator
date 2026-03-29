@@ -76,14 +76,14 @@ class WorkMetadata:
 
 
 class CatalogMetadataExtractor:
-    """Extract metadata from wuxia_catalog.db"""
+    """Extract metadata from works catalog database"""
 
     def __init__(self, catalog_path: str):
         """
         Initialize extractor.
 
         Args:
-            catalog_path: Path to wuxia_catalog.db
+            catalog_path: Path to works_translator.duckdb
         """
         self.catalog_path = Path(catalog_path)
         if not self.catalog_path.exists():
@@ -92,10 +92,10 @@ class CatalogMetadataExtractor:
 
     def get_metadata_by_directory(self, directory_name: str) -> Optional[WorkMetadata]:
         """
-        Get metadata for a work by directory name (e.g., 'wuxia_0008').
+        Get metadata for a work by directory name (e.g., 'work_0008').
 
         Args:
-            directory_name: Directory name like 'wuxia_0008'
+            directory_name: Directory name like 'work_0008'
 
         Returns:
             WorkMetadata or None if not found

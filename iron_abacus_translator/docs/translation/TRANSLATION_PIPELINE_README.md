@@ -87,7 +87,7 @@ class TranslationConfig:
     # Input/Output Paths
     source_dir: Path = Path("/path/to/cleaned_json")
     output_dir: Path = Path("/path/to/translated_books")
-    catalog_path: Path = Path("/path/to/wuxia_catalog.db")
+    catalog_path: Path = Path("/path/to/works_translator.duckdb")
 
     # Processing Options
     skip_completed: bool = True  # Resume functionality
@@ -98,7 +98,7 @@ class TranslationConfig:
 
 - **Source**: `/Users/jacki/project_files/translation_project/test_cleaned_json_v2/COMPLETE_ALL_BOOKS/`
 - **Output**: `/Users/jacki/project_files/translation_project/translated_books/`
-- **Catalog**: `/Users/jacki/project_files/translation_project/wuxia_catalog.db`
+- **Catalog**: `/Users/jacki/project_files/translation_project/works_translator.duckdb`
 - **Logs**: `./logs/translation/`
 
 ## Input/Output Formats
@@ -387,7 +387,7 @@ Volumes are stored as:
 ### Prerequisites
 
 1. **Cleaned JSON files** - Must be processed through restructuring pipeline
-2. **Catalog database** - `wuxia_catalog.db` with work metadata
+2. **Catalog database** - `works_translator.duckdb` with work metadata
 3. **API credentials** - OpenAI API key in `~/.zshrc`
 
 ### Pipeline Flow
@@ -427,7 +427,7 @@ echo $OPENAI_API_KEY
 python scripts/list_works.py D55 --details
 
 # Check source directory
-ls -la /Users/jacki/project_files/translation_project/test_cleaned_json_v2/COMPLETE_ALL_BOOKS/wuxia_0001/
+ls -la /Users/jacki/project_files/translation_project/test_cleaned_json_v2/COMPLETE_ALL_BOOKS/work_0001/
 ```
 
 ### Rate Limit Errors

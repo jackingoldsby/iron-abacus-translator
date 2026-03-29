@@ -12,7 +12,7 @@ Updated wuxia translation glossary to implement a clear distinction between **te
 
 ## Files Modified
 
-### 1. `wuxia_translation_glossary.csv`
+### 1. `translation_glossary.csv`
 
 **Changes**: 27 entries updated
 
@@ -64,7 +64,7 @@ Converted these named techniques to use English translations:
 
 ## Files Created
 
-### 2. `wuxia_translation_glossary_additions.csv`
+### 2. `translation_glossary_additions.csv`
 
 **New entries**: 8 famous named techniques from Jin Yong novels
 

@@ -222,7 +222,7 @@ class PathManager:
         Find cleaned JSON file for a volume.
 
         Args:
-            directory_name: Directory like "wuxia_0001"
+            directory_name: Directory like "work_0001"
             work_number: Work number like "D55"
             volume: Volume letter like "a", "b", "c" (optional)
 
@@ -230,31 +230,24 @@ class PathManager:
             Path to cleaned JSON file or None
 
         Example:
-            >>> manager.find_cleaned_json("wuxia_0001", "D55", "a")
-            Path('/data/cleaned/wuxia_0001/cleaned_D55a_射鵰英雄傳一_金庸.json')
+            >>> manager.find_cleaned_json("work_0001", "D55", "a")
+            Path('/data/cleaned/work_0001/cleaned_D55a_射鵰英雄傳一_金庸.json')
         """
-        # Check if directory exists
-        dir_path = self.config.source_dir / directory_name
-        if not dir_path.exists():
-            logger.warning(f"Directory not found: {dir_path}")
-            return None
-
         # Build search pattern
         pattern = f"cleaned_{work_number}"
         if volume:
             pattern += volume  # e.g., cleaned_D55a_*.json
 
-        # Find matching files
-        json_files = list(dir_path.glob(f"{pattern}*.json"))
+        dir_path = self.config.source_dir / directory_name
+        if dir_path.exists():
+            json_files = list(dir_path.glob(f"{pattern}*.json"))
+            if json_files:
+                if len(json_files) > 1:
+                    logger.warning(f"Multiple JSON files found for {pattern}, using first: {json_files[0]}")
+                return json_files[0]
 
-        if not json_files:
-            logger.warning(f"No cleaned JSON files found matching: {pattern}*.json in {dir_path}")
-            return None
-
-        if len(json_files) > 1:
-            logger.warning(f"Multiple JSON files found for {pattern}, using first: {json_files[0]}")
-
-        return json_files[0]
+        logger.warning(f"No cleaned JSON files found matching: {pattern}*.json in {self.config.source_dir}")
+        return None
 
     def find_work_files(
         self,
@@ -266,21 +259,18 @@ class PathManager:
 
         Args:
             work_number: Work number
-            directory_pattern: Optional directory pattern (e.g., "wuxia_*")
+            directory_pattern: Optional directory pattern (e.g., "work_*")
 
         Returns:
             List of paths to cleaned JSON files
         """
-        if directory_pattern is None:
-            directory_pattern = "*"
-
-        pattern = f"cleaned_{work_number}*.json"
+        pattern = directory_pattern or "work_*"
+        file_pattern = f"cleaned_{work_number}*.json"
         found_files = []
 
-        # Search in matching directories
-        for dir_path in self.config.source_dir.glob(directory_pattern):
+        for dir_path in self.config.source_dir.glob(pattern):
             if dir_path.is_dir():
-                found_files.extend(dir_path.glob(pattern))
+                found_files.extend(dir_path.glob(file_pattern))
 
         logger.debug(f"Found {len(found_files)} files for {work_number}")
         return sorted(found_files)

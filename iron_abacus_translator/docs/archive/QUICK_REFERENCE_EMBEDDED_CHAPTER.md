@@ -12,18 +12,18 @@ The batch processing pipeline now automatically detects and extracts chapters em
 
 ```bash
 python scripts/batch_process_books.py \
-  --source-dir /Users/jacki/project_files/translation_project/wuxia_individual_files \
+  --source-dir /Users/jacki/project_files/translation_project/work_individual_files \
   --output-dir /path/to/output \
-  --catalog-path /Users/jacki/project_files/translation_project/wuxia_catalog.db
+  --catalog-path /Users/jacki/project_files/translation_project/works_translator.duckdb
 ```
 
 ### Test on Single File
 
 ```bash
 python scripts/batch_process_books.py \
-  --source-dir /Users/jacki/project_files/translation_project/wuxia_individual_files \
+  --source-dir /Users/jacki/project_files/translation_project/work_individual_files \
   --output-dir /tmp/test_output \
-  --catalog-path /Users/jacki/project_files/translation_project/wuxia_catalog.db \
+  --catalog-path /Users/jacki/project_files/translation_project/works_translator.duckdb \
   --limit 1
 ```
 

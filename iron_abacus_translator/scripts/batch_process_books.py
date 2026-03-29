@@ -141,7 +141,7 @@ class BatchProcessor:
         """Find all book JSON files in source directory
 
         Args:
-            source_dir: Source directory containing wuxia_* folders
+            source_dir: Source directory containing work_* folders
             limit_folders: Limit to first N folders (processes ALL files in each folder)
 
         Returns list of (folder_path, json_file_path) tuples
@@ -149,8 +149,9 @@ class BatchProcessor:
         book_files = []
         folders_processed = 0
 
-        # Find all directories starting with wuxia_
-        for folder in sorted(source_dir.glob('wuxia_*')):
+        # Find all directories starting with work_
+        all_folders = sorted(source_dir.glob('work_*'))
+        for folder in all_folders:
             if not folder.is_dir():
                 continue
 
@@ -1026,7 +1027,7 @@ def main():
     parser.add_argument(
         '--source-dir',
         required=True,
-        help='Source directory containing wuxia_NNNN folders'
+        help='Source directory containing work_NNNN folders'
     )
     parser.add_argument(
         '--output-dir',
@@ -1041,7 +1042,7 @@ def main():
     parser.add_argument(
         '--catalog-path',
         required=True,
-        help='Path to wuxia_catalog.db SQLite database'
+        help='Path to works_translator.duckdb catalog database'
     )
     parser.add_argument(
         '--limit',

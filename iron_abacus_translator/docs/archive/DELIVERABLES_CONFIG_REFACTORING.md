@@ -77,7 +77,7 @@ translation:
 
 glossary:
   enabled: true
-  path: "/Users/jacki/project_files/glossaries/wuxia_martial_arts_glossary.db"
+  path: "/Users/jacki/project_files/glossaries/glossary.duckdb"
 
 logging:
   level: "DEBUG"

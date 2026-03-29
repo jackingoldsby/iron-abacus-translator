@@ -51,6 +51,7 @@ class ProgressEvent:
     volume: Optional[str] = None
     chapter_num: Optional[int] = None
     block_id: Optional[str] = None
+    target_lang: str = "en"
     metadata: Optional[Dict[str, Any]] = None
 
 
@@ -288,10 +289,27 @@ class ProgressDB:
                 block_id        VARCHAR,
                 event_type      VARCHAR NOT NULL,
                 status          VARCHAR,
+                target_lang     VARCHAR DEFAULT 'en',
                 metadata        JSON,
                 created_at      TIMESTAMP DEFAULT current_timestamp
             );
         """)
+        # Migrate existing tables: add target_lang column if missing
+        try:
+            cols = [
+                row[0] for row in
+                self._conn.execute(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'pipeline_events'"
+                ).fetchall()
+            ]
+            if "target_lang" not in cols:
+                self._conn.execute(
+                    "ALTER TABLE pipeline_events ADD COLUMN target_lang VARCHAR DEFAULT 'en'"
+                )
+                logger.info("Migrated pipeline_events: added target_lang column")
+        except Exception:
+            pass  # table may not exist yet (fresh DB)
         # Index for common queries
         self._conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_events_work_id
@@ -317,12 +335,12 @@ class ProgressDB:
         conn.execute("""
             INSERT INTO pipeline_events
                 (run_id, work_id, volume, stage, chapter_num, block_id,
-                 event_type, status, metadata)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 event_type, status, target_lang, metadata)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, [
             event.run_id, event.work_id, event.volume, event.stage,
             event.chapter_num, event.block_id,
-            event.event_type, event.status, meta_json,
+            event.event_type, event.status, event.target_lang, meta_json,
         ])
 
     def _emit_with_retry(self, event: ProgressEvent, max_retries: int = 5):
@@ -524,25 +542,34 @@ class ProgressDB:
             ))
         return results
 
-    def get_latest_state(self, work_id: str) -> Dict[str, Any]:
-        """What's the last completed stage? Used for auto-resume."""
+    def get_latest_state(self, work_id: str, target_lang: str = "en") -> Dict[str, Any]:
+        """What's the last completed stage? Used for auto-resume.
+
+        Filters by target_lang so different language translations
+        track progress independently.
+        """
         row = self._get_read_conn().execute("""
             SELECT run_id, stage, status, created_at
             FROM pipeline_events
-            WHERE work_id = ? AND event_type = 'stage_end' AND status = 'completed'
+            WHERE work_id = ?
+              AND COALESCE(target_lang, 'en') = ?
+              AND event_type = 'stage_end'
+              AND status = 'completed'
             ORDER BY created_at DESC
             LIMIT 1
-        """, [work_id]).fetchone()
+        """, [work_id, target_lang]).fetchone()
 
         if not row:
             return {
                 "work_id": work_id,
+                "target_lang": target_lang,
                 "last_completed_stage": None,
                 "status": "not_started",
             }
 
         return {
             "work_id": work_id,
+            "target_lang": target_lang,
             "last_completed_stage": row[1],
             "run_id": row[0],
             "completed_at": row[3].isoformat() if row[3] else None,
