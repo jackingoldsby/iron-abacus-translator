@@ -95,7 +95,7 @@ Detection logic is in `detectors/toc_detector.py`. Strategy dispatch is in `extr
 ## Shared Resources
 
 - **DuckDB catalog**: `/Users/jacki/project_files/translation_project/db/works_translator.duckdb`
-- **Output directory**: `/Users/jacki/project_files/translation_project/wuxia_individual_files/`
+- **Output directory**: `/Users/jacki/project_files/translation_project/work_individual_files/`
 - **EPUB source**: `/Users/jacki/project_files/translation_project/for_parsing/`
 
 ## Key Design Principles

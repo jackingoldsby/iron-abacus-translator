@@ -35,7 +35,7 @@ STUB_WORK_IDS = [
 ]
 
 # Paths
-RAW_DIR = Path.home() / "project_files" / "translation_project" / "wuxia_individual_files"
+RAW_DIR = Path.home() / "project_files" / "translation_project" / "work_individual_files"
 OUTPUT_DIR = Path.home() / "project_files" / "translation_project" / "cleaned" / "COMPLETE_ALL_BOOKS"
 CATALOG_PATH = Path.home() / "project_files" / "translation_project" / "db" / "works_translator.duckdb"
 
@@ -66,7 +66,7 @@ def find_cleaned_output(work_id: str) -> Path | None:
 
 
 def get_output_dir_for_work(work_id: str) -> Path | None:
-    """Get the output directory (wuxia_NNNN folder) for a work."""
+    """Get the output directory (work_NNNN folder) for a work."""
     # Check if there's already a cleaned file — use its directory
     existing = find_cleaned_output(work_id)
     if existing:
@@ -75,7 +75,7 @@ def get_output_dir_for_work(work_id: str) -> Path | None:
     # Otherwise find from raw source
     raw = find_raw_source(work_id)
     if raw:
-        folder_name = raw.parent.name  # e.g. wuxia_0015
+        folder_name = raw.parent.name  # e.g. work_0015
         out_dir = OUTPUT_DIR / folder_name
         return out_dir
     return None

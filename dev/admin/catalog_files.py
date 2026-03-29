@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Catalog Wuxia Files - Scan directories and create database mapping
+Catalog Work Files - Scan directories and create database mapping
 
-Scans wuxia_individual_files directories to find book JSON files
+Scans work_individual_files directories to find book JSON files
 and creates a database table mapping works to their file paths.
 
 FILE PATH CONSTRUCTION:
@@ -17,10 +17,10 @@ To get file paths for a work:
     ORDER BY wf.volume
 
 Path pattern:
-    {BASE_DIR}/wuxia_{directory_number}/{filename}
+    {BASE_DIR}/work_{directory_number}/{filename}
 
 Example:
-    $TRANSLATOR_DATA_ROOT/wuxia_individual_files/wuxia_0001/D55a_射鵰英雄傳一_金庸.json
+    $TRANSLATOR_DATA_ROOT/work_individual_files/work_0001/D55a_射鵰英雄傳一_金庸.json
     └─────────────────── BASE_DIR ────────────────────┘└─ dir ──┘└──────────── filename ──────────────┘
 
 See README_WUXIA_CATALOG.md for detailed usage examples.
@@ -50,8 +50,8 @@ DEFAULT_PROJECT_BASE = os.getenv(
 # Files to ignore
 IGNORE_PATTERNS = [
     r"^summary_translated_",
-    r"^wuxia_\d+_haodoo_page\.json$",
-    r"^wuxia_work_summary_",
+    r"^work_\d+_haodoo_page\.json$",
+    r"^work_summary_",
 ]
 
 
@@ -96,31 +96,31 @@ def parse_filename(filename: str) -> Tuple[str, str, str]:
     return (None, None, None)
 
 
-def scan_directories(wuxia_dir: str) -> List[Dict]:
+def scan_directories(work_dir: str) -> List[Dict]:
     """
-    Scan all wuxia_XXXX directories and catalog JSON files.
+    Scan all work_XXXX directories and catalog JSON files.
 
     Args:
-        wuxia_dir: Base directory containing wuxia_XXXX subdirectories
+        work_dir: Base directory containing work_XXXX subdirectories
 
     Returns:
         List of file info dictionaries
     """
     files_info = []
 
-    # Get all wuxia_XXXX directories
-    wuxia_dirs = sorted([
-        d for d in Path(wuxia_dir).iterdir()
-        if d.is_dir() and d.name.startswith('wuxia_')
+    # Get all work_XXXX directories
+    work_dirs = sorted([
+        d for d in Path(work_dir).iterdir()
+        if d.is_dir() and d.name.startswith('work_')
     ])
 
-    print(f"Found {len(wuxia_dirs)} wuxia directories")
+    print(f"Found {len(work_dirs)} wuxia directories")
 
-    for wuxia_subdir in wuxia_dirs:
-        dir_number = wuxia_subdir.name.replace('wuxia_', '')
+    for work_subdir in work_dirs:
+        dir_number = work_subdir.name.replace('work_', '')
 
         # Find all JSON files in this directory
-        for json_file in wuxia_subdir.glob('*.json'):
+        for json_file in work_subdir.glob('*.json'):
             filename = json_file.name
 
             # Skip ignored files
@@ -135,7 +135,7 @@ def scan_directories(wuxia_dir: str) -> List[Dict]:
                 continue
 
             file_info = {
-                'directory': wuxia_subdir.name,
+                'directory': work_subdir.name,
                 'directory_number': dir_number,
                 'filename': filename,
                 'full_path': str(json_file),
@@ -145,7 +145,7 @@ def scan_directories(wuxia_dir: str) -> List[Dict]:
             }
 
             files_info.append(file_info)
-            print(f"  ✓ {wuxia_subdir.name}/{filename} -> Work {work_num}{volume}")
+            print(f"  ✓ {work_subdir.name}/{filename} -> Work {work_num}{volume}")
 
     return files_info
 
@@ -247,7 +247,7 @@ def create_database_table(files_info: List[Dict], db_path: str):
     ''')
 
     for row in cursor.fetchall():
-        print(f"   Work {row[0]}: {row[1]} (dir: wuxia_{row[2]}, files: {row[3]})")
+        print(f"   Work {row[0]}: {row[1]} (dir: work_{row[2]}, files: {row[3]})")
 
     conn.close()
 
@@ -274,7 +274,7 @@ Examples:
   %(prog)s
 
   # Specify all paths explicitly
-  %(prog)s --wuxia-dir /path/to/wuxia_files --db-path /path/to/catalog.db
+  %(prog)s --wuxia-dir /path/to/work_files --db-path /path/to/catalog.db
         '''
     )
 
@@ -285,11 +285,11 @@ Examples:
     )
     parser.add_argument(
         '--wuxia-dir',
-        help='Directory containing wuxia_XXXX subdirectories (default: BASE_DIR/wuxia_individual_files)'
+        help='Directory containing work_XXXX subdirectories (default: BASE_DIR/work_individual_files)'
     )
     parser.add_argument(
         '--db-path',
-        help='Path to output SQLite database (default: BASE_DIR/wuxia_catalog.db)'
+        help='Path to output SQLite database (default: BASE_DIR/works_translator.duckdb)'
     )
 
     return parser.parse_args()
@@ -300,27 +300,27 @@ def main():
 
     # Determine paths
     base_dir = args.base_dir
-    wuxia_dir = args.wuxia_dir or os.path.join(base_dir, 'wuxia_individual_files')
-    db_path = args.db_path or os.path.join(base_dir, 'wuxia_catalog.db')
+    work_dir = args.work_dir or os.path.join(base_dir, 'work_individual_files')
+    db_path = args.db_path or os.path.join(base_dir, 'works_translator.duckdb')
 
     print("=" * 70)
-    print("Wuxia Files Cataloger")
+    print("Work Files Cataloger")
     print("=" * 70)
     print()
     print(f"Base Directory: {base_dir}")
-    print(f"Wuxia Directory: {wuxia_dir}")
+    print(f"Wuxia Directory: {work_dir}")
     print(f"Database Path: {db_path}")
     print()
 
     # Check if directory exists
-    if not Path(wuxia_dir).exists():
-        print(f"❌ Error: Directory not found: {wuxia_dir}")
+    if not Path(work_dir).exists():
+        print(f"❌ Error: Directory not found: {work_dir}")
         return 1
 
     # Scan directories
-    print(f"📂 Scanning: {wuxia_dir}")
+    print(f"📂 Scanning: {work_dir}")
     print()
-    files_info = scan_directories(wuxia_dir)
+    files_info = scan_directories(work_dir)
 
     if not files_info:
         print("❌ No files found!")

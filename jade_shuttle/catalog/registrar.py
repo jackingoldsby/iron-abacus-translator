@@ -25,14 +25,16 @@ def get_next_work_number(db_path: str) -> int:
 
 
 def get_next_directory_number(output_dir: str) -> int:
-    """Get the next wuxia_XXXX directory number."""
+    """Get the next work_XXXX directory number."""
     max_num = 0
     base = Path(output_dir)
     if base.exists():
         for d in base.iterdir():
-            if d.is_dir() and d.name.startswith("wuxia_"):
+            if not d.is_dir():
+                continue
+            if d.name.startswith("work_"):
                 try:
-                    num = int(d.name.replace("wuxia_", ""))
+                    num = int(d.name[len("work_"):])
                     max_num = max(max_num, num)
                 except ValueError:
                     pass
@@ -105,7 +107,7 @@ def register_works(
             vol_letter = VOLUME_LETTERS[i] if len(group.volumes) > 1 else ""
             wn = f"{group.work_number}{vol_letter}"
             filename = f"{wn}_{vol.title_traditional}_{vol.author_traditional}.json"
-            dir_name = f"wuxia_{group.directory_number}"
+            dir_name = f"work_{group.directory_number}"
             full_path = str(Path(output_dir) / dir_name / filename)
 
             con.execute(

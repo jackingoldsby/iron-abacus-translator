@@ -6,8 +6,8 @@ Migrates translation project files from the old flat layout to the new
 author/series/work library structure.
 
 Old layout:
-    wuxia_individual_files/wuxia_NNNN/   (raw)
-    cleaned/COMPLETE_ALL_BOOKS/wuxia_NNNN/  (cleaned)
+    work_individual_files/work_NNNN/   (raw)
+    cleaned/COMPLETE_ALL_BOOKS/work_NNNN/  (cleaned)
     wip/stage_N_*/filename.json          (WIP by stage)
     translated/translated_*.json         (final output)
     logs/filename_stage_N_*.json         (logs)
@@ -62,7 +62,7 @@ class StorageMigrator:
         self.library_root = data_root / "library"
 
         # Old dirs
-        self.old_raw_dir = data_root / "wuxia_individual_files"
+        self.old_raw_dir = data_root / "work_individual_files"
         self.old_cleaned_dir = data_root / "cleaned" / "COMPLETE_ALL_BOOKS"
         self.old_wip_dir = data_root / "wip"
         self.old_translated_dir = data_root / "translated"
@@ -459,7 +459,7 @@ class StorageMigrator:
         archive_root = self.data_root / "_archive"
 
         dirs_to_archive = [
-            ("wuxia_individual_files", self.old_raw_dir),
+            ("work_individual_files", self.old_raw_dir),
             ("cleaned", self.data_root / "cleaned"),
             ("wip", self.old_wip_dir),
             ("translated", self.old_translated_dir),

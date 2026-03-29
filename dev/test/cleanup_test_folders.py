@@ -54,7 +54,7 @@ PROTECTED_PATHS = [
 
 # Additional safety keywords - if a path contains any of these, ABORT
 PROTECTED_KEYWORDS = [
-    "wuxia_individual_files",
+    "work_individual_files",
     "source_files",
     "source_data",
     "original_data",
@@ -430,7 +430,7 @@ Examples:
 
 Safety Features:
   - Protected paths list (source data never deleted)
-  - Keyword matching (blocks paths with "wuxia_individual_files")
+  - Keyword matching (blocks paths with "work_individual_files")
   - Source indicator detection (blocks paths ending with "_individual_files")
   - Explicit confirmation required for deletion
   - Dry-run mode by default

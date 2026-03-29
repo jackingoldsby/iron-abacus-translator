@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 # Defaults
 DEFAULT_EPUB_DIR = "/Users/jacki/project_files/translation_project/for_parsing/"
-DEFAULT_OUTPUT_DIR = "/Users/jacki/project_files/translation_project/wuxia_individual_files/"
+DEFAULT_OUTPUT_DIR = "/Users/jacki/project_files/translation_project/work_individual_files/"
 DEFAULT_DB_PATH = "/Users/jacki/project_files/translation_project/db/works_translator.duckdb"
 
 # OpenCC converter: simplified -> traditional
@@ -131,7 +131,7 @@ class WorkGroup:
     author_simp: str
     volumes: List[DetectedWork]  # Ordered volumes
     work_number: str = ""  # Assigned: A001, A002, ...
-    directory_number: str = ""  # wuxia_XXXX number
+    directory_number: str = ""  # work_XXXX number
     is_duplicate: bool = False
     matched_catalog_title: str = ""
 
@@ -932,14 +932,14 @@ def get_next_work_number(db_path: str) -> int:
 
 
 def get_next_directory_number(output_dir: str) -> int:
-    """Get the next wuxia_XXXX directory number."""
+    """Get the next work_XXXX directory number."""
     max_num = 0
     base = Path(output_dir)
     if base.exists():
         for d in base.iterdir():
-            if d.is_dir() and d.name.startswith("wuxia_"):
+            if d.is_dir() and d.name.startswith("work_"):
                 try:
-                    num = int(d.name.replace("wuxia_", ""))
+                    num = int(d.name.replace("work_", ""))
                     max_num = max(max_num, num)
                 except ValueError:
                     pass
@@ -1044,7 +1044,7 @@ def register_works(
             vol_letter = VOLUME_LETTERS[i] if len(group.volumes) > 1 else ""
             wn = f"{group.work_number}{vol_letter}"
             filename = f"{wn}_{vol.title_traditional}_{vol.author_traditional}.json"
-            dir_name = f"wuxia_{group.directory_number}"
+            dir_name = f"work_{group.directory_number}"
             full_path = str(Path(output_dir) / dir_name / filename)
 
             con.execute(
@@ -1250,7 +1250,7 @@ def process_epub(
             "chapters": total_chapters,
             "characters": total_chars,
             "work_number": group.work_number,
-            "directory": f"wuxia_{group.directory_number}" if group.directory_number else "",
+            "directory": f"work_{group.directory_number}" if group.directory_number else "",
         }
         if group.is_duplicate:
             detail["matched"] = group.matched_catalog_title
@@ -1260,7 +1260,7 @@ def process_epub(
             f"  [{status}] {group.base_title_trad}{vol_info} "
             f"- {total_chapters} ch, {total_chars:,} chars"
             + (f" (matched: {group.matched_catalog_title})" if group.is_duplicate else
-               f" -> {group.work_number} wuxia_{group.directory_number}")
+               f" -> {group.work_number} work_{group.directory_number}")
         )
 
     # Write files and register
@@ -1269,7 +1269,7 @@ def process_epub(
             if group.is_duplicate:
                 continue
 
-            dir_name = f"wuxia_{group.directory_number}"
+            dir_name = f"work_{group.directory_number}"
             dir_path = Path(output_dir) / dir_name
             dir_path.mkdir(parents=True, exist_ok=True)
 
@@ -1316,7 +1316,7 @@ Examples:
     )
     parser.add_argument(
         "--output-dir", default=DEFAULT_OUTPUT_DIR,
-        help="Output directory for wuxia_XXXX directories",
+        help="Output directory for work_XXXX directories",
     )
     parser.add_argument(
         "--db-path", default=DEFAULT_DB_PATH,
@@ -1363,7 +1363,7 @@ Examples:
     next_work_num = get_next_work_number(args.db_path)
     next_dir_num = get_next_directory_number(args.output_dir)
     logger.info(f"Next work number: A{next_work_num:03d}")
-    logger.info(f"Next directory: wuxia_{next_dir_num:04d}")
+    logger.info(f"Next directory: work_{next_dir_num:04d}")
 
     # Process each EPUB
     all_reports: List[IngestReport] = []

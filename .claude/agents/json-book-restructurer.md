@@ -1,6 +1,6 @@
 ---
 name: json-book-restructurer
-description: Use this agent when the user needs to BUILD SCRIPTS that transform raw JSON book data into standardized cleaned format for downstream translation processing. This agent creates the tooling, not performs the work directly.\n\n<example>\nContext: User has raw book JSON files that need processing tools.\n\nuser: "I need to process these raw book JSON files in /Users/jacki/project_files/translation_project/wuxia_individual_files before translation"\n\nassistant: "I'll use the json-book-restructurer agent to build the cleaning and restructuring scripts for your JSON files."\n\n<commentary>\nThe user needs processing tools built. Launch the json-book-restructurer agent to create scripts with hybrid heuristic + AI validation approach.\n</commentary>\n</example>\n\n<example>\nContext: User wants cleaning/structuring capabilities.\n\nuser: "Can you build a tool to clean and structure book JSON files so they're ready for translation?"\n\nassistant: "I'll launch the json-book-restructurer agent to build the processing scripts with structure-based heuristics and AI validation."\n\n<commentary>\nUser needs scripts built. Invoke the json-book-restructurer agent to create the restructuring tooling.\n</commentary>\n</example>
+description: Use this agent when the user needs to BUILD SCRIPTS that transform raw JSON book data into standardized cleaned format for downstream translation processing. This agent creates the tooling, not performs the work directly.\n\n<example>\nContext: User has raw book JSON files that need processing tools.\n\nuser: "I need to process these raw book JSON files in /Users/jacki/project_files/translation_project/work_individual_files before translation"\n\nassistant: "I'll use the json-book-restructurer agent to build the cleaning and restructuring scripts for your JSON files."\n\n<commentary>\nThe user needs processing tools built. Launch the json-book-restructurer agent to create scripts with hybrid heuristic + AI validation approach.\n</commentary>\n</example>\n\n<example>\nContext: User wants cleaning/structuring capabilities.\n\nuser: "Can you build a tool to clean and structure book JSON files so they're ready for translation?"\n\nassistant: "I'll launch the json-book-restructurer agent to build the processing scripts with structure-based heuristics and AI validation."\n\n<commentary>\nUser needs scripts built. Invoke the json-book-restructurer agent to create the restructuring tooling.\n</commentary>\n</example>
 model: sonnet
 color: purple
 ---
@@ -917,14 +917,14 @@ Scripts must handle:
 python iron_abacus_translator/cli/clean.py \
   --input raw_book.json \
   --output cleaned_book.json \
-  --catalog-db wuxia_catalog.db \
-  --directory-name wuxia_0117
+  --catalog-db works_translator.duckdb \
+  --directory-name work_0117
 
 # Batch processing
 python iron_abacus_translator/cli/clean.py \
   --input-dir /path/to/raw_files \
   --output-dir /path/to/cleaned \
-  --catalog-db wuxia_catalog.db \
+  --catalog-db works_translator.duckdb \
   --use-ai-validation  # Optional AI layer
 ```
 
@@ -966,16 +966,16 @@ The project root has a symlink: `translation_data -> /Users/jacki/project_files/
 **Scripts must access (via symlink):**
 
 1. **SQLite Catalog Database**:
-   - Relative path: `PROJECT_ROOT/translation_data/wuxia_catalog.db`
-   - Absolute path: `/Users/jacki/project_files/translation_project/wuxia_catalog.db`
+   - Relative path: `PROJECT_ROOT/translation_data/works_translator.duckdb`
+   - Absolute path: `/Users/jacki/project_files/translation_project/works_translator.duckdb`
    - Contains: work_number, title, author, volume metadata
    - Use existing `iron_abacus_translator/utils/catalog_metadata.py` (CatalogMetadataExtractor)
 
 2. **Unprocessed Book Files**:
-   - Relative path: `PROJECT_ROOT/translation_data/wuxia_individual_files/`
-   - Absolute path: `/Users/jacki/project_files/translation_project/wuxia_individual_files/`
-   - Format: 645 individual directories (wuxia_NNNN/), each containing raw JSON file
-   - Example: `translation_data/wuxia_individual_files/wuxia_0117/wuxia_0117.json`
+   - Relative path: `PROJECT_ROOT/translation_data/work_individual_files/`
+   - Absolute path: `/Users/jacki/project_files/translation_project/work_individual_files/`
+   - Format: 645 individual directories (work_NNNN/), each containing raw JSON file
+   - Example: `translation_data/work_individual_files/work_0117/work_0117.json`
 
 3. **Sample Data for Validation**:
    - Select 3-5 representative files from library
@@ -1000,8 +1000,8 @@ DEFAULT_PROJECT_BASE = os.getenv(
 )
 
 # Construct paths
-db_path = os.path.join(DEFAULT_PROJECT_BASE, 'wuxia_catalog.db')
-source_dir = os.path.join(DEFAULT_PROJECT_BASE, 'wuxia_individual_files')
+db_path = os.path.join(DEFAULT_PROJECT_BASE, 'works_translator.duckdb')
+source_dir = os.path.join(DEFAULT_PROJECT_BASE, 'work_individual_files')
 ```
 
 ## Your Task
@@ -1018,8 +1018,8 @@ source_dir = os.path.join(DEFAULT_PROJECT_BASE, 'wuxia_individual_files')
 3. **`iron_abacus_translator/processors/json_output_standardizer.py`** - Schema enforcement
 
 4. **`iron_abacus_translator/cli/clean.py`** - Command-line interface
-   - Default catalog path: `PROJECT_ROOT/translation_data/wuxia_catalog.db`
-   - Default source: `PROJECT_ROOT/translation_data/wuxia_individual_files/`
+   - Default catalog path: `PROJECT_ROOT/translation_data/works_translator.duckdb`
+   - Default source: `PROJECT_ROOT/translation_data/work_individual_files/`
    - Follow path construction pattern from iron_abacus_translator/scripts/test_file_paths.py
 
 5. **Test & Validation Script**: `test_json_cleaner.py`
@@ -1050,7 +1050,7 @@ source_dir = os.path.join(DEFAULT_PROJECT_BASE, 'wuxia_individual_files')
        str(PROJECT_ROOT / 'translation_data')
    )
 
-   catalog_db = os.path.join(DEFAULT_PROJECT_BASE, 'wuxia_catalog.db')
+   catalog_db = os.path.join(DEFAULT_PROJECT_BASE, 'works_translator.duckdb')
    assert Path(catalog_db).exists(), f"Database not found: {catalog_db}"
 
    conn = sqlite3.connect(catalog_db)

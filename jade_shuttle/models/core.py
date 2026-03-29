@@ -41,7 +41,7 @@ class WorkGroup:
     author_simp: str
     volumes: List[DetectedWork]  # Ordered volumes
     work_number: str = ""  # Assigned: A001, A002, ...
-    directory_number: str = ""  # wuxia_XXXX number
+    directory_number: str = ""  # work_XXXX number
     is_duplicate: bool = False
     matched_catalog_title: str = ""
 

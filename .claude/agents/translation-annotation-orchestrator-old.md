@@ -236,7 +236,7 @@ class PipelineConfig:
     wip_dir: Path
     log_dir: Path
     openai_api_key: str
-    glossary_db_path: str = "wuxia_glossary.db"
+    glossary_db_path: str = "glossary.duckdb"
     max_workers: int = 3
 
 class TranslationOrchestrator:

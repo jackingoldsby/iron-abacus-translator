@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """
+DEPRECATED: Use azure_register instead:
+    cd azure_register && python -m cli.enrich reader --dry-run
+
 Reader-Oriented Metadata Enrichment via DeepSeek → DuckDB
 
 Enriches works and authors with subjective/evaluative metadata that helps

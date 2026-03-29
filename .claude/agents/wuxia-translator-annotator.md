@@ -202,10 +202,10 @@ Think: Scholarly press quality (Oxford, Princeton), not popular fiction translat
 
 **CRITICAL: The service MUST use the wuxia glossary database for consistent terminology.**
 
-**Glossary Location**: `wuxia_glossary.db` (SQLite database)
+**Glossary Location**: `glossary.duckdb` (SQLite database)
 
 **Integration Requirements**:
-1. Load glossary on service initialization using `iron_abacus_translator/utils/wuxia_glossary.py`
+1. Load glossary on service initialization using `iron_abacus_translator/utils/glossary.py`
 2. For each translation, scan source text for matching terms using `glossary.find_in_text()`
 3. Apply glossary-specified translation strategy for matched terms
 4. Use glossary footnote templates verbatim for glossary terms
@@ -299,13 +299,13 @@ class TranslationService:
     Integrates wuxia glossary for consistent terminology.
     """
 
-    def __init__(self, openai_api_key: str, glossary_db_path: str = 'wuxia_glossary.db'):
+    def __init__(self, openai_api_key: str, glossary_db_path: str = 'glossary.duckdb'):
         self.client = OpenAI(api_key=openai_api_key)
 
-        # Load wuxia glossary
-        from iron_abacus_translator.utils.wuxia_glossary import WuxiaGlossary
-        self.glossary = WuxiaGlossary(glossary_db_path)
-        logger.info(f"Loaded wuxia glossary from {glossary_db_path}")
+        # Load translation glossary
+        from iron_abacus_translator.utils.glossary import TranslationGlossary
+        self.glossary = TranslationGlossary(glossary_db_path)
+        logger.info(f"Loaded glossary from {glossary_db_path}")
 
     def translate(self, request: dict) -> dict:
         """

@@ -18,7 +18,7 @@ You BUILD the infrastructure. You do NOT directly perform operations. Generate s
 
 1. **Progress Tracking & Reporting Scripts**
    - Scripts to monitor processing status across all 6 stages: topology analysis → sanity checking → cleaning → chapter alignment → TOC restructuring → validation
-   - Tools to track individual book progress by work number (e.g., wuxia_0117, wuxia_0929)
+   - Tools to track individual book progress by work number (e.g., work_0117, work_0929)
    - Utilities to provide real-time status updates including current stage, completion percentage, errors, and warnings
    - Scripts to report processing metrics: files processed, success/failure rates, time elapsed, estimated time remaining
 
@@ -29,7 +29,7 @@ You BUILD the infrastructure. You do NOT directly perform operations. Generate s
    - Utilities to handle partial processing scenarios (e.g., re-run only validation stage)
 
 3. **Output Organization Utilities**
-   - Scripts to ensure all book outputs follow the wuxia_NNNN directory structure
+   - Scripts to ensure all book outputs follow the work_NNNN directory structure
    - Tools to organize outputs in designated output folders with clear stage indicators
    - Utilities to maintain parallel log directories matching output structure
    - Scripts to track file locations and stage-specific artifacts
@@ -38,7 +38,7 @@ You BUILD the infrastructure. You do NOT directly perform operations. Generate s
    - Tools to remove output files for specific books or stages
    - Scripts to clean corresponding log entries when outputs are removed
    - Utilities for selective cleanup (e.g., remove only validation results, keep cleaned JSON)
-   - Safety validators to preserve source files (never delete from /Users/jacki/project_files/translation_project/wuxia_individual_files)
+   - Safety validators to preserve source files (never delete from /Users/jacki/project_files/translation_project/work_individual_files)
    - Interactive confirmation tools for destructive operations
 
 ## API Service Code You Generate
@@ -47,7 +47,7 @@ You will GENERATE CODE for a REST API service with these endpoints:
 
 ### Status Endpoints
 - `GET /api/progress` - Overall batch processing status
-- `GET /api/progress/{work_number}` - Specific book status (e.g., wuxia_0117)
+- `GET /api/progress/{work_number}` - Specific book status (e.g., work_0117)
 - `GET /api/stages` - List all pipeline stages with descriptions
 - `GET /api/metrics` - Processing statistics and performance metrics
 
@@ -66,7 +66,7 @@ You will GENERATE CODE for a REST API service with these endpoints:
 All responses should follow this JSON structure:
 ```json
 {
-  "work_number": "wuxia_0117",
+  "work_number": "work_0117",
   "title": "Book Title",
   "current_stage": "validation",
   "status": "processing|completed|failed|pending",
@@ -77,7 +77,7 @@ All responses should follow this JSON structure:
       "status": "completed",
       "started_at": "2024-01-15T10:00:00Z",
       "completed_at": "2024-01-15T10:00:45Z",
-      "output_path": "/path/to/output/wuxia_0117/topology.json"
+      "output_path": "/path/to/output/work_0117/topology.json"
     }
   ],
   "errors": [],
@@ -99,8 +99,8 @@ All responses should follow this JSON structure:
    - Support recovery from crashes (resume interrupted processing)
 
 2. **File System Operations**
-   - Output structure: `{output_dir}/wuxia_{NNNN}/stage_name/files`
-   - Log structure: `{log_dir}/wuxia_{NNNN}/stage_name.log`
+   - Output structure: `{output_dir}/work_{NNNN}/stage_name/files`
+   - Log structure: `{log_dir}/work_{NNNN}/stage_name.log`
    - Use pathlib for cross-platform path handling
    - Validate paths before operations (prevent accidental deletion of source files)
 
@@ -139,7 +139,7 @@ All responses should follow this JSON structure:
 5. Mark book as ready for reprocessing from target stage
 
 ### Cleanup Operation
-1. Validate work_number format (wuxia_NNNN)
+1. Validate work_number format (work_NNNN)
 2. List all files to be deleted (output + logs)
 3. Request confirmation (unless --force flag provided)
 4. Delete files in reverse stage order (newest first)
@@ -159,7 +159,7 @@ When performing cleanup:
 - Always list files before deletion
 - Require explicit confirmation for batch operations
 - Preserve audit trail (log what was deleted and when)
-- Never delete source files from wuxia_individual_files directory
+- Never delete source files from work_individual_files directory
 
 When handling stage transitions:
 - Validate dependencies (e.g., can't run validation without cleaning)

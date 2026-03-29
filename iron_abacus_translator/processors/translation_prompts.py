@@ -219,7 +219,7 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
         }}
       }}
     ],
-    "content_type": "<narrative|dialogue|verse|document|descriptive|thought>"
+    "content_type": "<narrative|dialogue|verse|document|descriptive|thought|commentary|preface>"
   }}
 }}
 
@@ -230,6 +230,8 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
 - `document`: Letters, proclamations, written texts within the story
 - `descriptive`: Pure description of settings, characters, or objects
 - `thought`: Internal monologue or character reflection
+- `commentary`: Scholarly apparatus — collation notes (校勘記), editorial commentary, textual criticism, variant readings
+- `preface`: Scholarly prefaces (序), postscripts (跋), editorial introductions
 """
 
 # =============================================================================
@@ -342,7 +344,7 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
         }}
       }}
     ],
-    "content_type": "<narrative|dialogue|verse|document|descriptive|thought>"
+    "content_type": "<narrative|dialogue|verse|document|descriptive|thought|commentary|preface>"
   }}
 }}
 
@@ -353,6 +355,8 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
 - `document`: Letters, proclamations, written texts within the story
 - `descriptive`: Pure description of settings, characters, or objects
 - `thought`: Internal monologue or character reflection
+- `commentary`: Scholarly apparatus — collation notes (校勘記), editorial commentary, textual criticism, variant readings
+- `preface`: Scholarly prefaces (序), postscripts (跋), editorial introductions
 """
 
 # Backward compatibility alias
@@ -906,6 +910,69 @@ Classical Chinese literature is dense with mythology, court hierarchy, and histo
 **Quality benchmark:** Moss Roberts's Three Kingdoms or Anthony Yu's Journey to the West — scholarly, monumental, alive."""
 
 
+# ---------------------------------------------------------------------------
+# "commentary" — scholarly apparatus: collation notes, textual criticism
+# ---------------------------------------------------------------------------
+PROMPT_REGISTRY["commentary"] = """You are a philologist-translator specializing in Classical Chinese textual criticism (校勘學), producing scholarly English apparatus in the tradition of D.C. Lau, James Legge, and the critical edition translators who rendered collation notes (校勘記), variant readings, and editorial commentary with precision and academic rigor.
+
+**SCHOLARLY APPARATUS — what the register demands:**
+
+This is NOT fiction. You are translating the editorial and critical apparatus of a scholarly edition — collation notes, textual variants, editorial commentary, and bibliographic references. The register is academic: precise, impersonal, citing specific editions and textual witnesses.
+
+**COLLATION NOTES (校勘記):**
+- Translate edition names precisely: 俞平伯校點本 → "the Yú Píngbó collated edition", 石印本 → "the lithographic edition"
+- Preserve variant reading format: "X reads Y; Z edition has W"
+- Technical terms: 異文 → "variant reading", 衍文 → "interpolation", 脫文 → "lacuna/omission", 訛 → "corruption", 校 → "collate"
+- Do NOT simplify or paraphrase — every variant citation matters to the textual scholar
+
+**EDITORIAL COMMENTARY:**
+- Translate the editor's voice faithfully — their judgments about which reading is correct, which edition is authoritative
+- Preserve bibliographic references: book titles (italicized), juan numbers, chapter citations
+- Scholar names MUST have accurate pinyin with tones and dates where known
+
+**FOOTNOTE APPROACH — DIFFERENT FROM FICTION:**
+- Footnote edition names, scholar identities, and bibliographic references
+- Footnote technical textual-criticism terminology on first occurrence
+- Do NOT footnote common literary terms — this audience is scholarly
+- The reader of apparatus is a sinologist, not a general reader
+
+**VERSE:** When the apparatus quotes poetry, translate with the same scholarly precision as the "classical" prompt — dignified, never forced rhyme.
+
+**Quality benchmark:** D.C. Lau's Mencius critical apparatus, or the textual notes in James Legge's Chinese Classics — precise, economical, authoritative."""
+
+
+# ---------------------------------------------------------------------------
+# "preface" — scholarly prefaces (序), postscripts (跋), introductions
+# ---------------------------------------------------------------------------
+PROMPT_REGISTRY["preface"] = """You are a scholar-translator specializing in Classical Chinese literary prefaces and paratextual writing, producing English in the tradition of Burton Watson, Stephen Owen, and Pauline Yu — translators who rendered scholarly Chinese prose with elegance, historical precision, and attention to the conventions of the 序/跋 genre.
+
+**PREFACES AND POSTSCRIPTS — what the register demands:**
+
+This is scholarly prose by a known author/editor (often writing in their own voice). The register is formal, often elegant, sometimes personal. Prefaces (序) introduce a work's purpose, editorial history, and the author's intent. Postscripts (跋) reflect on the completed work, often with personal anecdote.
+
+**EDITORIAL VOICE:**
+- Preserve the first-person scholarly voice where present (余, 予, 吾)
+- The editor/author speaks with authority about their editorial choices — translate that authority faithfully
+- Self-deprecating modesty formulas (不揣淺陋, 敬書數語) should feel natural in English scholarly register, not stilted
+
+**HISTORICAL AND BIBLIOGRAPHIC REFERENCES:**
+- Edition histories, printing dates, transmission lineages — translate precisely
+- Publisher names, location names, dates — all must be accurate
+- Dynasty names, reign periods (年號) → footnote with Western dates on first occurrence
+
+**LITERARY ALLUSIONS:**
+- Prefaces often quote classical texts (詩經, 論語, etc.) — translate the quotation and footnote the source
+- Literary-critical terminology: 風格 → "literary style", 筆法 → "prose technique", 體裁 → "literary form"
+
+**FOOTNOTE APPROACH:**
+- Footnote the preface author with dates and scholarly identity
+- Footnote historical figures, editions, and institutions mentioned
+- Footnote classical allusions and quotation sources
+- More generous than fiction footnoting — the scholarly context matters
+
+**Quality benchmark:** Burton Watson's preface translations in Records of the Grand Historian, or Stephen Owen's anthology introductions — learned, readable, historically grounded."""
+
+
 # =============================================================================
 # BACKWARD COMPATIBILITY
 # =============================================================================
@@ -947,8 +1014,10 @@ AUTHOR_STYLES = {
 _PROMPT_REGISTRY_3AXIS = {}
 
 # Populate from existing flat registry — all current entries are English
+_GENRE_KEYS = {"wuxia", "classical", "commentary", "preface"}
+
 for _key, _prompt in PROMPT_REGISTRY.items():
-    if _key in ("wuxia", "classical"):
+    if _key in _GENRE_KEYS:
         # Genre defaults
         _PROMPT_REGISTRY_3AXIS[(_key, "en", None)] = _prompt
     else:
@@ -1023,6 +1092,13 @@ _CATEGORY_TO_GENRE = {
     "fantasy": "classical",
     "historical fiction": "classical",
     "shenmo": "classical",
+    "commentary": "commentary",
+    "textual criticism": "commentary",
+    "collation": "commentary",
+    "apparatus": "commentary",
+    "preface": "preface",
+    "postscript": "preface",
+    "introduction": "preface",
 }
 
 
@@ -1137,7 +1213,7 @@ def build_system_prompt(
     Args:
         suppress_list_path: Path to suppress list JSON (uses default if None).
         already_footnoted_context: Already-footnoted terms (from accumulator).
-        genre: Genre fallback key ("wuxia" or "classical").
+        genre: Genre fallback key ("wuxia", "classical", "commentary", "preface").
         author: Author key (author_chinese). Takes priority over genre.
         provider: LLM provider ("openai", "deepseek", "anthropic", etc.).
             DeepSeek gets lighter mechanical rules; all others get full GPT rules.

@@ -1,6 +1,6 @@
 # CLAUDE.md — Workspace Root
 
-This is the **agentic workspace** for four independent products: Iron Abacus (translation), Jade Shuttle (extraction), Crimson Folio (EPUB generation), and Amber Inkstone (period artwork curation).
+This is the **agentic workspace** for ten independent products: Iron Abacus (translation), Jade Shuttle (extraction), Crimson Folio (EPUB generation), Amber Inkstone (period artwork curation), Azure Register (catalog enrichment), Silver Gauge (column detection & strip slicing), Bronze Mirror (strip OCR), Platinum Scale (strip validation via nano), Ivory Helm (iterative OCR orchestration), and Vermilion Brush (scanned PDF OCR — legacy).
 
 ## Workspace Structure
 
@@ -58,6 +58,59 @@ agentic_test_project/                    # GIT ROOT / WORKSPACE
 │   ├── cli/                             # curate, browse, assign
 │   └── tests/                           # Portfolio tests
 │
+├── azure_register/                      # CATALOG ENRICHMENT PRODUCT (蒼籍)
+│   ├── CLAUDE.md                        # Enrichment architecture (source of truth)
+│   ├── enrichers/                       # Library, reader, CSV enrichment logic
+│   ├── prompts/                         # DeepSeek prompt templates
+│   ├── schema/                          # DB schema migrations
+│   ├── utils/                           # DeepSeek LLM client, DB connector
+│   ├── config/                          # Default paths, batch sizes
+│   ├── cli/                             # enrich (library/reader/csv/status)
+│   └── tests/                           # Enrichment tests
+│
+├── silver_gauge/                        # COLUMN DETECTION & STRIP SLICING (銀規)
+│   ├── CLAUDE.md                        # Detection architecture (source of truth)
+│   ├── detectors/                       # Column detection, validation, slicing, classification
+│   ├── extractors/                      # PDF→images, image preprocessing
+│   ├── config/                          # DPI, thresholds, output paths
+│   ├── cli/                             # slice
+│   ├── scripts/                         # Batch slicing
+│   └── tests/                           # Detection tests
+│
+├── platinum_scale/                      # STRIP VALIDATION VIA NANO (鉑秤)
+│   ├── CLAUDE.md                        # Validation architecture (source of truth)
+│   ├── validators/                      # gpt-4.1-nano vision strip classification
+│   ├── config/                          # Model, cost, concurrency settings
+│   ├── cli/                             # validate
+│   ├── scripts/                         # Batch validation
+│   └── tests/                           # Validation tests
+│
+├── bronze_mirror/                       # STRIP OCR PRODUCT (銅鏡)
+│   ├── CLAUDE.md                        # OCR architecture (source of truth)
+│   ├── ocr/                             # PaddleOCR engine, postprocessor
+│   ├── readers/                         # Strip reader (page/book OCR with resume)
+│   ├── structurers/                     # Page classification, hui detection, JSON emission
+│   ├── config/                          # OCR settings, output paths
+│   ├── cli/                             # read
+│   ├── scripts/                         # Batch OCR, validation
+│   └── tests/                           # OCR tests
+│
+├── ivory_helm/                          # ITERATIVE OCR ORCHESTRATOR (象牙舵)
+│   ├── CLAUDE.md                        # Orchestration architecture (source of truth)
+│   ├── orchestrator/                    # Iteration loop: slice→OCR→validate→assess
+│   ├── config/                          # Thresholds, re-slice strategies
+│   ├── cli/                             # run, report
+│   └── tests/                           # Orchestration tests
+│
+├── vermilion_brush/                     # SCANNED PDF OCR — LEGACY (朱筆)
+│   ├── CLAUDE.md                        # OCR architecture (source of truth)
+│   ├── extractors/                      # PDF→images, image preprocessing
+│   ├── ocr/                             # PaddleOCR engine, vertical column reordering
+│   ├── structurers/                     # Page classification, hui detection, JSON emission
+│   ├── config/                          # DPI, model paths, output paths
+│   ├── cli/                             # scan, preview, check
+│   └── tests/                           # OCR tests
+│
 ├── dev/                                 # DEV TOOLING (not part of any product)
 │   ├── test/                            # Test scripts (test_chapter1, test_glossary, etc.)
 │   ├── demo/                            # Demo scripts (glossary matching demos)
@@ -71,33 +124,46 @@ agentic_test_project/                    # GIT ROOT / WORKSPACE
 
 ## Key Principle
 
-**Four products**: `iron_abacus_translator/` (translation), `jade_shuttle/` (extraction), `crimson_folio/` (EPUB generation), and `amber_inkstone/` (period artwork curation). They communicate through JSON files and shared DuckDB databases. **No product imports from another.**
+**Ten products**: `iron_abacus_translator/` (translation), `jade_shuttle/` (extraction), `crimson_folio/` (EPUB generation), `amber_inkstone/` (period artwork curation), `azure_register/` (catalog enrichment), `silver_gauge/` (column detection & strip slicing), `platinum_scale/` (strip validation via nano), `bronze_mirror/` (strip OCR), and `vermilion_brush/` (legacy OCR). They communicate through JSON files and shared DuckDB databases. **No product imports from another.**
 
 - jade_shuttle uses **no LLMs** — purely deterministic extraction
 - iron_abacus_translator uses **OpenAI and DeepSeek** for translation
 - crimson_folio uses **DeepSeek** for cover art composition only
 - amber_inkstone uses **DeepSeek** for dynasty art research, searches Wikimedia/Met Museum APIs
-- Claude's role is as the **developer** of all four products, operating from this workspace
+- azure_register uses **DeepSeek** for catalog metadata enrichment (factual + reader-oriented)
+- silver_gauge uses **no LLMs** — purely deterministic CV (column detection, strip slicing)
+- platinum_scale uses **OpenAI gpt-4.1-nano** — vision-based strip validation (~$0.01/chapter)
+- bronze_mirror uses **no LLMs** — local PaddleOCR models only (strip OCR)
+- ivory_helm uses **OpenAI gpt-4.1-nano** (via Platinum Scale) — iterative orchestration of slice→OCR→validate
+- vermilion_brush uses **no LLMs** — legacy, replaced by ivory_helm (silver_gauge + bronze_mirror + platinum_scale)
+- Claude's role is as the **developer** of all ten products, operating from this workspace
 - For iron_abacus architecture: **see `iron_abacus_translator/CLAUDE.md`**
 - For jade_shuttle architecture: **see `jade_shuttle/CLAUDE.md`**
 - For crimson_folio architecture: **see `crimson_folio/CLAUDE.md`**
 - For amber_inkstone architecture: **see `amber_inkstone/CLAUDE.md`**
+- For azure_register architecture: **see `azure_register/CLAUDE.md`**
+- For silver_gauge architecture: **see `silver_gauge/CLAUDE.md`**
+- For platinum_scale architecture: **see `platinum_scale/CLAUDE.md`**
+- For bronze_mirror architecture: **see `bronze_mirror/CLAUDE.md`**
+- For ivory_helm architecture: **see `ivory_helm/CLAUDE.md`**
+- For vermilion_brush architecture: **see `vermilion_brush/CLAUDE.md`** (legacy)
 - For coding standards: **see `docs/BEST_PRACTICES.md`**
 
 ## Data Flow
 
 ```
-EPUB files  →  jade_shuttle  →  raw JSON  →  iron_abacus_translator  →  translated JSON  →  crimson_folio  →  EPUB file
-                                    ↕                                                            ↕
-                            DuckDB catalog                                              DuckDB catalog
-                                    ↕                                                            ↑
-                            amber_inkstone  →  artwork_portfolio.duckdb  →  --cover-from-portfolio
-                                    ↕
-                            DeepSeek (art research)
-                            Wikimedia + Met Museum APIs
+Scanned PDFs  →  ivory_helm [ silver_gauge (slice) → bronze_mirror (OCR) → platinum_scale (validate) ⟳ ]  →  raw JSON  →  iron_abacus_translator  →  translated JSON  →  crimson_folio  →  EPUB file
+EPUB files    →  jade_shuttle                                              →  raw JSON  ↗                                                      ↕
+                                                                                 ↕                                                      DuckDB catalog
+                                                                         DuckDB catalog  ←──  azure_register (enrichment)
+                                                                                 ↕                     ↕
+                                                                         amber_inkstone  →  artwork_portfolio.duckdb  →  --cover-from-portfolio
+                                                                                 ↕
+                                                                         DeepSeek (art research)
+                                                                         Wikimedia + Met Museum APIs
 ```
 
-Jade Shuttle produces raw JSON. Iron Abacus translates it. Amber Inkstone curates period artwork portfolios by dynasty. Crimson Folio renders EPUBs, using either direct image paths or portfolio-assigned covers. The DuckDB catalog (`works_translator.duckdb`) is shared state for deduplication, series metadata, and work tracking.
+Silver Gauge detects and slices columns from scanned PDFs into persistent strip images. Bronze Mirror OCRs those strips and emits raw JSON. Jade Shuttle parses EPUBs. Both produce raw JSON. Iron Abacus translates it. Azure Register enriches the catalog with factual and reader-oriented metadata via DeepSeek. Amber Inkstone curates period artwork portfolios by dynasty. Crimson Folio renders EPUBs, using either direct image paths or portfolio-assigned covers. The DuckDB catalog (`works_translator.duckdb`) is shared state for deduplication, series metadata, enrichment, and work tracking.
 
 ## LLM Provider Concurrency
 
@@ -197,6 +263,121 @@ python -m cli.assign --list
 python -m cli.assign --work D1379 --clear
 ```
 
+### Azure Register (catalog enrichment)
+
+```bash
+cd azure_register
+
+# Library enrichment (factual metadata via DeepSeek)
+python -m cli.enrich library --dry-run
+python -m cli.enrich library --limit 5 --diff
+python -m cli.enrich library --author "Jin Yong" --unenriched-only
+
+# Reader enrichment (subjective metadata via DeepSeek)
+python -m cli.enrich reader --dry-run
+python -m cli.enrich reader --limit 10 --diff
+python -m cli.enrich reader --unenriched-only
+
+# CSV import
+python -m cli.enrich csv --csv /path/to/works.csv
+
+# Enrichment status
+python -m cli.enrich status
+```
+
+### Silver Gauge (column detection & strip slicing)
+
+```bash
+cd /path/to/workspace
+
+# Slice a single PDF
+python -m silver_gauge.cli.slice --pdf /path/to/vol1.pdf --output-dir /path/to/strips/
+
+# Slice specific page range
+python -m silver_gauge.cli.slice --pdf /path/to/vol1.pdf --pages 80-97 --output-dir /path/to/strips/
+
+# Slice all PDFs in a directory
+python -m silver_gauge.cli.slice --dir /path/to/三俠五義_俞平伯校點本/ --output-dir /path/to/strips/
+
+# Dry run — show detection stats, no writes
+python -m silver_gauge.cli.slice --pdf /path/to/vol1.pdf --dry-run
+```
+
+### Platinum Scale (strip validation)
+
+```bash
+cd /path/to/workspace
+
+# Validate all strips via nano vision
+python -m platinum_scale.cli.validate --strips-dir /path/to/ocr_strips/三俠五義_validation/
+
+# Resume (skip already-validated pages)
+python -m platinum_scale.cli.validate --strips-dir /path/to/strips/ --resume
+
+# Show validation report (no API calls)
+python -m platinum_scale.cli.validate --strips-dir /path/to/strips/ --report
+
+# Show Silver Gauge vs nano disagreements
+python -m platinum_scale.cli.validate --strips-dir /path/to/strips/ --show-disagreements
+```
+
+### Bronze Mirror (strip OCR)
+
+```bash
+cd /path/to/workspace
+
+# OCR a sliced book
+python -m bronze_mirror.cli.read --strips-dir /path/to/ocr_strips/三俠五義/ --output /path/to/raw.json
+
+# Resume interrupted OCR
+python -m bronze_mirror.cli.read --strips-dir /path/to/ocr_strips/三俠五義/ --output /path/to/raw.json --resume
+
+# OCR specific pages
+python -m bronze_mirror.cli.read --strips-dir /path/to/ocr_strips/三俠五義/ --pages 80-97
+
+# Show failed strips
+python -m bronze_mirror.cli.read --strips-dir /path/to/ocr_strips/三俠五義/ --show-failures
+
+# Validate chapter 1 (runs both silver_gauge + bronze_mirror)
+python bronze_mirror/scripts/validate_chapter1.py
+```
+
+### Ivory Helm (iterative OCR orchestration)
+
+```bash
+cd /path/to/workspace
+
+# Run iterative pipeline: slice → OCR → validate → re-slice if needed
+python -m ivory_helm.cli.run run --strips-dir /path/to/strips/ --images-dir /path/to/page_images/
+
+# Resume (skip pages that already passed)
+python -m ivory_helm.cli.run run --strips-dir /path/to/strips/ --images-dir /path/to/images/ --resume
+
+# Show iteration results
+python -m ivory_helm.cli.run report --strips-dir /path/to/strips/
+```
+
+### Vermilion Brush (scanned PDF OCR — legacy)
+
+```bash
+cd vermilion_brush
+
+# Preview OCR on a few pages
+python -m cli.ocr preview --pdf /path/to/vol1.pdf --pages 5-10
+
+# Check accuracy on a single page
+python -m cli.ocr check --pdf /path/to/vol1.pdf --page 30
+
+# Dry run — show page classification + detected chapters
+python -m cli.ocr scan --dir /path/to/三俠五義_俞平伯校點本/ --dry-run
+
+# Full scan to JSON
+python -m cli.ocr scan --dir /path/to/三俠五義_俞平伯校點本/ --output /path/to/raw.json
+
+# Single PDF
+python -m cli.ocr scan --pdf /path/to/vol1_part1.pdf --output /tmp/test.json
+```
+
 ## Running Dev Scripts
 
 Dev scripts resolve their own paths via `sys.path.insert`:
@@ -242,12 +423,18 @@ pip install -r requirements.txt
 pip install -r ../jade_shuttle/requirements.txt
 pip install -r ../crimson_folio/requirements.txt
 pip install -r ../amber_inkstone/requirements.txt
+pip install -r ../azure_register/requirements.txt
+pip install -r ../silver_gauge/requirements.txt
+pip install -r ../platinum_scale/requirements.txt
+pip install -r ../bronze_mirror/requirements.txt
+pip install -r ../ivory_helm/requirements.txt
+pip install -r ../vermilion_brush/requirements.txt
 ```
 
 ## Source Data
 
 EPUB sources: `/Users/jacki/project_files/translation_project/for_parsing/`
-Raw JSON files: `/Users/jacki/project_files/translation_project/wuxia_individual_files/`
+Raw JSON files: `/Users/jacki/project_files/translation_project/work_individual_files/`
 Translation output: `/Users/jacki/project_files/translation_project/translation_data/`
 
 These paths are NOT in the repo — they're on the local filesystem.

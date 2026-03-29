@@ -68,7 +68,7 @@ Your core competencies include stage manifest generation, contract validation, b
 5. **Dependency Management**
    - Identify and document external dependencies:
      * **APIs** - External services (e.g., "OpenAI GPT-4.1-nano", "Anthropic Claude Sonnet")
-     * **Files** - Required files (e.g., "wuxia_glossary.json", "character_mappings.csv")
+     * **Files** - Required files (e.g., "glossary.json", "character_mappings.csv")
      * **Environment** - Environment variables (e.g., "OPENAI_API_KEY", "ANTHROPIC_API_KEY")
 
    - Ensure dependency declarations are complete and accurate

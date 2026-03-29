@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """
+DEPRECATED: Use azure_register instead:
+    cd azure_register && python -m cli.enrich library --dry-run
+
 Library Metadata Enrichment via DeepSeek → DuckDB
 
 Validates and enriches library metadata using DeepSeek as a peer sinologist.

@@ -42,7 +42,7 @@ The built-in pipeline in `iron_abacus_translator/utils/remove_trivial_footnotes.
 
 | Phase | What It Does | API Cost |
 |-------|-------------|----------|
-| Phase 1 | Suppress list matching (`iron_abacus_translator/config/wuxia_suppress_list.json`, 110+ terms) | None |
+| Phase 1 | Suppress list matching (`iron_abacus_translator/config/suppress_list.json`, 110+ terms) | None |
 | Phase 1.5 | Heuristic patterns (char names, frequency, trivial actions, short non-cultural) | None |
 | Phase 2 | AI scoring with paragraph context + ideogram deduplication | GPT-4.1-nano |
 | Phase 3 | Context-free review by unique ideogram across entire work | GPT-4.1-nano |

@@ -22,13 +22,13 @@ The footnote cleanup pipeline is **already implemented** in `iron_abacus_transla
 
 ### Core Files
 - **`iron_abacus_translator/utils/remove_trivial_footnotes.py`** — Main 4-phase pipeline (TrivialFootnoteRemover class)
-- **`iron_abacus_translator/config/wuxia_suppress_list.json`** — 110+ suppressed terms (no API cost)
+- **`iron_abacus_translator/config/suppress_list.json`** — 110+ suppressed terms (no API cost)
 - **`iron_abacus_translator/cli/remove_trivial_footnotes.py`** — CLI wrapper for standalone usage
 
 ## 4-Phase Removal Architecture
 
 ### Phase 1: Suppress List (No API)
-- Matches `fn.ideogram` against `iron_abacus_translator/config/wuxia_suppress_list.json`
+- Matches `fn.ideogram` against `iron_abacus_translator/config/suppress_list.json`
 - 110+ entries: common wuxia terms, meta-narrative phrases, obvious nouns
 - Also removes footnotes with empty explanations
 - Typical removal: ~10-40 per chapter

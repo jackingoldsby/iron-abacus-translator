@@ -3,7 +3,7 @@
 import re
 
 DEFAULT_EPUB_DIR = "/Users/jacki/project_files/translation_project/for_parsing/"
-DEFAULT_OUTPUT_DIR = "/Users/jacki/project_files/translation_project/wuxia_individual_files/"
+DEFAULT_OUTPUT_DIR = "/Users/jacki/project_files/translation_project/work_individual_files/"
 DEFAULT_DB_PATH = "/Users/jacki/project_files/translation_project/db/works_translator.duckdb"
 
 VOLUME_LETTERS = "abcdefghijklmnopqrstuvwxyz"

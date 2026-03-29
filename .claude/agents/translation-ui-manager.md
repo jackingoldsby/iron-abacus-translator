@@ -51,7 +51,7 @@ iron_abacus_translator/web_ui/translation_manager/
 ## Database Context
 
 **Catalog Database**:
-- **Location**: `/Users/jacki/project_files/translation_project/wuxia_catalog.db`
+- **Location**: `/Users/jacki/project_files/translation_project/works_translator.duckdb`
 - **Schema Reference**: See `iron_abacus_translator/utils/catalog_metadata.py` for helper classes
 - **Key Tables**:
   - `works`: work_id, work_number, title_chinese, title_english, author_chinese, author_english
@@ -63,8 +63,8 @@ iron_abacus_translator/web_ui/translation_manager/
 # Use helper classes, don't write raw SQL
 from iron_abacus_translator.utils.catalog_metadata import CatalogMetadataExtractor
 
-extractor = CatalogMetadataExtractor('wuxia_catalog.db')
-metadata = extractor.get_metadata_by_directory('wuxia_0117')
+extractor = CatalogMetadataExtractor('works_translator.duckdb')
+metadata = extractor.get_metadata_by_directory('work_0117')
 ```
 
 **Important**: Backend already uses SQL JOIN with COALESCE to prefer consensus translations over original CSV translations:
@@ -94,7 +94,7 @@ You will design and implement a comprehensive web-based translation management i
 
 ### Backend Architecture
 - **Framework**: Use FastAPI or Flask for the REST API backend
-- **Database**: Integrate with the existing SQLite catalog (`wuxia_catalog.db`) for work metadata
+- **Database**: Integrate with the existing SQLite catalog (`works_translator.duckdb`) for work metadata
 - **Job Queue**: Implement a job queue system (Celery + Redis or similar) for managing translation tasks
 - **Process Integration**: Create Python API wrappers around the translation-annotation-orchestrator CLI tools
 - **WebSocket Support**: Implement WebSockets for real-time job status updates and progress monitoring
@@ -171,7 +171,7 @@ Wrap these existing CLI tools in API endpoints:
 
 ### File System Organization
 Respect the existing directory structure:
-- Source files: `/Users/jacki/project_files/translation_project/wuxia_individual_files/{directory_name}/`
+- Source files: `/Users/jacki/project_files/translation_project/work_individual_files/{directory_name}/`
 - Output configuration: User-selectable, default to organized by work_number
 - **WIP directory**: `{wip_dir}/stage_{N}_{stage_name}/` for incremental saves
 - **Logs**: `{log_dir}/{filename}_stage_{N}_{stage_name}.json` for stage-specific logs

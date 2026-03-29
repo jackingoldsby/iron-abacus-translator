@@ -30,7 +30,7 @@ Your output is **IMPLEMENTATION CODE** that the orchestrator will use, NOT execu
 ### What Replaced It (Current 4-Phase Pipeline)
 The same goals are now achieved more efficiently across 4 phases in `iron_abacus_translator/utils/remove_trivial_footnotes.py`:
 
-1. **Phase 1 (Suppress List)**: Programmatic matching against `iron_abacus_translator/config/wuxia_suppress_list.json` — removes 110+ known non-cultural terms at zero API cost
+1. **Phase 1 (Suppress List)**: Programmatic matching against `iron_abacus_translator/config/suppress_list.json` — removes 110+ known non-cultural terms at zero API cost
 2. **Phase 1.5 (Heuristic Patterns)**: Regex-based detection catches:
    - Character name patterns ("A personal name", "A character's name")
    - **Frequency-based name detection**: 2-3 char ideograms appearing 3+ times in book-level source text with no cultural signals → likely fictional character
@@ -40,7 +40,7 @@ The same goals are now achieved more efficiently across 4 phases in `iron_abacus
 4. **Phase 3 (Context-Free Review)**: Sends ONLY ideogram + explanation (no paragraph), much stricter — catches fictional characters that survived earlier phases
 
 ### When to Still Use This Agent
-- Extending the suppress list (`iron_abacus_translator/config/wuxia_suppress_list.json`)
+- Extending the suppress list (`iron_abacus_translator/config/suppress_list.json`)
 - Adding new heuristic patterns to Phase 1.5
 - Tuning the cultural signal regex (preventing false positives)
 - Building supplementary character classification tooling outside the main pipeline
@@ -49,7 +49,7 @@ The same goals are now achieved more efficiently across 4 phases in `iron_abacus
 ## Core Files
 
 - **`iron_abacus_translator/utils/remove_trivial_footnotes.py`** — Main 4-phase pipeline (TrivialFootnoteRemover class)
-- **`iron_abacus_translator/config/wuxia_suppress_list.json`** — 110+ suppressed terms
+- **`iron_abacus_translator/config/suppress_list.json`** — 110+ suppressed terms
 - **`iron_abacus_translator/cli/remove_trivial_footnotes.py`** — CLI wrapper
 
 ## Key Technical Details

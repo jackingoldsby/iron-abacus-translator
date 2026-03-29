@@ -2,7 +2,7 @@
 """
 Test Glossary-Integrated Translation
 
-Tests the wuxia glossary integration on wuxia_0004.
+Tests the wuxia glossary integration on work_0004.
 Demonstrates:
 - Glossary term matching
 - Exact translation forms and footnotes from glossary
@@ -43,8 +43,8 @@ def main():
     # Input/Output paths
     from utils.environment_config import get_or_create_config
     _env = get_or_create_config()
-    input_path = _env.source_dir / "wuxia_0124" / "cleaned_I1046_飛鳳潛龍_梁羽生.json"
-    output_dir = _env.output_dir / "test_translations" / "wuxia_0124"
+    input_path = _env.source_dir / "work_0124" / "cleaned_I1046_飛鳳潛龍_梁羽生.json"
+    output_dir = _env.output_dir / "test_translations" / "work_0124"
     output_path = output_dir / "translated_I1046_飛鳳潛龍_梁羽生.json"
 
     if not input_path.exists():
@@ -94,7 +94,7 @@ def main():
 
     # Translate book
     print(f"\n{'='*60}")
-    print("TRANSLATION TEST: wuxia_0124 (飛鳳潛龍 by 梁羽生)")
+    print("TRANSLATION TEST: work_0124 (飛鳳潛龍 by 梁羽生)")
     print(f"{'='*60}\n")
     print(f"Input:  {input_path}")
     print(f"Output: {output_path}\n")
