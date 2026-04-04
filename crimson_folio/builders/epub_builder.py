@@ -86,11 +86,21 @@ class EpubBuilder:
     def _get_catalog(self, work_number: str) -> Dict[str, Any]:
         """Cached catalog lookup."""
         if work_number not in self._catalog_cache:
-            from utils.catalog import lookup_catalog
-            self._catalog_cache[work_number] = lookup_catalog(
+            _catalog_mod = self._import_cf_catalog()
+            self._catalog_cache[work_number] = _catalog_mod.lookup_catalog(
                 work_number, self.catalog_db
             )
         return self._catalog_cache[work_number]
+
+    @staticmethod
+    def _import_cf_catalog():
+        """Import crimson_folio's utils.catalog, avoiding shadowing by sibling products."""
+        import importlib.util
+        catalog_path = Path(__file__).resolve().parent.parent / "utils" / "catalog.py"
+        spec = importlib.util.spec_from_file_location("cf_catalog", catalog_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
 
     def _resolve_english_meta(self, meta: Dict[str, Any]) -> tuple:
         """Return (title_en, author_en) preferring catalog, then translation meta."""
@@ -163,17 +173,16 @@ class EpubBuilder:
         author_zh = meta.get("author", "")
 
         # Look up series info from catalog
-        from utils.catalog import lookup_series
+        lookup_series = EpubBuilder._import_cf_catalog().lookup_series
         series_info = lookup_series(work_number, self.catalog_db)
         series_name = series_info.get("name", "")
         series_order = series_info.get("order")
         series_total = series_info.get("total", 0)
 
-        # Build full EPUB title: "Title (Series #02)"
+        # Build full EPUB title: "Title (Series #1)"
         epub_title = title_en
         if series_name and series_order is not None:
-            width = len(str(series_total)) if series_total >= 10 else 2
-            epub_title = f"{title_en} ({series_name} #{series_order:0{width}d})"
+            epub_title = f"{title_en} ({series_name} #{series_order})"
 
         # Create EPUB book
         book = epub.EpubBook()
@@ -349,7 +358,7 @@ class EpubBuilder:
         title_en, author_en = self._resolve_english_meta(meta)
 
         catalog = self._get_catalog(work_number)
-        from utils.catalog import lookup_series
+        lookup_series = EpubBuilder._import_cf_catalog().lookup_series
         series_info = lookup_series(work_number, self.catalog_db)
         series_suffix = ""
         if series_info.get("name") and series_info.get("order") is not None:
@@ -393,10 +402,9 @@ class EpubBuilder:
 
         series_line = ""
         if series_name and series_order is not None:
-            width = len(str(series_total)) if series_total >= 10 else 2
             series_line = (
                 f'    <p class="series">{_escape(series_name)}'
-                f' &mdash; Book {series_order:0{width}d} of {series_total}</p>'
+                f' &mdash; Book {series_order} of {series_total}</p>'
             )
 
         html = f"""<?xml version="1.0" encoding="utf-8"?>
@@ -501,9 +509,48 @@ class EpubBuilder:
         fn_counter = 0
         prev_content_type: Optional[str] = None
 
+        # Pre-pass: detect couplet/inscription patterns — short blocks
+        # following an intro ending with ':' get grouped as verse.
+        _verse_override: set[int] = set()
+        _narr_override: set[int] = set()  # document blocks to render as narrative
+        for bi in range(len(blocks) - 1):
+            intro = (blocks[bi].get("translated_content") or "").rstrip()
+            if not intro.endswith(":"):
+                continue
+            ct = blocks[bi].get("content_type", "")
+            if ct in ("verse", "document"):
+                continue
+            # Scan ahead for short, single-line, non-dialogue blocks
+            found_verse = False
+            for bj in range(bi + 1, min(bi + 6, len(blocks))):
+                candidate = (blocks[bj].get("translated_content") or "").strip()
+                ctype = blocks[bj].get("content_type", "")
+                if not candidate:
+                    continue
+                if ctype == "document":
+                    # A document block right after couplet lines is the
+                    # inscription dedication — render as narrative, not
+                    # blockquote.
+                    if found_verse:
+                        _narr_override.add(bj)
+                    break
+                is_short_line = (
+                    len(candidate) < 150
+                    and "\n" not in candidate
+                    and candidate[0] not in '"\u201c'
+                    and ctype not in ("dialogue", "verse")
+                )
+                if is_short_line:
+                    _verse_override.add(bj)
+                    found_verse = True
+                else:
+                    break
+
         for block_idx, block in enumerate(blocks):
             translated = block.get("translated_content", "")
             content_type = block.get("content_type", "narrative")
+            if block_idx in _narr_override:
+                content_type = "narrative"
             footnotes = block.get("footnotes", [])
 
             block_type = block.get("type", "")
@@ -541,6 +588,29 @@ class EpubBuilder:
                 }
                 block_footnotes.append(fn_entry)
                 chapter_footnotes.append(fn_entry)
+
+            # Override content_type for detected couplet/inscription lines.
+            # Group consecutive verse-override blocks into a single
+            # <div class="verse"> wrapper.
+            if block_idx in _verse_override:
+                rendered_text = self._render_text_with_noterefs(
+                    translated, old_to_new, chapter_num
+                )
+                # Check if we're extending an existing verse group
+                if (body_parts
+                        and body_parts[-1].startswith('<div class="verse">')
+                        and (block_idx - 1) in _verse_override):
+                    # Append line into the existing verse div
+                    body_parts[-1] = (
+                        body_parts[-1].removesuffix("</div>")
+                        + f"<p>{rendered_text}</p></div>"
+                    )
+                else:
+                    body_parts.append(
+                        f'<div class="verse"><p>{rendered_text}</p></div>'
+                    )
+                prev_content_type = "verse"
+                continue
 
             if content_type in ("verse", "document"):
                 rendered_text = self._render_text_with_noterefs(
@@ -684,8 +754,18 @@ class EpubBuilder:
                     and merged_tokens[-1]["type"] == "narr"):
                 inner = tok["text"].strip().strip('"\u201c\u201d')
                 inner_core = inner.rstrip('.!?, ')
+                prev_narr = merged_tokens[-1]["text"].rstrip()
+                # If preceding narration has no sentence-terminal or
+                # speech-introducing punct, the sentence is incomplete —
+                # quote is always inline (e.g. "...the sobriquet" +
+                # "Brocade-Furred Marten.")  Comma excluded because it
+                # introduces speech (He said, "...").
+                prev_incomplete = (
+                    prev_narr and prev_narr[-1] not in '.!?:;,'
+                )
                 is_inline = (
-                    len(inner_core) < 10
+                    prev_incomplete
+                    or len(inner_core) < 10
                     or (len(inner) < 30
                         and not any(inner.rstrip().endswith(p) for p in '.!?'))
                 )
@@ -704,6 +784,14 @@ class EpubBuilder:
         def _ends_with_comma(q_text):
             s = q_text.rstrip()
             return len(s) >= 2 and s[-2] == ','
+
+        def _is_dialogue_tag(narr_text: str) -> bool:
+            """Return True if narr_text starts with a lowercase dialogue tag.
+
+            Matches: 'he declared.' / 'she said, turning away.'
+            Must start lowercase (continuation, not a new sentence).
+            """
+            return bool(narr_text) and narr_text[0].islower()
 
         segments: List[str] = []
         idx = 0
@@ -736,11 +824,41 @@ class EpubBuilder:
                         merged += tokens[idx + 1]["text"]
                         idx += 1
 
+                # Absorb trailing dialogue attribution after non-comma
+                # endings (e.g. '...scoundrel!" he declared.')
+                if (not _ends_with_comma(merged)
+                        and idx + 1 < len(tokens)
+                        and tokens[idx + 1]["type"] == "narr"):
+                    narr_raw = tokens[idx + 1]["text"]
+                    narr_text = narr_raw.strip()
+                    if narr_text and _is_dialogue_tag(narr_text):
+                        # Find first sentence end to split tag from rest
+                        import re as _re
+                        m = _re.search(r'[.!?](?:\s|$)', narr_text)
+                        if m:
+                            cut = m.end()
+                            tag_part = narr_text[:cut]
+                            rest = narr_text[cut:].strip()
+                            merged += " " + tag_part
+                            if rest:
+                                # Put remainder back as a new narr token
+                                tokens[idx + 1] = {
+                                    "type": "narr",
+                                    "text": rest,
+                                    "start": tokens[idx + 1]["start"],
+                                }
+                            else:
+                                idx += 1
+                        else:
+                            # No sentence end — absorb whole thing
+                            merged += narr_raw
+                            idx += 1
+
                 segments.append(merged.strip())
 
             else:
                 narr = tok["text"]
-                if (narr.rstrip().endswith(',')
+                if (narr.rstrip()[-1:] in ',:'
                         and idx + 1 < len(tokens)
                         and tokens[idx + 1]["type"] == "quote"):
                     narr += tokens[idx + 1]["text"]

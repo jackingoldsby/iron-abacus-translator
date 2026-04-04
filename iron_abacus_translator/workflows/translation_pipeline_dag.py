@@ -45,8 +45,18 @@ independent and can run in parallel.
                    +------+------+
                           |
                     +-----v-----+
+                    |   WIKI    |
+                    | ENRICHMENT|
+                    +-----+-----+
+                          |
+                    +-----v-----+
                     | VALIDATION|
                     +-----+-----+
+                          |
+                   +------v------+
+                   | CONSISTENCY |
+                   |   REVIEW    |
+                   +------+------+
                           |
                     +-----v-----+
                     | EPUB BUILD|
@@ -156,10 +166,39 @@ def create_v2_pipeline_dag() -> DAGDefinition:
     ))
 
     dag.add_node(DAGNode(
+        id="wiki_enrich",
+        display_name="Wiki Enrichment",
+        node_type=NodeType.TASK,
+        metadata={"icon": "globe", "color": "#00897B", "description": "Enrich footnotes with Wikipedia summaries"},
+    ))
+
+    dag.add_node(DAGNode(
         id="validation",
         display_name="Final Validation",
         node_type=NodeType.TASK,
         metadata={"icon": "check-circle", "color": "#4CAF50", "description": "Verify translation completeness and quality", "is_terminal": False},
+    ))
+
+    dag.add_node(DAGNode(
+        id="review",
+        display_name="Consistency Review",
+        node_type=NodeType.TASK,
+        metadata={
+            "icon": "search", "color": "#FF6F00",
+            "description": "Chapter-level style and consistency review",
+            "optional": True,
+        },
+    ))
+
+    dag.add_node(DAGNode(
+        id="review_adjudicate",
+        display_name="Review Adjudication",
+        node_type=NodeType.TASK,
+        metadata={
+            "icon": "check-square", "color": "#FF8F00",
+            "description": "LLM adjudication of review findings — accept or reject each proposed change",
+            "optional": True,
+        },
     ))
 
     dag.add_node(DAGNode(
@@ -206,9 +245,34 @@ def create_v2_pipeline_dag() -> DAGDefinition:
     dag.add_edge("cleanup_6c", "cleanup_6d_dramatis", EdgeType.DEPENDENCY)
     dag.add_edge("cleanup_6d_dramatis", "qg_post_cleanup", EdgeType.QUALITY_GATE)
 
-    # Post-cleanup -> validation -> epub
-    dag.add_edge("qg_post_cleanup", "validation", EdgeType.DEPENDENCY)
-    dag.add_edge("validation", "epub_build", EdgeType.DEPENDENCY)
+    # Post-cleanup -> wiki enrichment -> validation -> review -> epub
+    dag.add_node(DAGNode(
+        id="correction_classify",
+        display_name="Correction Classifier",
+        node_type=NodeType.TASK,
+        metadata={
+            "icon": "tag", "color": "#7C4DFF",
+            "description": "Nano-based classifier: tag each block with issue categories",
+        },
+    ))
+
+    dag.add_node(DAGNode(
+        id="correction_apply",
+        display_name="Focused Corrections",
+        node_type=NodeType.TASK,
+        metadata={
+            "icon": "wrench", "color": "#651FFF",
+            "description": "Apply focused specialist corrections to tagged blocks only",
+        },
+    ))
+
+    dag.add_edge("qg_post_cleanup", "wiki_enrich", EdgeType.DEPENDENCY)
+    dag.add_edge("wiki_enrich", "validation", EdgeType.DEPENDENCY)
+    dag.add_edge("validation", "review", EdgeType.DEPENDENCY)
+    dag.add_edge("review", "review_adjudicate", EdgeType.DEPENDENCY)
+    dag.add_edge("review_adjudicate", "correction_classify", EdgeType.DEPENDENCY)
+    dag.add_edge("correction_classify", "correction_apply", EdgeType.DEPENDENCY)
+    dag.add_edge("correction_apply", "epub_build", EdgeType.DEPENDENCY)
     dag.add_edge("epub_build", "send_kindle", EdgeType.DEPENDENCY)
 
     return dag

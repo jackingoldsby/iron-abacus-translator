@@ -233,6 +233,7 @@ class ContentBlockTranslationWrapper:
                                         "footnote_ideogram": fn.get("ideogram", ""),
                                         "footnote_pinyin": fn.get("pinyin", ""),
                                         "footnote_explanation": fn.get("explanation", ""),
+                                        **({"wiki_title": fn["wiki_title"]} if fn.get("wiki_title") else {}),
                                     },
                                 }
                                 for fn in filtered_footnotes
@@ -290,6 +291,7 @@ class ContentBlockTranslationWrapper:
                 "ideogram": details.get("footnote_ideogram", ""),
                 "pinyin": details.get("footnote_pinyin", ""),
                 "explanation": details.get("footnote_explanation", ""),
+                "wiki_title": details.get("wiki_title", ""),
             })
 
         return {

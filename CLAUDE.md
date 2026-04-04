@@ -1,6 +1,6 @@
 # CLAUDE.md — Workspace Root
 
-This is the **agentic workspace** for ten independent products: Iron Abacus (translation), Jade Shuttle (extraction), Crimson Folio (EPUB generation), Amber Inkstone (period artwork curation), Azure Register (catalog enrichment), Silver Gauge (column detection & strip slicing), Bronze Mirror (strip OCR), Platinum Scale (strip validation via nano), Ivory Helm (iterative OCR orchestration), and Vermilion Brush (scanned PDF OCR — legacy).
+This is the **agentic workspace** for eleven independent products: Iron Abacus (translation), Jade Shuttle (extraction), Crimson Folio (EPUB generation), Amber Inkstone (period artwork curation), Azure Register (catalog enrichment), Silver Gauge (column detection & strip slicing), Bronze Mirror (strip OCR), Platinum Scale (strip validation via nano), Ivory Helm (iterative OCR orchestration), Cobalt Loom (Wikisource/ctext.org scraping), and Vermilion Brush (scanned PDF OCR — legacy).
 
 ## Workspace Structure
 
@@ -102,6 +102,17 @@ agentic_test_project/                    # GIT ROOT / WORKSPACE
 │   ├── cli/                             # run, report
 │   └── tests/                           # Orchestration tests
 │
+├── cobalt_loom/                          # WIKISOURCE / CTEXT SCRAPER (鈷織機)
+│   ├── CLAUDE.md                        # Scraper architecture (source of truth)
+│   ├── scrapers/                        # Wikisource (MediaWiki API) + ctext.org (HTML)
+│   ├── structurers/                     # HTML→blocks, chapter detection, JSON emission
+│   ├── catalog/                         # DuckDB lookup + registration
+│   ├── cache/                           # File-based HTML cache
+│   ├── models/                          # Data models
+│   ├── config/                          # Defaults, work URL mapping
+│   ├── cli/                             # list, scrape, status
+│   └── tests/                           # Scraper tests
+│
 ├── vermilion_brush/                     # SCANNED PDF OCR — LEGACY (朱筆)
 │   ├── CLAUDE.md                        # OCR architecture (source of truth)
 │   ├── extractors/                      # PDF→images, image preprocessing
@@ -124,7 +135,7 @@ agentic_test_project/                    # GIT ROOT / WORKSPACE
 
 ## Key Principle
 
-**Ten products**: `iron_abacus_translator/` (translation), `jade_shuttle/` (extraction), `crimson_folio/` (EPUB generation), `amber_inkstone/` (period artwork curation), `azure_register/` (catalog enrichment), `silver_gauge/` (column detection & strip slicing), `platinum_scale/` (strip validation via nano), `bronze_mirror/` (strip OCR), and `vermilion_brush/` (legacy OCR). They communicate through JSON files and shared DuckDB databases. **No product imports from another.**
+**Eleven products**: `iron_abacus_translator/` (translation), `jade_shuttle/` (extraction), `crimson_folio/` (EPUB generation), `amber_inkstone/` (period artwork curation), `azure_register/` (catalog enrichment), `silver_gauge/` (column detection & strip slicing), `platinum_scale/` (strip validation via nano), `bronze_mirror/` (strip OCR), `cobalt_loom/` (web scraping), and `vermilion_brush/` (legacy OCR). They communicate through JSON files and shared DuckDB databases. **No product imports from another.**
 
 - jade_shuttle uses **no LLMs** — purely deterministic extraction
 - iron_abacus_translator uses **OpenAI and DeepSeek** for translation
@@ -135,8 +146,9 @@ agentic_test_project/                    # GIT ROOT / WORKSPACE
 - platinum_scale uses **OpenAI gpt-4.1-nano** — vision-based strip validation (~$0.01/chapter)
 - bronze_mirror uses **no LLMs** — local PaddleOCR models only (strip OCR)
 - ivory_helm uses **OpenAI gpt-4.1-nano** (via Platinum Scale) — iterative orchestration of slice→OCR→validate
+- cobalt_loom uses **no LLMs** — deterministic web scraping (Wikisource MediaWiki API + ctext.org via Nimble SDK)
 - vermilion_brush uses **no LLMs** — legacy, replaced by ivory_helm (silver_gauge + bronze_mirror + platinum_scale)
-- Claude's role is as the **developer** of all ten products, operating from this workspace
+- Claude's role is as the **developer** of all eleven products, operating from this workspace
 - For iron_abacus architecture: **see `iron_abacus_translator/CLAUDE.md`**
 - For jade_shuttle architecture: **see `jade_shuttle/CLAUDE.md`**
 - For crimson_folio architecture: **see `crimson_folio/CLAUDE.md`**
@@ -146,6 +158,7 @@ agentic_test_project/                    # GIT ROOT / WORKSPACE
 - For platinum_scale architecture: **see `platinum_scale/CLAUDE.md`**
 - For bronze_mirror architecture: **see `bronze_mirror/CLAUDE.md`**
 - For ivory_helm architecture: **see `ivory_helm/CLAUDE.md`**
+- For cobalt_loom architecture: **see `cobalt_loom/CLAUDE.md`**
 - For vermilion_brush architecture: **see `vermilion_brush/CLAUDE.md`** (legacy)
 - For coding standards: **see `docs/BEST_PRACTICES.md`**
 
@@ -154,6 +167,7 @@ agentic_test_project/                    # GIT ROOT / WORKSPACE
 ```
 Scanned PDFs  →  ivory_helm [ silver_gauge (slice) → bronze_mirror (OCR) → platinum_scale (validate) ⟳ ]  →  raw JSON  →  iron_abacus_translator  →  translated JSON  →  crimson_folio  →  EPUB file
 EPUB files    →  jade_shuttle                                              →  raw JSON  ↗                                                      ↕
+Web sources   →  cobalt_loom (Wikisource / ctext.org)                      →  raw JSON  ↗                                               DuckDB catalog
                                                                                  ↕                                                      DuckDB catalog
                                                                          DuckDB catalog  ←──  azure_register (enrichment)
                                                                                  ↕                     ↕
@@ -163,11 +177,21 @@ EPUB files    →  jade_shuttle                                              →
                                                                          Wikimedia + Met Museum APIs
 ```
 
-Silver Gauge detects and slices columns from scanned PDFs into persistent strip images. Bronze Mirror OCRs those strips and emits raw JSON. Jade Shuttle parses EPUBs. Both produce raw JSON. Iron Abacus translates it. Azure Register enriches the catalog with factual and reader-oriented metadata via DeepSeek. Amber Inkstone curates period artwork portfolios by dynasty. Crimson Folio renders EPUBs, using either direct image paths or portfolio-assigned covers. The DuckDB catalog (`works_translator.duckdb`) is shared state for deduplication, series metadata, enrichment, and work tracking.
+Silver Gauge detects and slices columns from scanned PDFs into persistent strip images. Bronze Mirror OCRs those strips and emits raw JSON. Jade Shuttle parses EPUBs. Cobalt Loom scrapes Wikisource/ctext.org. All three produce raw JSON. Iron Abacus translates it. Azure Register enriches the catalog with factual and reader-oriented metadata via DeepSeek. Amber Inkstone curates period artwork portfolios by dynasty. Crimson Folio renders EPUBs, using either direct image paths or portfolio-assigned covers. The DuckDB catalog (`works_translator.duckdb`) is shared state for deduplication, series metadata, enrichment, and work tracking.
 
 ## LLM Provider Concurrency
 
 Both **DeepSeek** and **OpenAI** support up to **50 parallel workers**. When writing code that calls LLMs, parallelize by default. Only use sequential LLM calls when there is a logical dependency (e.g. a later prompt requires the output of an earlier one).
+
+## External Services
+
+### Nimble SDK (web extraction)
+- **Used by**: cobalt_loom (ctext.org scraping with anti-bot bypass)
+- **SDK**: `nimble-python` — `pip install nimble-python`
+- **API key**: Set `NIMBLE_API_TOKEN` in `.env` files
+- **Drivers**: `vx6` (fast HTTP), `vx10` (stealth headless — used for ctext.org)
+- **Docs**: See `docs/nimble_docs.md` for full Extract API reference
+- **Fallback**: If Nimble is unavailable, cobalt_loom falls back to direct httpx requests
 
 ## Running Pipeline Commands
 
@@ -283,6 +307,30 @@ python -m cli.enrich csv --csv /path/to/works.csv
 
 # Enrichment status
 python -m cli.enrich status
+```
+
+### Cobalt Loom (web scraping)
+
+```bash
+cd cobalt_loom
+
+# List works needing scraping
+python -m cli.scrape list
+
+# Dry run — discover chapters, no downloads
+python -m cli.scrape scrape --work A005 --dry-run
+
+# Scrape one work
+python -m cli.scrape scrape --work A005
+
+# Scrape all unscraped works
+python -m cli.scrape scrape --all
+
+# Resume (skip already-scraped chapters)
+python -m cli.scrape scrape --work A005 --resume
+
+# Show progress
+python -m cli.scrape status
 ```
 
 ### Silver Gauge (column detection & strip slicing)
@@ -428,6 +476,7 @@ pip install -r ../silver_gauge/requirements.txt
 pip install -r ../platinum_scale/requirements.txt
 pip install -r ../bronze_mirror/requirements.txt
 pip install -r ../ivory_helm/requirements.txt
+pip install -r ../cobalt_loom/requirements.txt
 pip install -r ../vermilion_brush/requirements.txt
 ```
 

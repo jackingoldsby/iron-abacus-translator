@@ -1634,6 +1634,80 @@ class PostCleanupGate(StageProcessor):
         return data
 
 
+class CorrectionClassifyProcessor(StageProcessor):
+    """Nano-based classifier: tag each block with issue categories."""
+
+    def __init__(self, config: RunnerConfig):
+        self.config = config
+
+    @property
+    def stage_id(self):
+        return "correction_classify"
+
+    def process(self, data, filename, ctx):
+        from processors.correction_classifier import CorrectionClassifier
+
+        classifier = CorrectionClassifier(
+            max_workers=min(50, self.config.max_workers * 5),
+        )
+        data = classifier.classify_work(data)
+
+        # Store summary
+        chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+        tagged = sum(
+            1 for ch in chapters for b in ch.get("content_blocks", [])
+            if b.get("_correction_tags") and b["_correction_tags"] != ["clean"]
+        )
+        total = sum(
+            1 for ch in chapters for b in ch.get("content_blocks", [])
+            if b.get("_correction_tags") is not None
+        )
+        logger.info(f"  Classification: {tagged}/{total} blocks tagged for correction")
+        return data
+
+
+class CorrectionApplyProcessor(StageProcessor):
+    """Apply focused specialist corrections to tagged blocks only."""
+
+    def __init__(self, config: RunnerConfig):
+        self.config = config
+
+    @property
+    def stage_id(self):
+        return "correction_apply"
+
+    def process(self, data, filename, ctx):
+        from processors.correction_applicator import CorrectionApplicator
+
+        applicator = CorrectionApplicator(
+            model=self.config.cleanup_model or "deepseek-chat",
+            provider=self.config.cleanup_provider or "deepseek",
+            max_workers=min(50, self.config.max_workers * 5),
+        )
+        data = applicator.correct_work(data)
+        return data
+
+
+class WikiEnrichmentProcessor(StageProcessor):
+    """Enrich footnotes with Wikipedia summaries via historical_ref_cache."""
+
+    def __init__(self, config: RunnerConfig):
+        self.config = config
+
+    @property
+    def stage_id(self):
+        return "wiki_enrich"
+
+    def process(self, data, filename, ctx):
+        from utils.historical_ref_cache import enrich_work_footnotes
+
+        work_id = data.get("meta", {}).get("work_number", "")
+        logger.info(f"  Wiki enrichment for {work_id or filename}...")
+
+        data = enrich_work_footnotes(data, work_id=work_id)
+        return data
+
+
 class ValidationProcessor(StageProcessor):
     """Final validation of translation completeness."""
 
@@ -1703,6 +1777,117 @@ class ValidationProcessor(StageProcessor):
             "footnote_integrity": integrity["passed"],
             "stale_checksum_blocks": stale_blocks,
             "issues": issues,
+        }
+        return data
+
+
+class ConsistencyReviewProcessor(StageProcessor):
+    """Optional: chapter-level consistency review using DeepSeek V3.
+
+    Reviews translated chapters for cross-block issues (tense, gender,
+    style, footnotes, pinyin) and applies corrections.
+    """
+
+    def __init__(self, config: RunnerConfig):
+        self.config = config
+
+    @property
+    def stage_id(self):
+        return "review"
+
+    def process(self, data, filename, ctx):
+        from processors.consistency_reviewer import ConsistencyReviewer
+
+        reviewer = ConsistencyReviewer(
+            model=self.config.cleanup_model or "deepseek-chat",
+            provider=self.config.cleanup_provider or "deepseek",
+            max_workers=self.config.max_workers,
+        )
+        reports = reviewer.review_work(data, ctx.work_id)
+
+        total_findings = sum(r["summary"]["total_findings"] for r in reports)
+        logger.info(f"  Consistency review: {total_findings} findings across {len(reports)} chapters")
+
+        # Save per-chapter review JSONs to WIP
+        wip_dir = self.config.get_node_wip_dir("review")
+        for report in reports:
+            ch_path = wip_dir / f"{filename}_ch{report['chapter']}_review.json"
+            with open(ch_path, 'w', encoding='utf-8') as f:
+                json.dump(report, f, ensure_ascii=False, indent=2)
+
+        # Do NOT auto-apply — findings go to the adjudicator stage
+        # Store reports in data for the adjudicator to pick up
+        data.setdefault("meta", {}).setdefault("translation", {})["review"] = {
+            "total_findings": total_findings,
+            "by_category": {
+                cat: sum(r["summary"]["by_category"].get(cat, 0) for r in reports)
+                for cat in ("tense", "gender", "style", "register", "honorific", "footnote", "pinyin", "weapon", "idiom", "date")
+            },
+            "chapters_reviewed": len(reports),
+        }
+        data["_review_reports"] = reports
+        return data
+
+
+class ReviewAdjudicateProcessor(StageProcessor):
+    """LLM adjudication of review findings — accept or reject each proposed change."""
+
+    def __init__(self, config: RunnerConfig):
+        self.config = config
+
+    @property
+    def stage_id(self):
+        return "review_adjudicate"
+
+    def process(self, data, filename, ctx):
+        from processors.consistency_reviewer import ConsistencyReviewer, ReviewAdjudicator
+
+        reports = data.pop("_review_reports", None)
+        if not reports:
+            # Try loading from WIP
+            wip_dir = self.config.get_node_wip_dir("review")
+            reports = []
+            if wip_dir.exists():
+                for review_file in sorted(wip_dir.glob(f"{filename}_ch*_review.json")):
+                    with open(review_file, 'r', encoding='utf-8') as f:
+                        reports.append(json.load(f))
+
+        total_findings = sum(r.get("summary", {}).get("total_findings", 0) for r in reports)
+        if total_findings == 0:
+            logger.info("  No review findings to adjudicate")
+            return data
+
+        adjudicator = ReviewAdjudicator(
+            model=self.config.cleanup_model or "deepseek-chat",
+            provider=self.config.cleanup_provider or "deepseek",
+            max_workers=min(50, self.config.max_workers * 5),
+        )
+        reports = adjudicator.adjudicate_reports(reports, data)
+
+        # Save adjudicated reports to WIP
+        wip_dir = self.config.get_node_wip_dir("review_adjudicate")
+        wip_dir.mkdir(parents=True, exist_ok=True)
+        for report in reports:
+            ch_path = wip_dir / f"{filename}_ch{report['chapter']}_adjudicated.json"
+            with open(ch_path, 'w', encoding='utf-8') as f:
+                json.dump(report, f, ensure_ascii=False, indent=2)
+
+        # Apply only accepted findings
+        reviewer = ConsistencyReviewer()
+        data = reviewer.apply_findings(data, reports, respect_accepted=True)
+
+        accepted = sum(
+            1 for r in reports for f in r.get("findings", []) if f.get("accepted") is True
+        )
+        rejected = sum(
+            1 for r in reports for f in r.get("findings", []) if f.get("accepted") is False
+        )
+        logger.info(f"  Adjudication: {accepted} accepted, {rejected} rejected out of {total_findings}")
+
+        data.setdefault("meta", {}).setdefault("translation", {})["review_adjudicate"] = {
+            "total_findings": total_findings,
+            "accepted": accepted,
+            "rejected": rejected,
         }
         return data
 
@@ -1828,7 +2013,12 @@ def build_pipeline(config: RunnerConfig,
     runner.register_processor("cleanup_6d_dramatis", DramatisPersonaeProcessor(config))
     runner.register_processor("qg_footnote_integrity", FootnoteIntegrityGate())
     runner.register_processor("qg_post_cleanup", PostCleanupGate())
+    runner.register_processor("correction_classify", CorrectionClassifyProcessor(config))
+    runner.register_processor("correction_apply", CorrectionApplyProcessor(config))
+    runner.register_processor("wiki_enrich", WikiEnrichmentProcessor(config))
     runner.register_processor("validation", ValidationProcessor(config))
+    runner.register_processor("review", ConsistencyReviewProcessor(config))
+    runner.register_processor("review_adjudicate", ReviewAdjudicateProcessor(config))
     runner.register_processor("epub_build", EpubBuildProcessor(config))
     runner.register_processor("send_kindle", SendKindleProcessor(config))
 

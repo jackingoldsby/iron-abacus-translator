@@ -105,10 +105,10 @@ p.narrative {
   margin: 0.3em 0;
 }
 
-/* Dialogue - each line gets its own visual beat, trade fiction standard */
+/* Dialogue - same density as narrative; transitions provide breathing room */
 p.dialogue {
   text-indent: 1.5em;
-  margin: 0.8em 0;
+  margin: 0.3em 0;
 }
 
 /* Extra top margin when transitioning from narrative to dialogue or vice versa */

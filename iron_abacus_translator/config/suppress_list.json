@@ -568,5 +568,35 @@
     "chinese": "公公",
     "pinyin": "gōnggong",
     "english": "grandpa / old man / eunuch (context-dependent)"
+  },
+  {
+    "chinese": "念珠",
+    "pinyin": "niànzhū",
+    "english": "prayer beads"
+  },
+  {
+    "chinese": "佛珠",
+    "pinyin": "fózhū",
+    "english": "Buddhist prayer beads"
+  },
+  {
+    "chinese": "妹妹",
+    "pinyin": "mèimei",
+    "english": "younger sister"
+  },
+  {
+    "chinese": "妹子",
+    "pinyin": "mèizi",
+    "english": "younger sister (familiar)"
+  },
+  {
+    "chinese": "哥哥",
+    "pinyin": "gēge",
+    "english": "elder brother"
+  },
+  {
+    "chinese": "弟弟",
+    "pinyin": "dìdi",
+    "english": "younger brother"
   }
 ]

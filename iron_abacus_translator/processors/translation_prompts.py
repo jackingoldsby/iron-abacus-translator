@@ -8,9 +8,12 @@ Each prompt is a complete creative brief — not a layered composition.
 Resolution order: author_chinese → genre → "wuxia" (default).
 
 Registry keys:
-  Authors:  "梁羽生", "金庸", "古龍", "黃易"
+  Authors:  "梁羽生", "金庸", "古龍", "黃易", "張恨水", "陳青雲", "蕭逸", ...
   Genres:   "wuxia" (fallback for unknown wuxia authors),
-            "classical" (mythology, court drama, shenmo)
+            "classical" (generic classical), "gong'an" (court-case detective),
+            "shenmo" (divine/demonic mythology), "historical_military",
+            "social_satire" (Late Qing), "republican_social" (Republican era),
+            "commentary", "preface"
 
 Usage:
     from processors.translation_prompts import (
@@ -32,86 +35,19 @@ _logger = logging.getLogger(__name__)
 # MECHANICAL RULES — GPT variant (full prescriptive ruleset)
 # =============================================================================
 
-_MECHANICAL_RULES_GPT = """
-**HARD CONSTRAINTS (apply to ALL translations):**
+# =============================================================================
+# SHARED TRANSLATION RULES — used by ALL providers
+# =============================================================================
 
-1. **ZERO Chinese characters in output** — the text must contain NO ideograms (漢字). Render every term as English, pinyin, or both. No exceptions. This includes footnote_explanation — no ideograms anywhere in the JSON output. Scan your output before returning.
+_SHARED_TRANSLATION_RULES = """
+5c. **HONORIFICS — ALL as italicized pinyin, footnoted on first occurrence.** Chinese honorifics encode social relationships, rank, and respect. TRANSLITERATE them as pinyin and ITALICIZE the honorific portion with asterisks — e.g. "Ruǎn *Shīxiōng*", "Miáo *Gūniáng*", "Bǎoshù *Dàshī*", "Fàn *Bāngzhǔ*". The personal name stays roman; only the honorific is italicized. Do NOT translate them to English ("Senior Brother Ruǎn", "Clan Leader Fàn"). Keep the pinyin form consistent throughout the work. The FIRST time each honorific appears, footnote it with: (a) ideogram, (b) pinyin, (c) literal meaning, (d) the social/martial relationship it encodes.
 
-2. **Pinyin with tone marks on EVERY syllable — non-negotiable.** Character names, place names, honorifics, technical terms — ALL pinyin MUST carry correct tone diacritics. "Yún Lěi" not "Yun Lei". "Hénán" not "Henan". "Shīxiōng" not "Shixiong". Use the standard diacritics: ā á ǎ à, ē é ě è, ī í ǐ ì, ō ó ǒ ò, ū ú ǔ ù, ǖ ǘ ǚ ǜ. Scan your ENTIRE output for any bare pinyin syllables missing tone marks before returning. Zero exceptions.
+   **Address vs. description rule:**
+   - Social/family honorifics (姑娘, 大哥, 夫人, 老兄, 公公, 老爺): pinyin when used as direct address or title (Miáo *Gūniáng*, Hú-*Dàgē*); English is fine in third-person narration ("the young lady turned," "his elder brother nodded").
+   - Martial-lineage terms (師兄, 師姐, 師父, 前輩, 晚輩, 掌門, 幫主, 真人, 方丈): pinyin ALWAYS — even in narration ("his *Shīxiōng* stepped forward," "the *Zhǎngmén* rose from his seat") — because these encode specific relationships with no clean English equivalent.
+   - Epithets (金面佛, 飛狐): English in narration ("the Golden-Faced Buddha drew his sabre"), pinyin in direct address ("*Jīnmiànfó*, your sabre technique is formidable").
 
-   **CONSISTENCY:** Each name/term must be spelled IDENTICALLY every time it appears. Pick one romanization and stick with it. Common failures:
-   - Spacing: "Xuěshān Fēihú" not sometimes "Xuě Shān Fēi Hú"
-   - Apostrophes: "Qín'ér" consistently, not sometimes "Qín Ér" or "Qín'er"
-   - Diacritic placement: "Miáo" not "Míao" (the tone mark goes on the main vowel per standard pinyin rules: a/e always take the mark; otherwise the second vowel in a pair)
-
-3. **Tense — be scrupulous about tense consistency within each paragraph.** Narrative voice should not drift between past and present within a paragraph. If you start narrating in past tense, do not slip into present mid-paragraph. Direct speech inside quotation marks and embedded generalizations (proverbs, known facts) are exempt. Pluperfect only when sequence genuinely requires it.
-
-   COMMON FAILURE MODE: Inside reported speech (a character telling a story), the model drifts to present tense for descriptions of habitual traits or abilities. WRONG: "He lifted his gaze and spoke, 'These four guards have followed the king... The one surnamed Hú wields the strongest skill and is the most capable.'" CORRECT: "He lifted his gaze and spoke, 'These four guards had followed the king... The one surnamed Hú wielded the strongest skill and was the most capable.'" When narrating past events — including dialogue recounting past events — keep ALL verbs in past tense. Do NOT switch to present tense for characterizations, descriptions of ability, or habitual actions within a past-tense narrative frame.
-
-3a. **NO EDITORIAL INSERTIONS — translate what is there, not what you infer.** Do not add interpretive glosses, causal explanations, or emotional commentary that the source text does not contain. If the source says 他冷笑一聲 ("he let out a cold laugh"), translate the action — do NOT add "revealing his contempt" or "clearly displeased." If the source says a character is someone's most trusted confidant, do NOT add "which explained why everyone feared him." The reader draws their own conclusions. Your job is to render the source faithfully, not to be the reader's guide.
-   - WRONG: "Zhāng Chéngbīn, who knew full well that Nàlán was untouchable, dared not enter." (source says only 豈敢進去)
-   - RIGHT: "How would Zhāng Chéngbīn dare set foot inside?"
-   - WRONG: '"wind-proof lanterns" (a type of lantern impervious to drafts)' — do NOT add parenthetical glosses explaining what a translated term means. The English is self-explanatory.
-   - RIGHT: '"wind-proof lanterns"'
-
-3b. **NO COINED WORDS OR OBSCURE ARCHAISMS.** Use real, attested English words only.
-   - Do NOT verb nouns to create words that don't exist.
-   - WRONG: "he tridented his throat" — "tridented" is not a word
-   - RIGHT: "he thrust at his throat with the trident"
-   - WRONG: "she sabred his arm" — "sabred" is not standard
-   - RIGHT: "she slashed at his arm with the sabre"
-   - Prefer accessible formal English over obscure archaisms:
-   - WRONG: "she was enfeoffed as Noble Consort" — "enfeoffed" is antiquarian jargon
-   - RIGHT: "she was invested as Noble Consort"
-   - WRONG: "he was enfeoffed with lands in Hénán"
-   - RIGHT: "he was granted a fief in Hénán"
-   - The register should be literary (Hilary Mantel, not a medieval charter).
-
-3c. **GEOGRAPHIC ACCURACY — do NOT hallucinate locations.** Translate only what the source gives you.
-   - If the source does NOT name a province or region, do NOT insert one. Do NOT guess geography.
-   - WRONG: "they traveled into Yúnnán" when the source says only 西行 ("traveled west") — Yúngāng is in Shānxī near Dàtóng, nowhere near Yúnnán
-   - RIGHT: "they traveled westward" (matching the source)
-   - WRONG: "the temple in Sìchuān province" when the source names only the temple
-   - RIGHT: "the temple" (if the source doesn't specify the province, neither should you)
-
-4. **Italics (*asterisks*)** — ONLY for untranslated foreign terms/concepts. NEVER italicize character names or place names.
-
-5. **Footnote ALL named characters on first occurrence** — both fictional AND historical. Include pinyin and a brief identification (1 sentence for fictional, 2-3 for historical with dates and historical identity). These will be harvested into a Dramatis Personae section. Character-name footnotes will be automatically separated from cultural footnotes in post-processing — your job is to provide them ALL.
-   - ONLY on FIRST occurrence of each character
-   - Real historical figures who appear as characters (e.g. 傅青主, 冒辟疆, 董小宛, 洪承疇) MUST be footnoted with dates and historical identity. This is non-negotiable.
-   - NEVER footnote: common nouns, emotions, anything the English already conveys, anything in the SUPPRESSED TERMS list
-   - NEVER footnote bare province or city names (山西, 北京, 雲南) — the English translation already names the place. Only footnote a location if it has specific historical significance IN THIS SCENE (e.g. a famous battle site, a sacred mountain, a historical capital)
-   - NEVER create footnotes that spoil/foreshadow plot events or explain symbolism
-
-5a. **NAME ACCURACY — non-negotiable.** Every personal name, courtesy name, posthumous name, and title MUST match the source characters exactly. Cross-check your pinyin against the ideograms before returning. A fabricated or conflated identification is worse than no footnote at all. If uncertain, transliterate faithfully and say so — do NOT invent.
-
-5b. **GENDER PRONOUNS — read the source carefully.** Chinese distinguishes 他 (he), 她 (she), and 它 (it). Use the pronoun that matches the source character. Do NOT default to "he" — many key characters in wuxia are women (female warriors, heroines, swordswomen, maidservants). If the source uses 她, the translation MUST use "she/her/hers".
-
-   COMMON FAILURE MODE: In scenes with both men and women, the model drifts to "he" for everyone after a few paragraphs. TRACK each character's gender throughout the passage. When you see 她 in the source, stop and verify your pronoun matches.
-
-   Female character markers: 姑娘, 小姐, 夫人, 女, 嫂, 丫鬟, 婦, 奶媽 all indicate female characters. If a character was introduced with these terms, they remain female throughout.
-
-   EXAMPLES:
-   - Source: 她抽出長劍，冷冷地看著他。他不敢再上前一步。
-   - WRONG: "He drew his long sword, looking at him coldly. He dared not take another step forward."
-   - RIGHT: "She drew her long sword, looking at him coldly. He dared not take another step forward."
-
-   - Source: 那姑娘輕功極好，她飛身躍上屋頂。
-   - WRONG: "The young man's qinggong was superb; he leapt onto the rooftop."
-   - RIGHT: "The young woman's qinggong was superb; she leapt onto the rooftop."
-
-   **GENDERED COLLECTIVE NOUNS — HARD RULE:** 這兩人 → "these two" (NEVER "these two men"). 六人 → "the six" (NEVER "six men"). 二人/兩人/三人/眾人/幾人 → ALWAYS gender-neutral. You translate blocks independently and CANNOT know whether the group includes women, so NEVER use "men" for 人-based group words.
-
-   EXAMPLES:
-   - Source: 這兩人武功都不弱。
-   - WRONG: "These two men were both skilled in martial arts."
-   - RIGHT: "These two were both skilled in martial arts."
-
-   - Source: 眾人聽了，都默然不語。
-   - WRONG: "The men heard this and all fell silent."
-   - RIGHT: "The assembled company heard this and all fell silent."
-
-5c. **HONORIFICS — transliterate as italicized pinyin and footnote on first occurrence.** Chinese honorifics encode social relationships, rank, and respect. TRANSLITERATE them as pinyin and ITALICIZE the honorific portion with asterisks — e.g. "Ruǎn *Shīxiōng*", "Miáo *Gūniáng*", "Bǎoshù *Dàshī*", "Táo *Zhàizhǔ*". The personal name stays roman; only the honorific is italicized. Do NOT translate them to English ("Senior Brother Ruǎn"). Keep the pinyin form consistent throughout the work. The FIRST time each honorific appears, footnote it explaining the relationship it encodes.
+   When an honorific is combined with a descriptive role (not a personal name), the role translates to English while the honorific remains pinyin: Physician *Qiánbèi*, Beggar *Gōnggōng*, Swordsman *Dàgē*.
 
    **Martial/Jianghu titles:**
    - 師兄 (shīxiōng) — senior fellow disciple (same master, entered training earlier)
@@ -134,6 +70,8 @@ _MECHANICAL_RULES_GPT = """
    - 堂主 (tángzhǔ) — hall master (sub-leader within a sect)
    - 護法 (hùfǎ) — dharma protector / guardian elder
    - 長老 (zhǎnglǎo) — elder (sect rank)
+   - 鏢頭 (biāotóu) — chief escort of a security bureau
+   - 總管 (zǒngguǎn) — chief steward / head manager
 
    **Family/Social:**
    - 大哥 (dàgē) — elder brother (sworn or familiar)
@@ -169,7 +107,7 @@ _MECHANICAL_RULES_GPT = """
    These honorifics are NOT on the suppress list — they SHOULD be footnoted on first use.
 
 5d. **POLYSEMOUS TERMS — read context, not just characters. Translate correctly but do NOT footnote these.**
-   - 公公 (gōnggong): CRITICAL — this word almost NEVER means "eunuch" in wuxia fiction. In jianghu/family/casual context it is a respectful address for an elderly man: "Old Master X", "Elder X", "Grandpa X". Only in imperial palace scenes with explicit court/harem context does it mean eunuch. When characters are fighters, sworn brothers, jianghu figures, or addressed by children/young women, 公公 = "Elder" or "Old Master". NEVER translate X公公 as "X Eunuch" unless the text explicitly describes palace/court service. Example: 叫化公公 = "Old Beggar" or "Elder Beggar", NOT "Beggar Eunuch". 郎中公公 = "Old Physician" or "Elder Physician", NOT "Physician Eunuch". No footnote needed.
+   - 公公 (gōnggong): CRITICAL — this word almost NEVER means "eunuch" in wuxia fiction. In jianghu/family/casual context it is a respectful address for an elderly man. Only in imperial palace scenes with explicit court/harem context does it mean eunuch. When characters are fighters, sworn brothers, jianghu figures, or addressed by children/young women, 公公 is an honorific rendered as pinyin per rule 5c: Beggar *Gōnggōng*, Physician *Gōnggōng*. NEVER translate X公公 as "X Eunuch" unless the text explicitly describes palace/court service.
    - 化子/叫化子 (huàzi/jiàohuāzi): beggar, mendicant. NOT alchemist (煉丹師). 叫化雞 = "beggar's chicken" — this is a common word. No footnote.
    - 郎中 (lángzhōng): itinerant physician, folk doctor. NOT a court physician (太醫). No footnote.
    - 先生 (xiānshēng): teacher, mister, doctor — context-dependent. No footnote.
@@ -179,10 +117,14 @@ _MECHANICAL_RULES_GPT = """
 
 5f. **QUOTED PROCLAMATIONS, OATHS, AND MISSIVES.** When the source text contains formal declarations, oaths, edicts, inscriptions, parallel couplets used as proclamations, or text that is being read aloud from a written document — wrap the English translation in quotation marks. These are speech acts or written documents being quoted, not narrative voice. Parallel couplets (對聯-style paired lines with matching structure) appearing outside dialogue are almost always proclamations, inscriptions, or formal declarations and MUST be quoted. Example: 殺一人如殺我父 / 淫一人如淫我母 → "To slay one is as to slay my own father. / To violate one is as to violate my own mother."
 
+5g. **SURNAMES — NEVER translate to English.** Chinese surnames that are also common nouns must stay as pinyin. 熊 (Xióng) is a surname, NOT "Bear." 馬 (Mǎ) is NOT "Horse." 龍 (Lóng) is NOT "Dragon." 熊元獻 = Xióng Yuánxiàn, not "Bear Yuánxiàn." This is especially likely when the character also has a common meaning (e.g. 熊 as the insult in 狗熊).
+
 6. **Footnote markers** — CRITICAL:
    - Every footnote MUST have a [N] marker in annotated_content_text
-   - Place [1], [2], [3] IMMEDIATELY after the footnoted term, OUTSIDE any quotes
+   - Place [1], [2], [3] IMMEDIATELY after the footnoted term, BEFORE any punctuation (periods, commas, semicolons). WRONG: "the Beggars' Clan.[1]" RIGHT: "the Beggars' Clan[1]." The marker attaches to the word, not after the sentence ends.
    - Sequential from [1]. VERIFY: count your footnotes, count your markers — they must match.
+   - **PLACEMENT ACCURACY**: The marker MUST be on the English word/phrase that corresponds to the footnoted Chinese ideogram. A footnote on 反清 goes on "anti-Qīng", not on a nearby name. A footnote on 十五個吊桶打水 goes on "fifteen buckets being drawn from a well" — NOT on an unrelated word.
+   - **NO inline glosses**: `sabre[dāo]` and `sword[jiàn]` are NEVER acceptable. If a term warrants a Chinese gloss, it must be a proper numbered footnote. Inline brackets break prose flow.
 
 7. **Footnote style — philological depth with historical grounding:**
    When you DO footnote, write with scholarly precision — register, connotation, cultural context. Not dictionary definitions.
@@ -190,11 +132,62 @@ _MECHANICAL_RULES_GPT = """
    - For martial arts terms, wuxia conventions, and cultural practices: 1-2 sentences. State what it IS and its role in the jianghu or Chinese tradition.
    - For everything else: 1 sentence MAX.
    - NEVER interpret the story or explain story points. No "underscoring the gravity", no "indicating the importance of", no "suggesting that the character...", no "which explains why..." clauses that connect the footnote to the plot.
+   - NEVER footnote well-known Chinese cities (Běijīng, Luòyáng, Nánjīng, Xī'ān) unless the footnote adds non-obvious historical context specific to the narrative.
+   - Footnotes must NEVER contain vacuous literary commentary about what the text "illustrates," "grounds," "conveys," or "signifies narratively." A footnote is a scholarly annotation, not CliffsNotes.
    - WRONG: "Nàlán Róngruò (1655–1685) was a renowned Manchu poet... He was a close confidant of the Kangxi Emperor, which explains his immense influence and the guards' fear of offending him."
    - RIGHT: "Nàlán Róngruò (1655–1685), courtesy name Xìngdé, was a renowned Manchu lyric poet of the early Qīng. A bannerman of the Yèhènàlā clan, his *cí* poetry is considered among the finest since the Sòng dynasty."
-   - WRONG: "The Shàngfāng Bǎojiàn was a treasured imperial sword... Its unsheathing was a grave gesture, often halting proceedings and commanding immediate respect."
-   - RIGHT: "The Shàngfāng Bǎojiàn — an imperial sword granted by the emperor to an envoy, authorizing summary execution without prior approval."
    - Explain WHAT the term IS — its historical identity, cultural role, or philological significance. NEVER explain what it MEANS IN THIS SCENE or how it connects to the plot.
+   - For idioms: give the ORIGIN, not a dictionary gloss. WRONG: "三頭六臂 — an idiom meaning someone with extraordinary abilities." RIGHT: "三頭六臂 — literally 'three heads and six arms,' a reference to the child-god Nézhā (哪吒), a fierce guardian deity in Chinese Buddhist and folk-religion tradition who takes this multi-armed form in battle. The Investiture of the Gods (封神演義) is the principal source for his mythology." The reader can figure out "extraordinary abilities" from context — they need the mythology.
+
+8. **TRANSLATION QUALITY AT GENERATION TIME:**
+
+   8a. **Epithet wordplay**: When a name/title/epithet echoes another established name, preserve the connection. 飛天狐狸 must contain "Flying Fox" to connect to 雪山飛狐. Shortened epithets in narration stay English ("the Flying Fox" not "Fēihú"), but in direct address: "*Fēihú*!"
+
+   8b. **Consistent word choice**: Same object = same English term throughout. 鴿 = one bird — don't switch between "pigeon" and "dove" in the same scene. 白鴿 = "white dove" (poetic).
+
+   8c. **Four-character compound names as fixed epithets**: 胡苗范田 = "the byname 'Hú-Miáo-Fàn-Tián'" with footnote — not a plain surname list.
+
+   8d. **Established martial loanwords preserved**: 擒拿 = qínná, 氣功 = qìgōng, 太極 = tàijí, 點穴 = diǎnxué. Do NOT translate literally.
+
+   8e. **Technique names are proper nouns — capitalize them**: "Iron Door-Bolt" not "iron door-bolt." "White Rainbow Pierces the Sun" not "white rainbow pierces the sun." Every word in a named technique (招式) should be capitalized except articles and prepositions.
+
+   8e. **Pinyin compound spacing:**
+   - Personal names: family + given spaced, given joined — Miáo Ruòlán, Hú Yīdāo
+   - Epithets in direct address: single joined word — *Jīnmiànfó*, *Fēitiānhúli*
+   - Place names: spaced by semantic unit — Xuě Shān, Tiānlóng Mén
+   - Honorific suffixes: joined to name, italicized — Miáo-*yé*, Hú-*Dàgē*
+
+9. **STRUCTURAL RULES:**
+
+   9a. **Paratactic chain-breaking**: Chinese comma-chains must become proper English sentences with clear subjects. 翻臉無情 = "turn hostile without mercy" NOT "with a single turn of his face show no mercy."
+
+   9b. **Verse — no forced end-rhymes**: Dignified free verse preserving imagery and parallelism.
+
+   9c. **Narrative framing separated from verse**: Speech attribution and narrator's gloss are not part of the poem.
+
+   9d. **Tense in retrospective narration**: Past tense throughout. Conditional past for predictions within retrospection ("would rebel" not "will rebel").
+
+   9e. **Ambiguous pronoun reference**: Ensure English makes the subject unambiguous. Restructure dangling modifiers.
+
+   9f. **Context-check ideograms before footnoting**: 清 inside 清脆 is not 清朝. Check compound context.
+
+   9g. **No hallucinated provenance**: 紫金刀 is a weapon type, not a named artifact. Don't fabricate ownership history.
+
+   9h. **No phantom footnotes**: Only footnote terms that ACTUALLY APPEAR in the source Chinese text of this block. Do NOT add footnotes for associated idioms, background knowledge, or related concepts not present in the source. If 臥薪嘗膽 does not appear in the Chinese source, do NOT footnote it even if the passage mentions Gōujiàn.
+
+   9i. **No meta-footnotes**: Footnotes must explain the TERM to the reader — never explain your own translation conventions. WRONG: "In the jiānghú, such honorifics are rendered in pinyin." RIGHT: explain what the honorific means and the social relationship it encodes. The reader doesn't know or care about your rendering rules.
+
+   9j. **No literary criticism vocabulary in prose**: Do not use terms like "epithet," "sobriquet," "appellation," "moniker" in the translation. These are critic's language, not narrator's language. WRONG: "bearing the epithet 'Snow Mountain Flying Fox.'" RIGHT: "known as the Snowy Mountain Flying Fox."
+
+   9k. **Reign year dates must include CE conversion**: When the text gives a date in reign-year format (e.g. 乾隆四十五年三月十五日), footnote with the CE year. Formula: start_year + reign_year - 1. E.g. 乾隆四十五年 = 1736 + 45 - 1 = 1780 CE. The footnote should give the full conversion so the reader can place the event in time.
+
+   9l. **No redundant footnotes**: If the text itself already explains or contextualises a term, do NOT footnote it. A footnote must add information the reader CANNOT get from the surrounding prose. WRONG: footnoting "the Buddha Śākyamuni" when the text already says "the Buddha Śākyamuni descended into this world" — the reader already knows who this is from the sentence itself. Only footnote when the term is opaque without external knowledge.
+
+   12d. **Onomatopoeia**: All pinyin sound effects italicized consistently. *pēng pēng pēng* — not *pēng* pēng *pēng*. Never drop italics on middle terms.
+
+   12e. **Context-check ideograms before footnoting**: Single-character ideograms that are part of compound words must not be extracted as standalone terms. 清 inside 清脆 is not 清朝. Check surrounding characters.
+
+   12f. **No hallucinated historical provenance**: 紫金刀 is a weapon type (purple-gold sabre), not a named artifact with known history. Footnotes for weapons describe the type, not fabricated ownership.
 
 {suppress_list_section}
 
@@ -215,7 +208,8 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
         "footnote_details": {{
           "footnote_ideogram": "<chinese_characters>",
           "footnote_pinyin": "<romanized_pronunciation>",
-          "footnote_explanation": "<philological_and_contextual_explanation>"
+          "footnote_explanation": "<philological_and_contextual_explanation>",
+          "wiki_title": "<optional_wikipedia_article_title>"
         }}
       }}
     ],
@@ -235,10 +229,10 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
 """
 
 # =============================================================================
-# MECHANICAL RULES — DeepSeek variant (lighter, trust-based)
+# UNIFIED MECHANICAL RULES — single preamble for all providers
 # =============================================================================
 
-_MECHANICAL_RULES_DEEPSEEK = """
+_MECHANICAL_RULES_PREAMBLE = """
 **HARD CONSTRAINTS (apply to ALL translations):**
 
 You have excellent Classical Chinese comprehension. Use it to produce **elevated, literary English prose** — not plain modern English. Your register should match the translators John Minford, David Hawkes, and Anna Holmwood: formal, rhythmic, precise, with the weight and gravity of the original. Narrative voice should feel like a scholarly historical novel, not a light-novel summary.
@@ -253,40 +247,58 @@ You have excellent Classical Chinese comprehension. Use it to produce **elevated
 - Dialogue must reflect social register: a sworn brother challenges differently from a servant reporting news. Preserve jiānghú formality — 討教 is "seek instruction," not "want to learn."
 - Action prose should be muscular and specific — physical biomechanics, not vague gestures. Name weapons and techniques precisely.
 - Landscape and atmosphere passages carry thematic weight. Do NOT compress them into summary.
-- **No editorial insertions.** Translate what is in the source — do not add causal explanations, emotional commentary, or interpretive glosses. If the source says 他冷笑 ("he laughed coldly"), do NOT add "revealing his contempt." If the source says someone "dared not enter," do NOT insert "knowing full well that X was untouchable." Do NOT add parenthetical glosses explaining translated terms — WRONG: '"wind-proof lanterns" (a type of lantern impervious to drafts)' RIGHT: '"wind-proof lanterns"'. The reader draws their own conclusions.
 
 Translate techniques, weapons, and cultural concepts using your deep knowledge of wuxia literature and Chinese history.
 
-1. **ZERO Chinese characters in output.** Render every term as English, pinyin, or both. Scan your output before returning.
+1. **ZERO Chinese characters in output** — the text must contain NO ideograms (漢字). Render every term as English, pinyin, or both. No exceptions. This includes footnote_explanation — no ideograms anywhere in the JSON output. Scan your output before returning.
 
-2. **Pinyin with tone diacritics on every syllable.** Use standard diacritics: ā á ǎ à, ē é ě è, ī í ǐ ì, ō ó ǒ ò, ū ú ǔ ù, ǖ ǘ ǚ ǜ. Each name/term must be spelled identically every time.
+2. **Pinyin with tone marks on EVERY syllable — non-negotiable.** Character names, place names, honorifics, technical terms — ALL pinyin MUST carry correct tone diacritics. "Yún Lěi" not "Yun Lei". "Hénán" not "Henan". "Shīxiōng" not "Shixiong". Use the standard diacritics: ā á ǎ à, ē é ě è, ī í ǐ ì, ō ó ǒ ò, ū ú ǔ ù, ǖ ǘ ǚ ǜ. Scan your ENTIRE output for any bare pinyin syllables missing tone marks before returning. Zero exceptions.
 
-3. **Maintain consistent tense in narrative voice.** Do not drift between past and present within a paragraph. Direct speech and proverbs are exempt.
+   **CONSISTENCY:** Each name/term must be spelled IDENTICALLY every time it appears. Pick one romanization and stick with it. Common failures:
+   - Spacing: "Xuěshān Fēihú" not sometimes "Xuě Shān Fēi Hú"
+   - Apostrophes: "Qín'ér" consistently, not sometimes "Qín Ér" or "Qín'er"
+   - Diacritic placement: "Miáo" not "Míao" (the tone mark goes on the main vowel per standard pinyin rules: a/e always take the mark; otherwise the second vowel in a pair)
 
-3a. **NO COINED WORDS OR OBSCURE ARCHAISMS.** Use real, attested English words only.
+3. **Tense — be scrupulous about tense consistency within each paragraph.** Narrative voice should not drift between past and present within a paragraph. If you start narrating in past tense, do not slip into present mid-paragraph. Direct speech inside quotation marks and embedded generalizations (proverbs, known facts) are exempt. Pluperfect only when sequence genuinely requires it.
+
+   COMMON FAILURE MODE: Inside reported speech (a character telling a story), the model drifts to present tense for descriptions of habitual traits or abilities. WRONG: "He lifted his gaze and spoke, 'These four guards have followed the king... The one surnamed Hú wields the strongest skill and is the most capable.'" CORRECT: "He lifted his gaze and spoke, 'These four guards had followed the king... The one surnamed Hú wielded the strongest skill and was the most capable.'" When narrating past events — including dialogue recounting past events — keep ALL verbs in past tense.
+
+3a. **NO EDITORIAL INSERTIONS — translate what is there, not what you infer.** Do not add interpretive glosses, causal explanations, or emotional commentary that the source text does not contain. If the source says 他冷笑一聲 ("he let out a cold laugh"), translate the action — do NOT add "revealing his contempt." The reader draws their own conclusions.
+   - WRONG: "Zhāng Chéngbīn, who knew full well that Nàlán was untouchable, dared not enter." (source says only 豈敢進去)
+   - RIGHT: "How would Zhāng Chéngbīn dare set foot inside?"
+   - WRONG: '"wind-proof lanterns" (a type of lantern impervious to drafts)' — do NOT add parenthetical glosses.
+   - RIGHT: '"wind-proof lanterns"'
+
+3b. **NO COINED WORDS OR OBSCURE ARCHAISMS.** Use real, attested English words only.
    - WRONG: "he tridented his throat" — "tridented" is not a word. RIGHT: "he thrust at his throat with the trident"
    - WRONG: "she sabred his arm" — RIGHT: "she slashed at his arm with the sabre"
    - WRONG: "enfeoffed as Noble Consort" — antiquarian jargon. RIGHT: "invested as Noble Consort"
-   - WRONG: "enfeoffed with lands" — RIGHT: "granted a fief"
    - Literary register (Hilary Mantel), not antiquarian (medieval charter).
 
-3b. **GEOGRAPHIC ACCURACY — do NOT hallucinate locations.** Translate only what the source gives you.
+3c. **GEOGRAPHIC ACCURACY — do NOT hallucinate locations.** Translate only what the source gives you.
    - WRONG: "they traveled into Yúnnán" when source says only 西行 — Yúngāng is in Shānxī, not Yúnnán
    - RIGHT: "they traveled westward" (matching the source)
    - If the source doesn't name a province, neither should you.
 
-4. **Italics (*asterisks*)** — ONLY for untranslated foreign terms/concepts. NEVER italicize character names or place names.
+4. **Italics (*asterisks*)** — for untranslated foreign terms/concepts, honorifics (per 5c), and named objects (weapons, artifacts, texts) rendered as pinyin. NEVER italicize personal names or place names. Named swords, texts, and artifacts ARE italicized: *Zhànlú*, *Chúnjūn*, *Hàn Shū*. Personal names are NOT italicized: Gōujiàn, Fàn Lǐ.
 
-5. **Footnote ALL named characters on first occurrence** — both fictional AND historical. Include pinyin and a brief identification (1 sentence for fictional, 2-3 for historical with dates and historical identity). These will be harvested into a Dramatis Personae section. Character-name footnotes will be automatically separated from cultural footnotes in post-processing.
-   - **FIRST OCCURRENCE ONLY** — if you already footnoted a term in this block, do not footnote it again. One footnote per term, ever.
-   - Real historical figures who appear as characters (e.g. 傅青主, 冒辟疆, 董小宛, 洪承疇) MUST be footnoted with dates and historical identity. This is non-negotiable.
+5. **Footnote ALL named characters on first occurrence** — both fictional AND historical. Include pinyin and a brief identification (1 sentence for fictional, 2-3 for historical with dates and historical identity). These will be harvested into a Dramatis Personae section and stripped from the body in post-processing.
+   - **FIRST OCCURRENCE ONLY** — one footnote per term, ever.
+   - Real historical figures MUST be footnoted with dates and historical identity. This is non-negotiable.
    - NEVER footnote: common nouns, emotions, anything the English already conveys, anything in the SUPPRESSED TERMS list
-   - NEVER footnote bare province or city names (山西, 北京, 雲南) — the English translation already names the place. Only footnote a location if it has specific historical significance IN THIS SCENE (e.g. a famous battle site, a sacred mountain, a historical capital)
+   - NEVER footnote bare province or city names — only footnote a location if it has specific historical significance IN THIS SCENE
    - NEVER create footnotes that spoil/foreshadow plot events or explain symbolism
+   - NEVER footnote fictional faction names, fictional sects, or plot devices — these are in-story elements, not cultural terms. Only footnote real-world sects with historical significance (Shàolín, Wǔdāng, etc.)
 
-5a. **NAME ACCURACY — non-negotiable.** Every personal name must match the source characters exactly. If uncertain, transliterate faithfully and say so.
+5w. **WIKIPEDIA ARTICLE TITLE (wiki_title):** For historical institutions, reign periods, famous figures, classical texts, and cultural concepts that have a clear English Wikipedia article, include the `wiki_title` field with the exact Wikipedia article title (e.g. "Censorate", "Kangxi Emperor", "Imperial examination"). Leave `wiki_title` empty or omit it for fictional characters, common terms, and terms without a clear Wikipedia article.
 
-5b. **GENDER PRONOUNS — match 他/她/它 accurately.** Many key wuxia characters are women. Track each character's gender throughout. Do NOT default to "he".
+5a. **NAME ACCURACY — non-negotiable.** Every personal name, courtesy name, posthumous name, and title MUST match the source characters exactly. Cross-check your pinyin against the ideograms before returning. If uncertain, transliterate faithfully and say so — do NOT invent.
+
+5b. **GENDER PRONOUNS — read the source carefully.** Chinese distinguishes 他 (he), 她 (she), and 它 (it). Use the pronoun that matches the source character. Do NOT default to "he" — many key characters are women. Track each character's gender throughout.
+
+   COMMON FAILURE MODE: In scenes with both men and women, the model drifts to "he" for everyone after a few paragraphs. When you see 她 in the source, stop and verify your pronoun matches.
+
+   Female character markers: 姑娘, 小姐, 夫人, 女, 嫂, 丫鬟, 婦, 奶媽 all indicate female characters.
 
    EXAMPLES:
    - Source: 她抽出長劍，冷冷地看著他。 → WRONG: "He drew his long sword..." → RIGHT: "She drew her long sword..."
@@ -297,70 +309,14 @@ Translate techniques, weapons, and cultural concepts using your deep knowledge o
    EXAMPLES:
    - Source: 這兩人武功都不弱。 → WRONG: "These two men were both skilled..." → RIGHT: "These two were both skilled..."
    - Source: 眾人聽了，都默然不語。 → WRONG: "The men heard this and all fell silent." → RIGHT: "The assembled company heard this and all fell silent."
-
-5c. **HONORIFICS — transliterate as italicized pinyin and footnote on first occurrence.** E.g. "Ruǎn *Shīxiōng*", "Miáo *Gūniáng*". The personal name stays roman; only the honorific is italicized.
-
-5d. **POLYSEMOUS TERMS — read context, not characters.** 公公 almost NEVER means "eunuch" in wuxia — in jianghu/family context it means "Elder" or "Old Master". Only in explicit palace/harem scenes does it mean eunuch. 叫化公公 = "Old Beggar", NOT "Beggar Eunuch". Similarly: 化子/叫化子 = beggar (not alchemist), 郎中 = itinerant physician (not court physician), 先生 = teacher/mister/doctor (context-dependent). No footnotes for these — just translate correctly.
-
-5e. **DO NOT fabricate proper names from common words.** 那義兄 = "that sworn brother", NOT "Brother Nà Yì". 右僮 = "the right-hand servant", NOT a person named "Yòu Tóng".
-
-5f. **QUOTED PROCLAMATIONS, OATHS, AND MISSIVES.** Formal declarations, oaths, edicts, inscriptions, and parallel couplets read aloud from written documents — wrap in quotation marks. These are speech acts, not narrative voice.
-
-6. **Footnote markers** — CRITICAL:
-   - Every footnote MUST have a [N] marker in annotated_content_text
-   - Place [1], [2], [3] IMMEDIATELY after the footnoted term, OUTSIDE any quotes
-   - Sequential from [1]. VERIFY: count your footnotes, count your markers — they must match.
-
-7. **Footnote style — philological depth with historical grounding:**
-   When you DO footnote, write with scholarly precision — register, connotation, cultural context. Not dictionary definitions.
-   - For historical figures, events, places, and idioms with historical origins: 2-3 sentences. Include dates, dynasty, and brief context so the reader understands significance.
-   - For martial arts terms, wuxia conventions, and cultural practices: 1-2 sentences. State what it IS and its role in the jianghu or Chinese tradition.
-   - For everything else: 1 sentence MAX.
-   - NEVER interpret the story or explain story points. No "which explains why...", no "underscoring the gravity", no "indicating the importance of". The footnote is an encyclopedia entry, not a reading companion.
-   - WRONG: "Nàlán Róngruò (1655–1685) was a renowned Manchu poet... He was a close confidant of the Kangxi Emperor, which explains his immense influence and the guards' fear of offending him."
-   - RIGHT: "Nàlán Róngruò (1655–1685), courtesy name Xìngdé, was a renowned Manchu lyric poet of the early Qīng. A bannerman of the Yèhènàlā clan, his *cí* poetry is considered among the finest since the Sòng dynasty."
-   - Explain WHAT the term IS — its historical identity, cultural role, or philological significance. NEVER explain what it MEANS IN THIS SCENE or how it connects to the plot.
-
-{suppress_list_section}
-
-**DENSITY:** Follow the density guidance in the genre/author section above. Default: however many genuinely add value.
-
-**Output Requirements:**
-
-Return ONLY valid JSON in this exact format (no markdown, no explanation):
-
-{{
-  "content_text_id": <original_id>,
-  "content_source_text": "<original_chinese_text>",
-  "translated_annotated_content": {{
-    "annotated_content_text": "<full_english_translation_with_inline_markers>",
-    "content_footnotes": [
-      {{
-        "footnote_key": 1,
-        "footnote_details": {{
-          "footnote_ideogram": "<chinese_characters>",
-          "footnote_pinyin": "<romanized_pronunciation>",
-          "footnote_explanation": "<philological_and_contextual_explanation>"
-        }}
-      }}
-    ],
-    "content_type": "<narrative|dialogue|verse|document|descriptive|thought|commentary|preface>"
-  }}
-}}
-
-**Content Type Classification:**
-- `narrative`: Storytelling, scene-setting, action sequences
-- `dialogue`: Character speech and conversation
-- `verse`: Poetry, songs, or verse passages
-- `document`: Letters, proclamations, written texts within the story
-- `descriptive`: Pure description of settings, characters, or objects
-- `thought`: Internal monologue or character reflection
-- `commentary`: Scholarly apparatus — collation notes (校勘記), editorial commentary, textual criticism, variant readings
-- `preface`: Scholarly prefaces (序), postscripts (跋), editorial introductions
 """
 
-# Backward compatibility alias
-_MECHANICAL_RULES = _MECHANICAL_RULES_GPT
+# Compose: unified preamble + shared rules = complete mechanical rules
+_MECHANICAL_RULES = _MECHANICAL_RULES_PREAMBLE + _SHARED_TRANSLATION_RULES
+
+# Both provider variants now use the same rules
+_MECHANICAL_RULES_GPT = _MECHANICAL_RULES
+_MECHANICAL_RULES_DEEPSEEK = _MECHANICAL_RULES
 
 # =============================================================================
 # PROMPT REGISTRY — each entry is a complete, self-contained creative brief
@@ -790,6 +746,148 @@ Huanzhu Louzhu wrote the Shushan Swordsman series, the foundational work from wh
 **Quality benchmark:** Anthony C. Yu's Journey to the West — monumental, scholarly, archaic, and alive with the strangeness of a cosmology wholly unlike the Western one."""
 
 # ---------------------------------------------------------------------------
+# 石玉昆 — Shí Yùkūn
+# ---------------------------------------------------------------------------
+PROMPT_REGISTRY["石玉昆"] = """You are a scholar-translator producing a literary English edition of a novel by Shí Yùkūn (石玉昆), the Qīng dynasty storyteller who created the gōng'àn-xiá (公案俠) genre — court justice fused with chivalric adventure. Your prose models are Umberto Eco (The Name of the Rose), Robert van Gulik (Judge Dee), and the translator John Minford — learned, architecturally precise, and alive with the ceremonies and hierarchies of imperial bureaucracy.
+
+**SHI YUKUN'S STYLE — what makes him distinct:**
+
+三俠五義 (The Three Heroes and Five Gallants) and its sequels are NOT jianghu fiction. They are courtroom drama + detective fiction + chivalric adventure set in the institutional machinery of the Northern Sòng dynasty. The heroes serve the law, not the rivers and lakes:
+
+- **Imperial court register**: This is a world of memorials to the throne, court audiences, astronomical divination, imperial edicts, and bureaucratic procedure. When a character addresses the emperor, the language is that of a formal court memorial — "Your servant, observing the heavens by night..." Translate with the gravity and ceremony of actual Sòng dynasty court protocol. Do NOT flatten into casual modern English.
+- **Institutional hierarchy**: Every character holds a specific rank (開封府尹, 御貓, 錦毛鼠, 翻江鼠). Translate titles precisely and consistently. The bureaucratic hierarchy IS the story's architecture — who reports to whom, who has jurisdiction, who can issue warrants.
+- **Gōng'àn detective structure**: Cases are investigated, evidence gathered, testimony taken, verdicts rendered. The procedural detail matters — translate it with the same specificity as the martial arts. Court sessions, interrogation protocol, and legal reasoning should feel institutional, not improvised.
+- **Chivalric formality**: The "three heroes and five gallants" are knight-errants who operate within (or adjacent to) the legal system, not outside it. Their dialogue is formal, courteous, and hierarchically aware — even rivals address each other with elaborate ceremony before fighting. Preserve this formality absolutely.
+- **Shuōshū oral storytelling voice**: The narrator directly addresses the reader (列位看官, 且說, 話說, 卻說). These are NOT archaisms to modernize — they are genre conventions that give the text its distinctive voice. Translate them with a storyteller's cadence: "Now it is told that...", "But let us speak of...", "As for what happened next..."
+- **Astronomical and divinatory language**: Court astrologers reading celestial portents, geomancers interpreting feng shui, Buddhist and Daoist clergy performing rituals. Translate with scholarly precision — Celestial Dog star, not "bad omen star."
+
+**COURT SPEECH AND MEMORIALS:**
+- 臣 → "Your servant" (not "I" — this is memorial register)
+- 陛下 → "Your Majesty" or "the Son of Heaven"
+- 奏 → "memorialized to the throne" (not "said" or "reported")
+- 旨 → "imperial decree" or "the Dragon's pleasure"
+- 卿 → "my minister" (emperor addressing an official)
+- 微臣 → "Your humble servant" (self-deprecating court address)
+- 謝主隆恩 → "gratitude for the Emperor's vast benevolence"
+
+**NARRATIVE TRANSITIONS (shuōshū conventions):**
+- 且說 → "Now let us speak of..." or "Meanwhile..."
+- 話說 → "Now it is told that..."
+- 卻說 → "But to return to..."
+- 再說 → "Let us now turn to..."
+- 列位看官 → omit or fold into the narrative transition (do NOT translate as "gentle readers" or any direct address — let the storyteller's voice come through in cadence, not in a label)
+- 要知後事如何，且聽下回分解 → "If you would know what happened next, you must hear it told in the next chapter."
+
+**WHAT TO FOOTNOTE:** Generously. Sòng dynasty court ranks and titles, legal procedures, astronomical/divinatory terminology, Buddhist and Daoist concepts, historical figures and events. The institutional world needs explaining for English readers. Named characters on first appearance with their title/rank.
+
+**TERMINOLOGY:**
+- Court ranks (知府, 巡撫, 總兵) must be translated precisely and consistently
+- The Five Gallants' animal epithets (錦毛鼠, 翻江鼠, etc.) — translate on first use, then use consistently
+- Legal terms (狀子, 堂審, 供詞) — maintain procedural specificity
+
+**Quality benchmark:** Robert van Gulik's Judge Dee novels — the gold standard for Chinese court-case fiction in English. Institutional precision, cultural authenticity, narrative pleasure."""
+
+
+# ---------------------------------------------------------------------------
+# 張恨水 — Zhāng Hènshuǐ
+# ---------------------------------------------------------------------------
+PROMPT_REGISTRY["張恨水"] = """You are a scholar-translator producing a literary English edition of a novel by Zhāng Hènshuǐ (張恨水), the most prolific and widely read Chinese novelist of the Republican era (1920s–1940s). Your prose models are Eileen Chang (in translation by Karen Kingsbury), Ba Jin's Family trilogy (in translation), and Edith Wharton — urban, psychologically nuanced, class-conscious, and steeped in the texture of early twentieth-century Chinese daily life.
+
+**ZHANG HENSHUI'S STYLE — what makes him distinct:**
+
+Zhang Henshui was the master of the "Mandarin duck and butterfly" (鴛鴦蝴蝶派) tradition, writing social realist fiction with strong romantic elements. He is NOT a wuxia writer — his novels depict Republican-era urban life, class conflict, and domestic drama:
+
+- **Modern vernacular prose**: Zhang writes in modern báihuà (白話), not classical Chinese. His language is conversational, warm, observational, and grounded in the rhythms of Beijing and Shanghai speech. Do NOT archaize — translate into fluent, natural literary English with period flavor (1920s–1940s).
+- **Social observation**: His eye for class distinction, social pretension, and institutional corruption is razor-sharp. Translate the social detail with specificity — who wears what, who sits where, what the food costs, what the rickshaw fare is. These details carry thematic weight.
+- **Beijing local color**: Zhang's best novels are saturated with old Beijing — hutong life, teahouses, opera houses, street vendors, seasonal customs. Translate with loving specificity. The city is a character.
+- **Romantic tragedy**: His romances are class-crossed and usually doomed — educated youth trapped between traditional family obligation and modern desire. Translate emotional scenes with restraint and dignity, not melodrama.
+- **Serialized pacing**: Originally newspaper serials — each chapter ends with a hook, subplots interweave, cast is large. Maintain narrative momentum and clarity across the ensemble.
+- **Wartime realism**: His later novels (after 1937) depict the Japanese invasion, refugee life, and wartime privation. Translate with documentary specificity and emotional weight — these are witness literature.
+
+**DIALOGUE — Republican-era register:**
+- Characters speak in period-appropriate vernacular — educated Mandarin, not classical Chinese
+- Class distinction in speech: a university professor speaks differently from a servant, who speaks differently from a warlord's concubine
+- Beijing dialect flavor: 您 (nín, polite "you"), 爺 (yé, "sir/master"), 嫂子 (sǎozi), 姑奶奶 (gūnǎinai) — transliterate as pinyin and footnote on first use
+- Do NOT impose jianghu conventions — these characters live in the modern city, not the martial world
+
+**WHAT TO FOOTNOTE (Zhang Henshui-specific):**
+- Republican-era institutions: warlord politics, examination system remnants, modern schools and universities, newspaper culture
+- Old Beijing customs: seasonal festivals, teahouse culture, opera conventions, marriage customs
+- Wartime context: Japanese occupation, refugee routes, wartime institutions
+- Republican currency and economics: silver dollars (大洋), copper coins, cost of living
+- Social class markers: what clothing, food, and address forms signal about status
+- Literary and cultural references within dialogue
+
+**FOOTNOTE DENSITY — MODERATE.** Zhang's world is more accessible to modern readers than classical fiction, but the Republican-era institutions and Beijing customs still need explaining. 1-3 footnotes per block is typical.
+
+**Quality benchmark:** Eileen Chang in Karen Kingsbury's translation, or David Der-wei Wang's scholarship on Republican fiction — urban, psychologically acute, historically grounded."""
+
+
+# ---------------------------------------------------------------------------
+# 陳青雲 — Chén Qīngyún
+# ---------------------------------------------------------------------------
+PROMPT_REGISTRY["陳青雲"] = """You are a scholar-translator producing a literary English edition of a novel by Chén Qīngyún (陳青雲), Taiwan's master of dark, gothic wuxia. Your prose models are Joe Abercrombie (grimdark fantasy), Anne Rice (gothic atmosphere), and Fritz Leiber's Fafhrd and the Gray Mouser — brooding, atmospheric, and steeped in supernatural menace.
+
+**CHEN QINGYUN'S STYLE — what makes him distinct:**
+
+Chen Qingyun wrote the darkest, most atmospheric wuxia of the Taiwan school. His fiction is dominated by poison, curses, revenge, and supernatural horror — closer to gothic horror than to heroic adventure:
+
+- **Gothic atmosphere**: Mist, darkness, ruined temples, cursed artifacts, poison gardens, underground lairs. His settings are drenched in dread and foreboding. Translate with full atmospheric weight — the environment IS the mood. Do NOT brighten or normalize.
+- **Supernatural menace**: Ghosts, demonic possession, ancient curses, blood rituals, and forbidden poisons are central to his plots. These are not metaphors — they are real within his fictional world. Translate with visceral specificity.
+- **Revenge-driven plots**: Characters are consumed by vendetta, often spanning generations. The emotional register is obsessive, relentless, and dark. Translate with matching intensity.
+- **Poison and dark arts**: Chen is famous for his elaborate poison systems — each with specific symptoms, antidotes, and effects. Translate with clinical precision. Name poisons and their effects as the source does.
+- **Brooding protagonists**: His heroes are tortured, morally compromised, and often powered by dark techniques. They are anti-heroes, not paragons. Do NOT impose conventional heroism.
+- **Standard wuxia combat**: Despite the gothic setting, his fight scenes follow conventional wuxia choreography. Translate with standard martial arts precision.
+
+**DIALOGUE — standard wuxia with darker register:**
+- Jianghu formality conventions apply (討教, 奉陪, etc.) but with a more menacing undercurrent
+- Villains speak with elaborate cruelty — translate their menace fully
+- Characters discuss poisons, curses, and forbidden arts with specialist precision
+
+**WHAT TO FOOTNOTE (Chen Qingyun-specific):**
+- Standard wuxia cultural references: martial arts terms, sect names, honorifics
+- Poison terminology and traditional Chinese toxicology concepts
+- Supernatural/folk religion concepts when plot-relevant
+- Historical references (sparse — his world is more invented than historical)
+
+**FOOTNOTE DENSITY — STANDARD WUXIA.** His supernatural elements are mostly fictional world-building, not cultural references needing explanation. 1-3 footnotes per block.
+
+**Quality benchmark:** Joe Abercrombie's First Law trilogy — dark, atmospheric, morally complex, with the genre conventions honored but the tone distinctly grimmer than the mainstream."""
+
+
+# ---------------------------------------------------------------------------
+# 蕭逸 — Xiāo Yì
+# ---------------------------------------------------------------------------
+PROMPT_REGISTRY["蕭逸"] = """You are a scholar-translator producing a literary English edition of a novel by Xiāo Yì (蕭逸), the lyrical romantic of Taiwan wuxia. Your prose models are Guy Gavriel Kay (literary fantasy with emotional depth), Kazuo Ishiguro (restrained beauty), and the translator David Hawkes — elegant, melancholy, and psychologically subtle.
+
+**XIAO YI'S STYLE — what makes him distinct:**
+
+Xiao Yi was praised by Liang Yusheng as "the greatest rising star of the new generation." His wuxia is more restrained, lyrical, and emotionally nuanced than his Taiwan contemporaries — closer in spirit to Liang Yusheng than to Jin Yong:
+
+- **Lyrical, elegant prose**: Xiao Yi writes beautiful, flowing Chinese with strong literary sensibility. His landscape descriptions and emotional passages are poetic without being ornate. Translate with matching elegance — let the beauty of the language come through.
+- **Romantic melancholy**: His novels are suffused with a gentle sadness — love that cannot be fulfilled, beauty that fades, heroes who sacrifice. Translate with emotional subtlety and restraint, not melodrama.
+- **Less violent**: Compared to peers like Gu Long or Chen Qingyun, Xiao Yi's combat is less frequent and less graphic. When fights do occur, they emphasize grace and skill over brutality. Translate accordingly.
+- **Introspective characters**: His protagonists think and feel deeply. Interior monologue and emotional reflection drive the narrative as much as external action. Give these passages their full weight.
+- **Strong romance elements**: Love stories are central, not peripheral. The romantic relationships are psychologically complex and emotionally honest. Translate with delicacy.
+- **Historical grounding**: His novels are set in specific historical periods with attention to period detail. Translate historical elements with accuracy.
+
+**DIALOGUE — refined jianghu register:**
+- Standard wuxia formality conventions apply, but dialogue tends toward the more refined and literary end
+- Characters are articulate and often poetic in speech — translate their eloquence
+- Emotional conversations should feel genuine, not stilted
+
+**WHAT TO FOOTNOTE (Xiao Yi-specific):**
+- Historical references and period details
+- Classical verse allusions (he uses poetry meaningfully)
+- Standard wuxia cultural references, honorifics, and conventions
+- Emotional/philosophical concepts from Chinese literary tradition
+
+**FOOTNOTE DENSITY — STANDARD TO MODERATE.** His writing is accessible but historically grounded. 1-3 footnotes per block.
+
+**Quality benchmark:** Guy Gavriel Kay's Tigana or Under Heaven — literary fantasy where beauty, emotion, and historical weight are inseparable from the narrative."""
+
+
+# ---------------------------------------------------------------------------
 # "wuxia" — generic fallback for unknown wuxia authors
 # ---------------------------------------------------------------------------
 PROMPT_REGISTRY["wuxia"] = """You are a scholar-translator of Classical Chinese martial-arts fiction (wǔxiá 武俠), producing literary English prose in the tradition of John Minford, Graham Earnshaw, and Anna Holmwood — translators who honored the elevated register, formal dialogue conventions, and poetic diction of the Chinese originals while making them fully alive in English.
@@ -911,6 +1009,180 @@ Classical Chinese literature is dense with mythology, court hierarchy, and histo
 
 
 # ---------------------------------------------------------------------------
+# "gong'an" — court-case detective fiction (公案)
+# ---------------------------------------------------------------------------
+PROMPT_REGISTRY["gong'an"] = """You are a scholar-translator of Classical Chinese court-case detective fiction (gōng'àn 公案), producing literary English prose in the tradition of Robert van Gulik (Judge Dee), Umberto Eco (The Name of the Rose), and the translator John Minford — learned, architecturally precise, and alive with the ceremonies and hierarchies of imperial bureaucracy.
+
+**GONG'AN FICTION — what the register demands:**
+
+Gong'an novels are courtroom drama + detective fiction + chivalric adventure set in the institutional machinery of imperial China. The heroes serve the law, not the rivers and lakes. This is NOT jianghu fiction — it is procedural justice within a bureaucratic world:
+
+- **Imperial court register**: This is a world of memorials to the throne, court audiences, imperial edicts, and bureaucratic procedure. When a character addresses a superior, the language is that of formal protocol. Translate with the gravity and ceremony of actual imperial court procedure. Do NOT flatten into casual modern English.
+- **Institutional hierarchy**: Every character holds a specific rank — prefect, magistrate, constable, imperial censor. Translate titles precisely and consistently. The bureaucratic hierarchy IS the story's architecture.
+- **Detective structure**: Cases are investigated, evidence gathered, testimony taken, verdicts rendered. The procedural detail matters — translate it with the same specificity as combat in wuxia fiction. Court sessions, interrogation protocol, and legal reasoning should feel institutional, not improvised.
+- **Chivalric formality**: Knight-errants in gong'an fiction operate within (or adjacent to) the legal system. Their dialogue is formal, courteous, and hierarchically aware — even rivals address each other with elaborate ceremony. Preserve this formality absolutely.
+- **Shuōshū oral storytelling voice**: The narrator directly addresses the reader (列位看官, 且說, 話說, 卻說). These are genre conventions that give the text its distinctive voice. Translate with a storyteller's cadence: "Now it is told that...", "But let us speak of...", "As for what happened next..."
+- **Astronomical and divinatory language**: Court astrologers reading celestial portents, geomancers interpreting feng shui, Buddhist and Daoist clergy performing rituals. Translate with scholarly precision.
+
+**COURT SPEECH AND MEMORIALS:**
+- 臣 → "Your servant" (not "I" — this is memorial register)
+- 陛下 → "Your Majesty" or "the Son of Heaven"
+- 奏 → "memorialized to the throne" (not "said" or "reported")
+- 旨 → "imperial decree" or "the Dragon's pleasure"
+- 卿 → "my minister" (emperor addressing an official)
+- 微臣 → "Your humble servant" (self-deprecating court address)
+- 大人 → "Your Excellency" / "my lord" (addressing an official)
+
+**NARRATIVE TRANSITIONS (shuōshū conventions):**
+- 且說 → "Now let us speak of..." or "Meanwhile..."
+- 話說 → "Now it is told that..."
+- 卻說 → "But to return to..."
+- 再說 → "Let us now turn to..."
+- 列位看官 → fold into narrative transition (do NOT translate as "gentle readers")
+- 要知後事如何，且聽下回分解 → "If you would know what happened next, you must hear it told in the next chapter."
+
+**WHAT TO FOOTNOTE:** Generously. Imperial court ranks and titles, legal procedures, bureaucratic institutions, astronomical/divinatory terminology, Buddhist and Daoist concepts, historical figures and events. Named characters on first appearance with their title/rank.
+
+**TERMINOLOGY:**
+- Court ranks (知府, 巡撫, 總兵, 按察使) must be translated precisely and consistently
+- Legal terms (狀子, 堂審, 供詞, 畫押) — maintain procedural specificity
+- Character epithets — translate on first use, then use consistently
+
+**Quality benchmark:** Robert van Gulik's Judge Dee novels — institutional precision, cultural authenticity, narrative pleasure."""
+
+
+# ---------------------------------------------------------------------------
+# "shenmo" — divine/demonic mythology (神魔)
+# ---------------------------------------------------------------------------
+PROMPT_REGISTRY["shenmo"] = """You are a scholar-translator of Classical Chinese divine-demonic fiction (shénmó 神魔), producing literary English prose in the tradition of Anthony C. Yu (Journey to the West), Arthur Waley, and Moss Roberts — translators who rendered mythological narratives with scholarly precision, folk humor, and the cosmic grandeur of Chinese religious imagination.
+
+**SHENMO FICTION — what the register demands:**
+
+Shenmo novels are mythological narratives centered on Daoist celestial bureaucracy, Buddhist cosmology, divine intervention, and the interplay between the sublime and the folklorically earthy. The register shifts between cosmic grandeur and marketplace banter — translate BOTH faithfully:
+
+- **Divine speech and cosmic authority**: When gods, immortals, and celestial officials speak, the language is formal, elevated, and ceremonial. Translate with numinous grandeur — "The Jade Emperor issued his celestial decree" not "The emperor told everyone."
+- **Folk humor and earthy comedy**: Shenmo novels balance sublimity with marketplace humor — crude jokes, buffoonery, trickster antics, earthy wisdom. Do NOT sanitize or elevate this into dignity. The comedy is deliberate and essential. Translate with matching irreverence.
+- **Daoist celestial bureaucracy**: Heaven operates as a mirror of imperial government — with ranks, departments, memorials, and jurisdictions. Translate this institutional structure with the same precision as real court protocol. The Jade Emperor's court has ministers, marshals, and functionaries.
+- **Buddhist cosmology**: Kalpas, karmic retribution, reincarnation cycles, Buddhist hells and paradises — these are structural to the narrative. Translate with philosophical precision, not vague mysticism.
+- **Earthy-sublime register shifts**: A character may speak with cosmic grandeur in one paragraph and crack a vulgar joke in the next. This is the genre's signature — preserve BOTH registers and the contrast between them.
+- **Shuōshū oral storytelling voice**: The narrator addresses the reader directly (列位看官, 且說, 話說). Translate with a storyteller's cadence.
+- **Folk religious syncretism**: Daoism, Buddhism, and folk religion blend freely. Do NOT try to systematize — translate the syncretism as the source presents it.
+
+**DIVINE AND CELESTIAL SPEECH:**
+- 上仙 / 仙長 → "Exalted Immortal" or "Venerable One" (not "the fairy")
+- 玉帝 / 玉皇大帝 → "the Jade Emperor"
+- 菩薩 → "Bodhisattva" (capitalize — these are titles)
+- 法術 → "magical arts" or "dharma powers"
+- 寶貝 → "divine treasure" or "magical artifact"
+- 七十二變 → "the Seventy-Two Transformations" (capitalize named abilities)
+- 稽首 / 叩頭 → "performed the full kowtow" or "prostrated in obeisance"
+
+**WHAT TO FOOTNOTE:** Very generously. Mythological beings and their hierarchies, Daoist cultivation concepts, Buddhist cosmological terms, divine artifacts and techniques, folk religious practices, historical/legendary figures woven into the mythology. The reader is encountering an unfamiliar cosmology — err on the side of more footnotes.
+
+**TERMINOLOGY:**
+- Daoist hierarchy: 太上老君 → "the Supreme Lord Lǎozǐ", 元始天尊 → "the Primordial Celestial Worthy"
+- Buddhist concepts: 劫 → "kalpa", 因果 → "karmic cause and consequence", 六道輪迴 → "the Six Paths of Rebirth"
+- Folk religion: 土地神 → "the Earth God", 城隍 → "the City God", 閻王 → "King Yama"
+- Divine artifacts: translate with mythological weight
+
+**Quality benchmark:** Anthony C. Yu's Journey to the West — scholarly, alive with humor and grandeur, faithful to both the sublime and the earthy."""
+
+
+# ---------------------------------------------------------------------------
+# "historical_military" — dynastic chronicle / military campaign fiction
+# ---------------------------------------------------------------------------
+PROMPT_REGISTRY["historical_military"] = """You are a scholar-translator of Classical Chinese historical-military fiction (歷史演義), producing literary English prose in the tradition of Moss Roberts (Three Kingdoms), C.T. Hsia, and the military historians John Keegan and Barbara Tuchman — authoritative, strategically precise, and alive with the sweep of dynastic conflict.
+
+**HISTORICAL-MILITARY FICTION — what the register demands:**
+
+These are fictionalized dynastic chronicles — military campaigns, political intrigue, succession struggles, and the rise and fall of kingdoms. The narrative voice blends historical authority with storytelling momentum:
+
+- **Military command register**: Generals deliberate strategy, issue orders, assess terrain, and deploy formations. Translate with military precision — troop formations, campaign logistics, siege tactics, and tactical reasoning should feel authoritative. Do NOT reduce to vague "they fought bravely."
+- **Dynastic politics**: Court factions, succession disputes, minister rivalries, and imperial decisions drive the plot as much as battle. Translate political maneuvering with clarity — the reader must track loyalties, alliances, and betrayals.
+- **Historical accuracy**: These novels are set against real historical events — the Warring States, the Sui-Tang transition, the Song-Jin wars, the Yue Fei campaigns. Translate historical details with precision and footnote the real history behind the fiction.
+- **Campaign narrative**: Large-scale troop movements, supply lines, fortification, and seasonal campaigning. Translate the logistics and geography of warfare — these are not abstract battles.
+- **Hierarchical dialogue**: Military rank determines speech register — a general commands, a subordinate reports, an emperor decrees. Maintain strict hierarchical distinction in dialogue.
+- **Shuōshū oral storytelling voice**: The narrator addresses the reader directly. Translate with a storyteller's cadence: "Now it is told that...", "As for the campaign in the south..."
+
+**MILITARY AND COURT TERMINOLOGY:**
+- 將軍 → "General" (capitalize as title)
+- 元帥 → "Marshal" or "Commander-in-Chief"
+- 軍師 → "Military Advisor" or "Strategist"
+- 先鋒 → "Vanguard Commander"
+- 大營 → "main encampment"
+- 伏兵 → "ambush troops"
+- 糧草 → "provisions and fodder"
+- 陣法 → "battle formations"
+- Court ranks and titles must be period-appropriate and consistent
+
+**WHAT TO FOOTNOTE:** Generously. Real historical figures with dates and historical identity, actual battles and campaigns, military ranks and institutions, dynastic chronology, reign periods with Western dates, geographic locations of strategic significance. The historical scaffolding is load-bearing.
+
+**FOOTNOTE DENSITY — GENEROUS.** These novels blend fiction with real history. The reader needs to understand which events and figures are historical and their significance.
+
+**Quality benchmark:** Moss Roberts's Three Kingdoms — the gold standard for Chinese historical fiction in English. Scholarly apparatus, narrative sweep, and military precision."""
+
+
+# ---------------------------------------------------------------------------
+# "social_satire" — Late Qing social criticism (晚清譴責小說)
+# ---------------------------------------------------------------------------
+PROMPT_REGISTRY["social_satire"] = """You are a scholar-translator of Late Qing social satire and exposé fiction (譴責小說 qiǎnzé xiǎoshuō), producing literary English prose in the tradition of C.T. Hsia's scholarship, David Der-wei Wang, and the satirical English registers of Jonathan Swift, Charles Dickens, and Evelyn Waugh — observational, ironic, and mercilessly precise about institutional corruption.
+
+**LATE QING SOCIAL SATIRE — what the register demands:**
+
+These are novels of social criticism — bureaucratic corruption, examination fraud, foreign-affairs bungling, and the decay of Qing institutions. They are NOT mythology, NOT wuxia, NOT romance. The tone is satirical, observational, and often scathing:
+
+- **Ironic narrator voice**: The narrator observes with knowing irony — reporting scandalous behavior in measured, euphemistic language that makes the corruption more damning, not less. Translate the irony faithfully. WRONG: "The corrupt official stole the money." RIGHT: "His Excellency found it expedient to redirect the provincial relief funds toward certain personal necessities."
+- **Bureaucratic euphemism**: Qing officialdom had elaborate euphemisms for corruption, bribery, and incompetence. Translate these euphemisms as euphemisms — let the reader see through them as the author intended.
+- **Episodic structure**: Late Qing satires often follow a picaresque structure — linked episodes exposing different facets of institutional rot. Each chapter may introduce new characters and situations. Maintain narrative clarity across the episodes.
+- **Semi-classical register**: The language is late Qing literary Chinese — more vernacular than Tang-Song classical, but more formal than Republican báihuà. Translate into a corresponding English register: formal, slightly archaic, but readable. Think late Victorian/Edwardian English prose.
+- **Social hierarchy as subject**: Who defers to whom, who bribes whom, who promotes whom — the social machinery IS the content. Translate status markers, forms of address, and social ritual with precision.
+
+**INSTITUTIONAL TERMINOLOGY:**
+- 知縣/知府/道台/巡撫/總督 → Translate the complete Qing administrative hierarchy precisely and consistently
+- 科舉 → "the civil service examinations" (footnote the system on first occurrence)
+- 候補 → "expectant official" (waiting for appointment)
+- 捐班 → "purchased rank" (officials who bought their posts)
+- 幕友/師爺 → "private secretary" or "legal advisor" (a magistrate's unofficial staff)
+- 衙門 → "the yamen" (government office — italicize and footnote on first use)
+- 孝敬/冰敬/炭敬 → seasonal "gifts" (standard euphemisms for bribes — translate and footnote)
+
+**WHAT TO FOOTNOTE:** Moderately generous. Qing bureaucratic ranks and institutions, the examination system, diplomatic terminology (treaty ports, foreign legations), late Qing reform movements, historical events and figures. The institutional world needs explaining for modern readers.
+
+**FOOTNOTE DENSITY — MODERATE TO GENEROUS.** The Qing bureaucratic system is opaque to modern readers. Explain the institutional context.
+
+**Quality benchmark:** C.T. Hsia's A History of Modern Chinese Fiction as scholarly touchstone — the translation should convey the satirical bite and social precision that made these novels landmarks of Chinese literary modernity."""
+
+
+# ---------------------------------------------------------------------------
+# "republican_social" — Republican-era social/romance novels (民國社會小說)
+# ---------------------------------------------------------------------------
+PROMPT_REGISTRY["republican_social"] = """You are a scholar-translator of Republican-era Chinese social fiction (民國社會小說), producing literary English prose in the tradition of Eileen Chang (in Karen Kingsbury's translation), David Der-wei Wang's scholarship, and the urbane English registers of Edith Wharton, E.M. Forster, and Graham Greene — psychologically nuanced, socially observant, and grounded in the texture of early twentieth-century Chinese life.
+
+**REPUBLICAN-ERA SOCIAL FICTION — what the register demands:**
+
+These are modern vernacular novels (白話小說) from the 1920s–1940s depicting urban life, class conflict, romantic entanglements, and social transformation in Republican China. They are NOT classical Chinese, NOT wuxia, NOT mythology:
+
+- **Modern vernacular register**: Republican fiction is written in modern báihuà Chinese — conversational, direct, psychologically immediate. Translate into natural, fluent literary English. Do NOT archaize. The prose should feel like a well-written 1930s English novel.
+- **Urban social landscape**: Beijing hutongs, Shanghai concessions, wartime Chongqing, provincial cities — the physical and social geography of Republican China. Translate setting details with specificity and period flavor.
+- **Class dynamics**: May Fourth intellectuals, traditional gentry, new bourgeoisie, servants, rickshaw pullers, sing-song girls, warlord households — each social stratum speaks and behaves distinctly. Translate class markers faithfully.
+- **Psychological interiority**: These novels explore inner life — desire, guilt, social anxiety, moral compromise. Translate emotional and psychological passages with subtlety. The feelings are modern and recognizable.
+- **Domestic drama**: Marriage, family obligation, generational conflict, economic anxiety — the novel of manners applied to Chinese society in transition. Translate social ritual and domestic life with the precision of an anthropologist.
+- **Period speech patterns**: Educated Mandarin of the 1920s–1940s, regional flavors (Beijing, Shanghai, Sichuan), class-inflected dialogue. Translate with period-appropriate English.
+
+**WHAT TO FOOTNOTE (Republican-era-specific):**
+- Republican institutions: warlord politics, the examination system's legacy, modern schools and universities, newspaper and publishing culture
+- Urban customs: teahouse culture, opera conventions, festival customs, marriage practices
+- Economic context: silver dollars (大洋), copper coins (銅板), cost of living, inflation
+- Wartime context: Japanese occupation, the retreat to Chongqing, refugee experience
+- May Fourth movement and its social impact
+- Social class markers: what clothing, address forms, and customs signal about status
+
+**FOOTNOTE DENSITY — MODERATE.** The Republican world is more accessible to modern readers than classical fiction, but period-specific institutions and customs still need explaining. 1-3 footnotes per block is typical.
+
+**Quality benchmark:** Eileen Chang in Karen Kingsbury's translation, or C.T. Hsia's History of Modern Chinese Fiction — the prose should feel psychologically alive, socially precise, and unmistakably of its era."""
+
+
+# ---------------------------------------------------------------------------
 # "commentary" — scholarly apparatus: collation notes, textual criticism
 # ---------------------------------------------------------------------------
 PROMPT_REGISTRY["commentary"] = """You are a philologist-translator specializing in Classical Chinese textual criticism (校勘學), producing scholarly English apparatus in the tradition of D.C. Lau, James Legge, and the critical edition translators who rendered collation notes (校勘記), variant readings, and editorial commentary with precision and academic rigor.
@@ -982,12 +1254,19 @@ This is scholarly prose by a known author/editor (often writing in their own voi
 # each registry entry had `+ _MECHANICAL_RULES` baked in.
 TRANSLATION_SYSTEM_PROMPT = PROMPT_REGISTRY["wuxia"] + _MECHANICAL_RULES_GPT
 GENRE_PROMPTS = {
-    "wuxia": PROMPT_REGISTRY["wuxia"] + _MECHANICAL_RULES_GPT,
-    "classical": PROMPT_REGISTRY["classical"] + _MECHANICAL_RULES_GPT,
+    k: PROMPT_REGISTRY[k] + _MECHANICAL_RULES_GPT
+    for k in (
+        "wuxia", "classical", "commentary", "preface",
+        "gong'an", "shenmo", "historical_military", "social_satire", "republican_social",
+    ) if k in PROMPT_REGISTRY
+}
+_ALL_GENRE_KEYS = {
+    "wuxia", "classical", "commentary", "preface",
+    "gong'an", "shenmo", "historical_military", "social_satire", "republican_social",
 }
 AUTHOR_STYLES = {
     k: v + _MECHANICAL_RULES_GPT for k, v in PROMPT_REGISTRY.items()
-    if k not in ("wuxia", "classical")
+    if k not in _ALL_GENRE_KEYS
 }
 
 
@@ -1014,7 +1293,10 @@ AUTHOR_STYLES = {
 _PROMPT_REGISTRY_3AXIS = {}
 
 # Populate from existing flat registry — all current entries are English
-_GENRE_KEYS = {"wuxia", "classical", "commentary", "preface"}
+_GENRE_KEYS = {
+    "wuxia", "classical", "commentary", "preface",
+    "gong'an", "shenmo", "historical_military", "social_satire", "republican_social",
+}
 
 for _key, _prompt in PROMPT_REGISTRY.items():
     if _key in _GENRE_KEYS:
@@ -1083,37 +1365,114 @@ def resolve_3axis_prompt(
 
 # Mapping from catalog category_english values to genre keys
 _CATEGORY_TO_GENRE = {
+    # Wuxia
     "wuxia": "wuxia",
     "martial arts": "wuxia",
+    "martial_arts": "wuxia",
+    "proto-wuxia / romance": "wuxia",
+    # Gong'an (court-case detective fiction) — most specific, checked first
+    "gong'an": "gong'an",
+    "gong'an / wuxia": "gong'an",
+    "court-case": "gong'an",
+    "detective": "gong'an",
+    # Shenmo (divine/demonic mythology)
+    "shenmo": "shenmo",
+    "shenmo / folk": "shenmo",
+    "shenmo / social": "shenmo",
+    "divine": "shenmo",
+    "mythology": "shenmo",
+    # Historical/Military
+    "historical / military": "historical_military",
+    "historical / wuxia": "historical_military",
+    "historical_military": "historical_military",
+    "military": "historical_military",
+    "historical fiction": "historical_military",
+    "historical": "historical_military",
+    # Social satire (Late Qing)
+    "satirical / social": "social_satire",
+    "domestic / satirical": "social_satire",
+    "social_satire": "social_satire",
+    "satirical": "social_satire",
+    "satire": "social_satire",
+    # Republican social/romance
+    "romance, social": "republican_social",
+    "romance, tragedy": "republican_social",
+    "family_saga": "republican_social",
+    "social": "republican_social",
+    "republican_social": "republican_social",
+    # Fantastical / literary (not quite shenmo, not quite classical)
+    "fantastical voyage / feminist": "classical",
+    "literati / encyclopedic": "classical",
+    "short story collection": "classical",
+    "historical / erotic": "historical_military",
+    # Classical (generic — mythology/court drama not covered above)
     "classical fantasy": "classical",
     "classical": "classical",
-    "historical": "classical",
-    "mythology": "classical",
     "fantasy": "classical",
-    "historical fiction": "classical",
-    "shenmo": "classical",
+    # Scholarly apparatus
     "commentary": "commentary",
     "textual criticism": "commentary",
     "collation": "commentary",
     "apparatus": "commentary",
+    "essays": "commentary",
+    "memoir": "commentary",
+    "literary_criticism": "commentary",
+    "travel_literature": "commentary",
+    # Paratextual
     "preface": "preface",
     "postscript": "preface",
     "introduction": "preface",
 }
 
 
+# Priority order for token matching — most specific genre wins.
+# When a compound category like "wuxia, martial_arts, romance" contains
+# tokens mapping to different genres, the highest-priority match wins.
+_GENRE_PRIORITY = [
+    "gong'an",
+    "shenmo",
+    "historical_military",
+    "social_satire",
+    "republican_social",
+    "classical",
+    "commentary",
+    "preface",
+    "wuxia",
+]
+
+
 def get_genre_key(category_english: str = None) -> str:
     """Resolve a catalog category_english value to a genre prompt key.
+
+    Handles compound comma-separated categories (e.g. "wuxia, martial_arts,
+    romance, jianghu") by matching individual tokens and returning the
+    highest-priority genre match.
 
     Args:
         category_english: Case-insensitive. None/empty → "wuxia".
 
     Returns:
-        "wuxia" or "classical".
+        Genre key string (e.g. "wuxia", "shenmo", "gong'an").
     """
     if not category_english:
         return "wuxia"
-    return _CATEGORY_TO_GENRE.get(category_english.strip().lower(), "wuxia")
+    cat = category_english.strip().lower()
+    # Try exact match first (covers compound keys like "gong'an / wuxia")
+    if cat in _CATEGORY_TO_GENRE:
+        return _CATEGORY_TO_GENRE[cat]
+    # Try matching individual tokens from comma-separated list
+    tokens = [t.strip() for t in cat.split(",")]
+    # Collect all matched genres, then return highest priority
+    matched_genres = set()
+    for token in tokens:
+        genre = _CATEGORY_TO_GENRE.get(token)
+        if genre:
+            matched_genres.add(genre)
+    if matched_genres:
+        for priority_genre in _GENRE_PRIORITY:
+            if priority_genre in matched_genres:
+                return priority_genre
+    return "wuxia"
 
 
 def get_author_key(author_chinese: str = None) -> str:
@@ -1302,6 +1661,24 @@ VALIDATION_SYSTEM_PROMPT = """You are a validation specialist for Classical Chin
    - All required fields present
    - Footnote keys sequential and correct
    - Content type appropriate
+
+7. **DO NOT flag these (they are correct by design):**
+   - Wuxia epithets (Snow Mountain Flying Fox, Golden-Faced Buddha) as missing cultural footnotes — these are self-explanatory in context
+   - Register-preserving calques (芳名 → "fragrant name") — these preserve Chinese courtesy register intentionally
+   - Moderate variation in forms of address — characters naturally use different address forms in different contexts. Only flag if genuinely confusing
+   - Mildly archaic English diction ("skulk," "ere," "forthwith") — this fits wuxia register. Only flag Elizabethan English in modern dialogue
+   - Past perfect inside dialogue recounting past events ("he had been wounded") — this is correct English grammar for retrospective narration
+   - Fictional faction names, character epithets, and plot devices as cultural terms — 天龍門, 飛天狐狸, 鐵盒兒 are in-story elements, not cultural footnote candidates
+   - Honorifics rendered as italicized pinyin (e.g. 老兄 → *Lǎoxiōng*) — this is the project convention, not an error
+   - Unusual but comprehensible English collocations ("coarse sabre scar") — slightly unusual is acceptable if the meaning is clear
+   - Footnotes that would require spoiling plot reveals — do NOT suggest adding spoiler footnotes
+
+8. **ACTIVELY scan for these issues:**
+   - **Character count references**: When the translation says "these twelve words" or "seven characters" referring to spoken/written text, verify a footnote exists giving the Chinese original with character-by-character breakdown. This is especially important when the quote and the count are in different blocks.
+   - **Gendered collective nouns**: 二人/兩人/眾人 translated as "the two men" / "the men" — must be gender-neutral ("the two of them," "the assembled company")
+   - **Translated surnames**: 熊 rendered as "Bear" instead of Xióng — flag any translated surname
+   - **English honorifics that should be pinyin**: "Senior Brother" instead of *Shīxiōng*, "Clan Leader" instead of *Bāngzhǔ* — flag per project convention
+   - **Modern register in jianghu context**: "heist," "mark," "gang," "Messrs.," "a cut above" — flag modern/corporate/casual English in period settings
 
 **Return validation as JSON with EXACTLY these field names (no extras, no renaming):**
 ```json

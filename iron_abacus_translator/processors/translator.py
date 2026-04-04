@@ -42,6 +42,7 @@ class FootnoteDetails:
     footnote_ideogram: str
     footnote_pinyin: str
     footnote_explanation: str
+    wiki_title: Optional[str] = None  # e.g. "Censorate", "Kangxi_Emperor"
 
 
 @dataclass
@@ -520,9 +521,15 @@ class TranslationService:
             # Parse footnotes
             footnotes = []
             for fn in data["translated_annotated_content"]["content_footnotes"]:
+                details_raw = fn["footnote_details"]
                 footnote = ContentFootnote(
                     footnote_key=fn["footnote_key"],
-                    footnote_details=FootnoteDetails(**fn["footnote_details"])
+                    footnote_details=FootnoteDetails(
+                        footnote_ideogram=details_raw["footnote_ideogram"],
+                        footnote_pinyin=details_raw["footnote_pinyin"],
+                        footnote_explanation=details_raw["footnote_explanation"],
+                        wiki_title=details_raw.get("wiki_title"),
+                    )
                 )
                 footnotes.append(footnote)
 
@@ -596,7 +603,8 @@ class TranslationService:
                         "footnote_details": {
                             "footnote_ideogram": fn.footnote_details.footnote_ideogram,
                             "footnote_pinyin": fn.footnote_details.footnote_pinyin,
-                            "footnote_explanation": fn.footnote_details.footnote_explanation
+                            "footnote_explanation": fn.footnote_details.footnote_explanation,
+                            **({"wiki_title": fn.footnote_details.wiki_title} if fn.footnote_details.wiki_title else {}),
                         }
                     }
                     for fn in response.translated_annotated_content.content_footnotes
