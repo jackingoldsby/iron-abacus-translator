@@ -239,7 +239,7 @@ def _build_system_prompt(genre_brief: str, suppress_ideograms: Set[str]) -> str:
 
 ## Output Rules
 - Each finding targets a SINGLE block (identified by block_id).
-- Provide the COMPLETE replacement: `replacement_translated_content` + `replacement_footnotes`.
+- Provide the COMPLETE replacement: `replacement_translated_content` + `replacement_footnotes`. The replacement MUST contain every sentence from the original — you are making surgical fixes, not rewriting or summarizing. If the original block has 8 sentences, your replacement must have 8 sentences. Dropping content is a critical failure.
 - Footnote markers [N] go immediately after the footnoted term, outside quotes.
 - Footnote keys are 1-indexed per block.
 - If a block has existing footnotes that are correct, include them unchanged in `replacement_footnotes`.
@@ -777,7 +777,17 @@ class ConsistencyReviewer:
                 bid = block.get("id", block.get("block_id", ""))
                 finding = replacements.get((ch_num, bid))
                 if finding:
-                    block["translated_content"] = finding["replacement_translated_content"]
+                    original = block.get("translated_content", "")
+                    replacement = finding["replacement_translated_content"]
+                    # Guard: reject replacements that truncate content
+                    if original and len(replacement) < len(original) * 0.8:
+                        logger.warning(
+                            f"  {bid}: review replacement rejected — output "
+                            f"({len(replacement)} chars) is <80% of original "
+                            f"({len(original)} chars), likely truncated"
+                        )
+                        continue
+                    block["translated_content"] = replacement
                     if finding.get("replacement_footnotes") is not None:
                         block["footnotes"] = finding["replacement_footnotes"]
                     applied += 1

@@ -31,32 +31,45 @@ from config.defaults import DEFAULT_CSS_PATH, DEFAULT_CATALOG_DB
 logger = logging.getLogger(__name__)
 
 _PREFACE_PARAGRAPHS = [
-    "This translation was produced using an automated workflow developed by"
-    " Iron Abacus.",
-    "The motivation for its development was personal. Wuxia, while culturally"
-    " significant across China, Taiwan, and the broader Chinese-speaking"
-    " world, is a specialized interest in the non-Chinese-speaking"
-    " community \u2014 particularly in the case of novels, versus cinema and"
-    " videogames, which are more accessible. Where translations existed,"
-    " they were frequently abridged.",
-    "Fan translators have been doing this work by hand, for love of the"
-    " genre, for decades. However, lately, for better or worse, the online"
-    " translation community\u2019s energy has largely gone toward xianxia"
-    " and web novels.",
-    "My interest has largely been in reading new school wuxia novels \u2014"
-    " the historically grounded, literarily ambitious works of writers like"
-    " {author} \u2014 that are unlikely to receive commercial or fan"
-    " translation in the foreseeable future. Hence, over some months, I"
-    " attempted to build an application that handles the full process:"
-    " translation, cultural annotation, and formatting for ebook, as a"
-    " single workflow.",
-    "AI is a blunt instrument. It handles prose competently and cultural"
-    " context tolerably; it struggles with register, poetry, and the subtler"
-    " literary qualities that make these novels worth translating in the"
-    " first place. Errors exist. Treat these as a working text, not a"
-    " finished one.",
-    "That said, I hope the reader finds some enjoyment in it despite its"
-    " flaws.",
+    "The Three Heroes and Five Gallants (\u4e09\u4fe0\u4e94\u7fa9,"
+    " S\u0101nxi\u00e1 W\u01d4y\u00ec) is one of the most influential"
+    " novels in the Chinese literary tradition \u2014 the book that"
+    " fused courtroom drama with martial-arts chivalry and, in doing"
+    " so, created a genre. Written by the storyteller {author} and"
+    " first published around 1879, its characters \u2014 the"
+    " incorruptible Judge B\u0101o, the Imperial Cat, the Five Mice"
+    " of the jianghu underworld \u2014 remain household names across"
+    " the Chinese-speaking world. It has never before been rendered"
+    " in full into English.",
+
+    "I have had a long interest in classical Chinese fiction, and in"
+    " the g\u014dng\u2019\u00e0n and w\u01d4xi\u00e1 traditions in"
+    " particular. These are works of real literary ambition, but they"
+    " are rarely translated \u2014 the commercial case for a"
+    " 120-chapter nineteenth-century Chinese novel is, to put it"
+    " gently, modest. In full disclosure, this translation was"
+    " assisted by AI. Without that assistance, a work of this scale"
+    " and specificity would simply not be economically realistic to"
+    " produce. I hope the benefit of bringing it to a wider audience"
+    " outweighs the imperfections that inevitably follow from the"
+    " method.",
+
+    "The text has been reviewed, corrected, and annotated with care."
+    " Cultural footnotes aim to give the Western reader the context"
+    " that a Chinese reader would bring to the page \u2014 the"
+    " history, the social conventions, the martial traditions. Chinese"
+    " honorifics are preserved as pinyin (each footnoted on first use)"
+    " because the social architecture of the original \u2014 who"
+    " defers to whom, and how \u2014 is half the story.",
+
+    "This volume comprises the first sixty of 120 chapters. A"
+    " scholarly edition prepared by Y\u00fa P\u00edngb\u00f3, with a"
+    " celebrated preface by H\u00fa Sh\u00ec, has informed the"
+    " annotations where possible.",
+
+    "If the reader finishes this text with a desire to know more"
+    " \u2014 to seek out the original, to explore the tradition, to"
+    " argue with my footnotes \u2014 then it has served its purpose.",
 ]
 
 
@@ -223,9 +236,13 @@ class EpubBuilder:
         preface_page = self._build_preface(author_en, css_item)
         book.add_item(preface_page)
 
+        # Build introduction
+        intro_page = self._build_introduction(css_item)
+        book.add_item(intro_page)
+
         # Build chapters
         chapter_items = []
-        spine = ["nav", title_page, preface_page]
+        spine = ["nav", title_page, preface_page, intro_page]
 
         for ch_idx, chapter in enumerate(chapters):
             ch_num = ch_idx + 1
@@ -245,6 +262,7 @@ class EpubBuilder:
         toc_entries = [
             epub.Link(title_page.file_name, "Title Page", "title"),
             epub.Link(preface_page.file_name, "Translator\u2019s Preface", "preface"),
+            epub.Link(intro_page.file_name, "Introduction", "introduction"),
         ]
         for ch_idx, ch_item in enumerate(chapter_items):
             ch = chapters[ch_idx]
@@ -480,6 +498,114 @@ class EpubBuilder:
         item = epub.EpubHtml(
             title="Translator\u2019s Preface",
             file_name="preface.xhtml",
+            lang="en",
+        )
+        item.set_content(html.encode("utf-8"))
+        item.add_item(css_item)
+        return item
+
+    def _build_introduction(self, css_item: epub.EpubItem) -> epub.EpubHtml:
+        """Build an Introduction page with cultural and historical context."""
+        paras = [
+            # THE AUTHOR
+            "<h3>The Author</h3>",
+            "Sh\u00ed Y\u00f9k\u016bn (\u77f3\u7389\u5d11, c. 1810\u20131871)"
+            " was not a writer in the conventional sense. He was a"
+            " <em>shu\u014dsh\u016b</em> artist \u2014 a professional oral"
+            " storyteller who performed in the teahouses and marketplaces of"
+            " Q\u012bng dynasty Beijing. His art form, <em>p\u00edngsh\u016b</em>"
+            " (commentary storytelling), involved a single performer narrating"
+            " extended tales over many sessions, sometimes hundreds of hours,"
+            " using nothing but a folding fan and a wooden block. The audience"
+            " returned night after night, paying per session. The Three Heroes"
+            " and Five Gallants was Sh\u00ed Y\u00f9k\u016bn\u2019s masterwork,"
+            " transcribed from his performances by admirers and first published"
+            " in print around 1879, likely after his death.",
+
+            # THE GENRE
+            "<h3>The G\u014dng\u2019\u00e0n Tradition</h3>",
+            "G\u014dng\u2019\u00e0n (\u516c\u6848, \u201ccourt-case\u201d)"
+            " fiction is one of the oldest narrative genres in China. Its roots"
+            " lie in the Yuan dynasty (13th\u201314th century), when playwrights"
+            " first dramatised the legendary judgments of historical magistrates."
+            " The most famous of these was B\u0101o Zh\u011bng, known to posterity"
+            " as Judge B\u0101o or B\u0101o Q\u012bngti\u0101n (\u201cB\u0101o"
+            " Blue-Sky\u201d) \u2014 a title reflecting his reputation for"
+            " unclouded justice.",
+
+            "Where European detective fiction begins with a mystery and works"
+            " toward a solution, g\u014dng\u2019\u00e0n fiction begins with"
+            " injustice and works toward redress. The magistrate is not a"
+            " private investigator but a representative of cosmic order. His"
+            " courtroom is a stage where heaven\u2019s justice is enacted on"
+            " earth. This gives the genre a moral weight quite unlike the"
+            " puzzle-box tradition of Western detective fiction.",
+
+            # THE REAL BAO ZHENG
+            "<h3>The Historical B\u0101o Zh\u011bng</h3>",
+            "The real B\u0101o Zh\u011bng (999\u20131062) was a civil official"
+            " of the Northern Song dynasty who served as Prefect of K\u0101if\u0113ng,"
+            " the imperial capital. Historical sources describe a man of rigid"
+            " integrity who refused gifts, lived simply, and was unafraid to"
+            " impeach powerful officials. He rose to Vice President of the"
+            " Censorate and was posthumously granted the title of Duke.",
+
+            "The legends far outstrip the history. In popular imagination,"
+            " B\u0101o Zh\u011bng acquired a dark complexion (symbolising"
+            " justice), a crescent-moon birthmark on his forehead, three"
+            " iron guillotines for executing criminals of different rank, and"
+            " the ability to judge cases in the underworld by night. Very"
+            " little of this is historical. But it is the legend, not the"
+            " history, that drives the novel \u2014 and the legend is"
+            " magnificent.",
+
+            # WHAT MAKES THIS NOVEL DISTINCTIVE
+            "<h3>The Novel</h3>",
+            "Sh\u00ed Y\u00f9k\u016bn\u2019s great innovation was to fuse"
+            " the g\u014dng\u2019\u00e0n magistrate tradition with"
+            " w\u01d4xi\u00e1 \u2014 the chivalric martial-arts tradition."
+            " His Judge B\u0101o does not act alone. He is supported by a"
+            " cast of jianghu outlaws, wandering swordsmen, and reformed"
+            " bandits: the \u201cthree heroes\u201d and \u201cfive gallants\u201d"
+            " of the title. The result is a novel of extraordinary range,"
+            " moving between the imperial court, the magistrate\u2019s"
+            " tribunal, the jianghu underworld, and the open road.",
+
+            "The reader will encounter several distinctive features of the"
+            " oral storytelling tradition. The narrator regularly addresses"
+            " the audience directly (\u201cNow it is told that\u2026\u201d,"
+            " \u201cTo know what happened next, listen to the next chapter"
+            "\u201d). Events are recounted with a storyteller\u2019s relish"
+            " for suspense, digression, and dramatic irony. The prose shifts"
+            " register constantly \u2014 from the formal language of the court"
+            " to the rough slang of the jianghu, from classical verse to"
+            " marketplace comedy. This is a novel meant to be heard as much"
+            " as read.",
+        ]
+
+        body_html = "\n".join(
+            f"    {p}" if p.startswith("<h") else f"    <p>{p}</p>"
+            for p in paras
+        )
+
+        html = f"""<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head>
+  <title>Introduction</title>
+  <link rel="stylesheet" type="text/css" href="styles/kindle.css"/>
+</head>
+<body>
+  <div class="translators-preface">
+    <h2>Introduction</h2>
+{body_html}
+  </div>
+</body>
+</html>"""
+
+        item = epub.EpubHtml(
+            title="Introduction",
+            file_name="introduction.xhtml",
             lang="en",
         )
         item.set_content(html.encode("utf-8"))

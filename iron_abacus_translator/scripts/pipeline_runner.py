@@ -145,6 +145,7 @@ class RunContext:
     dag: DAGDefinition
     target_lang: str = "en"
     kindle_defer: bool = False  # True during series mode — batch send at end
+    skip_kindle: bool = True   # Default off — use --kindle flag to enable
 
     def emit(self, stage: str, event_type: str, status: str = "running",
              chapter_num: int = None, block_id: str = None,
@@ -319,7 +320,8 @@ class PipelineRunner:
             from_node: Optional[str] = None, resume: bool = False,
             chapter_range: Optional[tuple] = None,
             block_range: Optional[tuple] = None,
-            kindle_defer: bool = False) -> Dict[str, Any]:
+            kindle_defer: bool = False,
+            skip_kindle: bool = True) -> Dict[str, Any]:
         """
         Execute the pipeline.
 
@@ -332,6 +334,7 @@ class PipelineRunner:
                            end=0 means no upper limit.
             block_range: (start, end) 1-based inclusive block range per chapter.
                          end=0 means no upper limit.
+            skip_kindle: Skip Kindle delivery (default True; pass --kindle to enable)
 
         Returns:
             Pipeline result dict
@@ -369,6 +372,7 @@ class PipelineRunner:
             dag=self.dag,
             target_lang=self.config.target_lang,
             kindle_defer=kindle_defer,
+            skip_kindle=skip_kindle,
         )
 
         # Load source data
@@ -1904,8 +1908,30 @@ class EpubBuildProcessor(StageProcessor):
 
     def process(self, data, filename, ctx):
         from builders.epub_builder import EpubBuilder
+        from pathlib import Path
 
-        builder = EpubBuilder()
+        # Auto-detect cover from portfolio assignment
+        cover_image = None
+        try:
+            import duckdb
+            db_path = Path(self.config.catalog_path).parent / "artwork_portfolio.duckdb"
+            if db_path.exists():
+                db = duckdb.connect(str(db_path), read_only=True)
+                row = db.execute(
+                    "SELECT ai.cached_path FROM artwork_assignments aa "
+                    "JOIN artwork_images ai ON aa.image_id = ai.image_id "
+                    "WHERE aa.work_number = ?", [ctx.work_id]
+                ).fetchone()
+                db.close()
+                if row and row[0]:
+                    cover_path = Path(row[0])
+                    if cover_path.exists():
+                        cover_image = cover_path
+                        logger.info(f"  Cover image: {cover_path.name}")
+        except Exception as e:
+            logger.debug(f"  No portfolio cover: {e}")
+
+        builder = EpubBuilder(cover_image=cover_image)
         output_dir = self.config.output_dir / ctx.work_id
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = builder._english_epub_path(data, output_dir)
@@ -1932,6 +1958,11 @@ class SendKindleProcessor(StageProcessor):
         # In series mode, Kindle delivery is deferred to batch send at end
         if getattr(ctx, 'kindle_defer', False):
             logger.info("  Kindle delivery deferred (series mode — will batch send at end)")
+            return data
+
+        # Skip unless --kindle flag was passed
+        if getattr(ctx, 'skip_kindle', True):
+            logger.info("  Kindle delivery skipped (use --kindle to enable)")
             return data
 
         sender = KindleSender()

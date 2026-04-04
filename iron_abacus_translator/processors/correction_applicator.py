@@ -127,6 +127,17 @@ class CorrectionApplicator:
                         r'<sup>(\d+)</sup>', r'[\1]', corrected_text
                     )
 
+                    # Guard: reject corrections that truncate content
+                    original_text = block.get("translated_content", "")
+                    if len(corrected_text) < len(original_text) * 0.8:
+                        logger.warning(
+                            f"  {block_id}: correction rejected — output "
+                            f"({len(corrected_text)} chars) is <80% of original "
+                            f"({len(original_text)} chars), likely truncated"
+                        )
+                        unchanged_count += 1
+                        continue
+
                     # Apply corrected text
                     block["translated_content"] = corrected_text
 
@@ -586,6 +597,15 @@ Return ONLY valid JSON:
                 try:
                     new_text = fut.result()
                     if new_text and new_text != block.get("translated_content", ""):
+                        orig_text = block.get("translated_content", "")
+                        # Guard: reject if LLM truncated content
+                        if len(new_text) < len(orig_text) * 0.8:
+                            logger.warning(
+                                f"  Marker verify {block.get('id')}: rejected — "
+                                f"output ({len(new_text)}) is <80% of original "
+                                f"({len(orig_text)}), likely truncated"
+                            )
+                            continue
                         # Verify no duplicate markers were introduced
                         new_marker_nums = re.findall(r'\[(\d+)\]', new_text)
                         if len(new_marker_nums) == len(set(new_marker_nums)):
@@ -611,6 +631,7 @@ Rules:
 - Do NOT add or remove markers — only MOVE misplaced ones
 - Do NOT change any words — only move the [N] markers
 - If a footnote's ideogram is 大師 (Dàshī) and the marker is on *Zhàizhǔ*, move it to *Dàshī*
+- CRITICAL: return the COMPLETE text with ALL sentences intact. Do NOT truncate, omit, or summarize any part. Every sentence from the input must appear in the output.
 
 Return ONLY the corrected text, nothing else."""
 
