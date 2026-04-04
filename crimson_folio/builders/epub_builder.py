@@ -282,10 +282,9 @@ class EpubBuilder:
 
         # Build title page
         title_page = self._build_title_page(
-            title_en, title_zh, author_en, author_zh,
+            title_en, title_zh, author_en, author_zh, css_item=css_item,
             series_name=series_name, series_order=series_order, series_total=series_total,
         )
-        title_page.add_item(css_item)
         book.add_item(title_page)
 
         # Build translator's preface
@@ -469,6 +468,7 @@ class EpubBuilder:
         title_zh: str,
         author_en: str,
         author_zh: str,
+        css_item: epub.EpubItem = None,
         series_name: str = "",
         series_order: Optional[int] = None,
         series_total: int = 0,
@@ -515,6 +515,7 @@ class EpubBuilder:
             lang="en",
         )
         item.set_content(html.encode("utf-8"))
+        item.add_item(css_item)
         return item
 
     def _build_preface(
