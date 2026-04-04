@@ -105,6 +105,9 @@ class CoverComposer:
         self._draw_title(draw, title_en, title_zh, subtitle)
         self._draw_author(draw, author_en, author_zh, translator)
 
+        # Add publisher logo at bottom center
+        cover = self._add_logo(cover)
+
         # Save
         output_path.parent.mkdir(parents=True, exist_ok=True)
         cover.save(str(output_path), "JPEG", quality=92)
@@ -169,6 +172,61 @@ class CoverComposer:
         image = image.convert("RGBA")
         image = Image.alpha_composite(image, overlay)
         return image.convert("RGB")
+
+    def _add_logo(self, cover: Image.Image) -> Image.Image:
+        """Add publisher logo at bottom center with white circular backing."""
+        logo_path = Path(__file__).parent.parent / "assets" / "iron_abacus_logo.png"
+        if not logo_path.exists():
+            return cover
+
+        with Image.open(logo_path) as logo:
+            logo = logo.convert("RGBA")
+            # Scale logo larger and center
+            logo_w = int(self.width * 0.26)  # ~416px at 1600w
+            ratio = logo_w / logo.width
+            logo_h = int(logo.height * ratio)
+            logo = logo.resize((logo_w, logo_h), Image.LANCZOS)
+
+            # Position at bottom center
+            x = (self.width - logo_w) // 2
+            y = int(self.height * 0.96) - logo_h
+
+            # White backing: omega shape — circle on top, rectangle below, overlapping
+            # Circle is symmetric around the seal circle in the logo
+            # Exact seal circle center (widest horizontal span): x=0.4996, y=0.4466
+            # Circle radius from widest span: 0.3490 of image height
+            seal_cx = x + int(logo_w * 0.4996)
+            seal_cy = y + int(logo_h * 0.4466)
+            seal_r = int(logo_h * 0.3490) + 10  # symmetric white band, tighter
+
+            # Rectangle below, narrower, overlapping bottom of circle
+            rect_cy = y + int(logo_h * 0.88)
+            rect_h = int(logo_h * 0.16)
+            rect_w = int(logo_w * 0.38)  # narrower
+            rect_top = rect_cy - rect_h // 2
+
+            backing = Image.new("RGBA", cover.size, (0, 0, 0, 0))
+            backing_draw = ImageDraw.Draw(backing)
+            # Both shapes drawn — they merge where they overlap
+            backing_draw.ellipse(
+                [seal_cx - seal_r, seal_cy - seal_r,
+                 seal_cx + seal_r, seal_cy + seal_r],
+                fill=(255, 255, 255, 215)
+            )
+            backing_draw.rounded_rectangle(
+                [seal_cx - rect_w // 2, rect_top,
+                 seal_cx + rect_w // 2, rect_top + rect_h],
+                radius=8,
+                fill=(255, 255, 255, 215)
+            )
+
+            # Composite: backing then logo
+            cover = cover.convert("RGBA")
+            cover = Image.alpha_composite(cover, backing)
+            cover.paste(logo, (x, y), logo)
+            cover = cover.convert("RGB")
+
+        return cover
 
     def _add_border(self, image: Image.Image) -> Image.Image:
         """Add a subtle decorative border frame."""
@@ -249,7 +307,7 @@ class CoverComposer:
         if not author_en and not author_zh and not translator:
             return
 
-        y = int(self.height * 0.85)
+        y = int(self.height * 0.68)
 
         if author_en:
             en_size = self.width // 22  # ~73px at 1600w

@@ -1931,7 +1931,15 @@ class EpubBuildProcessor(StageProcessor):
         except Exception as e:
             logger.debug(f"  No portfolio cover: {e}")
 
-        builder = EpubBuilder(cover_image=cover_image)
+        # Build cover subtitle from metadata
+        cover_subtitle = None
+        volume = data.get("meta", {}).get("volume", "")
+        if volume:
+            vol_word = {1:"One",2:"Two",3:"Three",4:"Four",5:"Five"}.get(
+                int(volume) if str(volume).isdigit() else 0, str(volume))
+            cover_subtitle = f"A Classic Chinese Novel in a New Translation\nVolume {vol_word}"
+
+        builder = EpubBuilder(cover_image=cover_image, cover_subtitle=cover_subtitle)
         output_dir = self.config.output_dir / ctx.work_id
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = builder._english_epub_path(data, output_dir)

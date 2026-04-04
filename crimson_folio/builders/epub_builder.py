@@ -90,9 +90,11 @@ class EpubBuilder:
         css_path: Optional[Path] = None,
         catalog_db: Optional[Path] = None,
         cover_image: Optional[Path] = None,
+        cover_subtitle: Optional[str] = None,
     ):
         self.css_path = css_path or DEFAULT_CSS_PATH
         self.catalog_db = catalog_db or DEFAULT_CATALOG_DB
+        self.cover_subtitle = cover_subtitle
         self.cover_image = cover_image
         self._catalog_cache: Dict[str, Dict[str, Any]] = {}
 
@@ -210,20 +212,63 @@ class EpubBuilder:
                 from covers.composer import CoverComposer
                 composer = CoverComposer(width=1600, height=2560)
                 composed_path = self.cover_image.parent / f"{self.cover_image.stem}_composed.jpg"
+
+                # Build subtitle
+                if self.cover_subtitle:
+                    cover_sub = self.cover_subtitle
+                else:
+                    subtitle_parts = ["A Classic Chinese Novel in a New Translation"]
+                    volume = meta.get("volume", "")
+                    if volume:
+                        vol_num = int(volume) if str(volume).isdigit() else volume
+                        subtitle_parts.append(f"Volume {self._volume_word(vol_num)}")
+                    elif series_total and series_total > 1 and series_order:
+                        subtitle_parts.append(f"Volume {self._volume_word(series_order)}")
+                    cover_sub = "\n".join(subtitle_parts)
+
                 composer.compose(
                     artwork_path=self.cover_image,
                     title_en=title_en,
                     title_zh=title_zh,
+                    subtitle=cover_sub,
                     author_en=author_en,
                     author_zh=author_zh,
                     output_path=composed_path,
                 )
                 cover_data = composed_path.read_bytes()
-                logger.info(f"  Composed cover with title overlay")
+                # Save standalone copy next to EPUB for testing/KDP
+                standalone = output_path.parent / "cover_front.jpg"
+                import shutil
+                shutil.copy2(composed_path, standalone)
+                logger.info(f"  Composed cover → {standalone}")
             except Exception as e:
                 logger.debug(f"  Cover composition failed ({e}), using raw image")
                 cover_data = self.cover_image.read_bytes()
             book.set_cover("cover.jpg", cover_data, create_page=True)
+
+        # Add publisher logo
+        logo_path = Path(__file__).parent.parent / "assets" / "iron_abacus_logo.png"
+        if logo_path.exists():
+            from PIL import Image as PILImage
+            # Resize to reasonable EPUB size (400px wide)
+            with PILImage.open(logo_path) as logo_img:
+                ratio = 400 / logo_img.width
+                logo_resized = logo_img.resize(
+                    (400, int(logo_img.height * ratio)), PILImage.LANCZOS
+                )
+                import io
+                buf = io.BytesIO()
+                logo_resized.save(buf, format="PNG")
+                logo_data = buf.getvalue()
+            logo_item = epub.EpubItem(
+                uid="logo",
+                file_name="images/iron_abacus_logo.png",
+                media_type="image/png",
+                content=logo_data,
+            )
+            book.add_item(logo_item)
+        else:
+            logo_item = None
 
         # Add CSS
         css_content = self._load_css()
@@ -457,6 +502,9 @@ class EpubBuilder:
 {series_line}
     <p class="author">{_escape(author_en)}</p>
 {author_zh_line}
+    <div style="margin-top: 3em; text-align: center;">
+      <img src="images/iron_abacus_logo.png" alt="Iron Abacus" style="width: 150px; height: auto;"/>
+    </div>
   </div>
 </body>
 </html>"""
@@ -514,6 +562,16 @@ class EpubBuilder:
         item.set_content(html.encode("utf-8"))
         item.add_item(css_item)
         return item
+
+    @staticmethod
+    def _volume_word(num) -> str:
+        """Convert volume number to English word: 1→One, 2→Two, etc."""
+        words = {1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five",
+                 6: "Six", 7: "Seven", 8: "Eight", 9: "Nine", 10: "Ten"}
+        try:
+            return words.get(int(num), str(num))
+        except (ValueError, TypeError):
+            return str(num)
 
     def _build_introduction(self, css_item: epub.EpubItem) -> epub.EpubHtml:
         """Build an Introduction page with cultural and historical context."""
