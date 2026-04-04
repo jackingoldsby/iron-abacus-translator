@@ -247,12 +247,12 @@ class EpubBuilder:
             book.set_cover("cover.jpg", cover_data, create_page=True)
 
         # Add publisher logo
-        logo_path = Path(__file__).parent.parent / "assets" / "iron_abacus_core_logo_bw.png"
+        logo_path = Path(__file__).parent.parent / "assets" / "iron_abacus_core_logo_gray.png"
         if logo_path.exists():
             from PIL import Image as PILImage
-            # Resize to reasonable EPUB size (400px wide)
+            # Resize to small EPUB size (200px wide)
             with PILImage.open(logo_path) as logo_img:
-                ratio = 400 / logo_img.width
+                ratio = 200 / logo_img.width
                 logo_resized = logo_img.resize(
                     (400, int(logo_img.height * ratio)), PILImage.LANCZOS
                 )
@@ -503,7 +503,7 @@ class EpubBuilder:
     <p class="author">{_escape(author_en)}</p>
 {author_zh_line}
     <div style="margin-top: 3em; text-align: center;">
-      <img src="images/iron_abacus_logo.png" alt="Iron Abacus" style="width: 150px; height: auto;"/>
+      <img src="images/iron_abacus_logo.png" alt="Iron Abacus" style="width: 80px; height: auto;"/>
     </div>
   </div>
 </body>
