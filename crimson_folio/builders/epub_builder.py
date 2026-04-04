@@ -509,25 +509,26 @@ class EpubBuilder:
         paras = [
             # THE AUTHOR
             "<h3>The Author</h3>",
-            "Sh\u00ed Y\u00f9k\u016bn (\u77f3\u7389\u5d11, c. 1810\u20131871)"
+            "Sh\u00ed Y\u00f9k\u016bn (\u77f3\u7389\u5d11, fl. 19th century)"
             " was not a writer in the conventional sense. He was a"
-            " <em>shu\u014dsh\u016b</em> artist \u2014 a professional oral"
-            " storyteller who performed in the teahouses and marketplaces of"
-            " Q\u012bng dynasty Beijing. His art form, <em>p\u00edngsh\u016b</em>"
-            " (commentary storytelling), involved a single performer narrating"
-            " extended tales over many sessions, sometimes hundreds of hours,"
-            " using nothing but a folding fan and a wooden block. The audience"
-            " returned night after night, paying per session. The Three Heroes"
-            " and Five Gallants was Sh\u00ed Y\u00f9k\u016bn\u2019s masterwork,"
-            " transcribed from his performances by admirers and first published"
-            " in print around 1879, likely after his death.",
+            " <em>p\u00edngsh\u016b</em> performer \u2014 a professional oral"
+            " storyteller who performed in Beijing during the first half of the"
+            " nineteenth century. Little is known of his life; anecdotes recorded"
+            " decades later suggest he worked in the household of a Manchu prince"
+            " before becoming a performer. His art form involved a single"
+            " storyteller narrating extended tales over many sessions, using"
+            " nothing but a folding fan and a wooden block, with the audience"
+            " returning night after night. The Three Heroes and Five Gallants"
+            " was Sh\u00ed Y\u00f9k\u016bn\u2019s masterwork, transcribed from"
+            " his performances and first published in 1879.",
 
             # THE GENRE
             "<h3>The G\u014dng\u2019\u00e0n Tradition</h3>",
             "G\u014dng\u2019\u00e0n (\u516c\u6848, \u201ccourt-case\u201d)"
             " fiction is one of the oldest narrative genres in China. Its roots"
-            " lie in the Yuan dynasty (13th\u201314th century), when playwrights"
-            " first dramatised the legendary judgments of historical magistrates."
+            " lie in the colloquial stories of the Song dynasty, and it"
+            " developed into one of the most popular genres of the Ming and"
+            " Q\u012bng dynasties."
             " The most famous of these was B\u0101o Zh\u011bng, known to posterity"
             " as Judge B\u0101o or B\u0101o Q\u012bngti\u0101n (\u201cB\u0101o"
             " Blue-Sky\u201d) \u2014 a title reflecting his reputation for"
@@ -545,10 +546,11 @@ class EpubBuilder:
             "<h3>The Historical B\u0101o Zh\u011bng</h3>",
             "The real B\u0101o Zh\u011bng (999\u20131062) was a civil official"
             " of the Northern Song dynasty who served as Prefect of K\u0101if\u0113ng,"
-            " the imperial capital. Historical sources describe a man of rigid"
-            " integrity who refused gifts, lived simply, and was unafraid to"
-            " impeach powerful officials. He rose to Vice President of the"
-            " Censorate and was posthumously granted the title of Duke.",
+            " the imperial capital, from 1057 to 1058. During his twenty-five"
+            " years in civil service, he was known for his honesty and"
+            " uprightness \u2014 he impeached powerful officials, including an"
+            " uncle of the Emperor\u2019s favourite concubine, and initiated"
+            " reforms to hear the grievances of common people directly.",
 
             "The legends far outstrip the history. In popular imagination,"
             " B\u0101o Zh\u011bng acquired a dark complexion (symbolising"
