@@ -204,15 +204,26 @@ class EpubBuilder:
         book.set_language("en")
         book.add_author(author_en)
 
-        # Add cover image if available
+        # Add cover image — compose with title overlay if raw artwork
         if self.cover_image and self.cover_image.exists():
-            cover_data = self.cover_image.read_bytes()
-            suffix = self.cover_image.suffix.lower()
-            media_type = {
-                ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-                ".png": "image/png",
-            }.get(suffix, "image/jpeg")
-            book.set_cover(f"cover{suffix}", cover_data)
+            try:
+                from covers.composer import CoverComposer
+                composer = CoverComposer(width=1600, height=2560)
+                composed_path = self.cover_image.parent / f"{self.cover_image.stem}_composed.jpg"
+                composer.compose(
+                    artwork_path=self.cover_image,
+                    title_en=title_en,
+                    title_zh=title_zh,
+                    author_en=author_en,
+                    author_zh=author_zh,
+                    output_path=composed_path,
+                )
+                cover_data = composed_path.read_bytes()
+                logger.info(f"  Composed cover with title overlay")
+            except Exception as e:
+                logger.debug(f"  Cover composition failed ({e}), using raw image")
+                cover_data = self.cover_image.read_bytes()
+            book.set_cover("cover.jpg", cover_data, create_page=True)
 
         # Add CSS
         css_content = self._load_css()
