@@ -258,6 +258,8 @@ _CORRECTION_SYSTEM_TEMPLATE = """You are an exacting translation corrector for C
 
 **IMPORTANT**: You are being called because the classifier detected these issues. They ARE present — find them and fix them. Do not second-guess the classification. If the rules say "long sword" should be "sword" and the text contains "long sword", change it. If the rules say Western units should be pinyin, find every Western unit and convert it.
 
+**FOOTNOTE RULES**: For existing footnotes, you may REMOVE them or MOVE their markers, but NEVER rewrite their explanations. Return existing footnotes with their original ideogram, pinyin, and explanation UNCHANGED. Only create NEW footnote entries for genuinely missing footnotes. If you have nothing to add or remove, return the footnotes exactly as given.
+
 **Output requirements:**
 Return ONLY valid JSON:
 {{

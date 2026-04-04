@@ -141,8 +141,14 @@ def extract_works_section_per_book(book: epub.EpubBook, author_simp: str) -> Lis
             continue
         section, children = item
         work_title = section.title.strip() if section.title else ""
-        if not work_title or is_skip_title(work_title):
+        if not work_title:
             continue
+        # If section title is a skip title (目錄, 目录, etc.), use EPUB dc:title instead
+        if is_skip_title(work_title):
+            titles = book.get_metadata("DC", "title")
+            work_title = titles[0][0].strip() if titles else ""
+            if not work_title:
+                continue
 
         chapter_leaves = []
         for child in children:
@@ -169,6 +175,40 @@ def extract_works_section_per_book(book: epub.EpubBook, author_simp: str) -> Lis
             works.append(detected)
 
     return works
+
+
+def extract_works_flat_chapters(book: epub.EpubBook, author_simp: str) -> List[DetectedWork]:
+    """Extract a single work where each TOC leaf = one chapter (one chapter per file).
+
+    The work title is inferred from EPUB metadata (dc:title).
+    All leaves are treated as chapters of that single work.
+    """
+    author_trad = S2T.convert(author_simp)
+
+    # Get work title from EPUB metadata
+    titles = book.get_metadata("DC", "title")
+    work_title = titles[0][0].strip() if titles else ""
+    if not work_title:
+        work_title = "未知書名"
+
+    leaves = [item for item in book.toc if not isinstance(item, tuple)]
+    # Filter out skip titles (目錄, 版權信息, etc.)
+    chapter_leaves = [l for l in leaves if l.title and not is_skip_title(l.title.strip())]
+
+    chapters = extract_chapters_from_leaves(book, chapter_leaves)
+    if not chapters:
+        return []
+
+    title_trad = S2T.convert(work_title)
+    detected = DetectedWork(
+        title_simplified=work_title,
+        title_traditional=title_trad,
+        author_simplified=author_simp,
+        author_traditional=author_trad,
+        chapters=chapters,
+    )
+    detected.compute_character_count()
+    return [detected]
 
 
 def extract_works_flat_single_doc(book: epub.EpubBook, author_simp: str) -> List[DetectedWork]:

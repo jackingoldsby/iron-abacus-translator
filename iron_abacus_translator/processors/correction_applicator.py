@@ -127,10 +127,14 @@ class CorrectionApplicator:
                         r'<sup>(\d+)</sup>', r'[\1]', corrected_text
                     )
 
-                    # Apply corrections
+                    # Apply corrected text
                     block["translated_content"] = corrected_text
+
+                    # Merge footnotes: preserve original explanations, accept adds/removes only
                     if corrected_footnotes is not None:
-                        block["footnotes"] = corrected_footnotes
+                        original_fns = block.get("footnotes", [])
+                        block["footnotes"] = self._merge_footnotes(original_fns, corrected_footnotes)
+
                     corrected_count += 1
 
                     logger.debug(f"  {block_id}: {', '.join(changes)}")
@@ -149,8 +153,9 @@ class CorrectionApplicator:
             for block in chapter.get("content_blocks", []):
                 block.pop("_correction_tags", None)
 
-        # Relocate misplaced footnotes to correct blocks
-        data = self._relocate_footnotes(data)
+        # TODO: Relocation disabled — scrambles footnote pairings on large works.
+        # Need to investigate why move between blocks corrupts explanations.
+        # data = self._relocate_footnotes(data)
 
         # Dedup footnotes: keep only first occurrence of each ideogram across the work
         data = self._dedup_footnotes(data)
@@ -427,7 +432,6 @@ class CorrectionApplicator:
                      f"(max_workers={self.max_workers})")
 
         to_remove = set()
-        to_trim = {}  # (block_id, key) -> trimmed explanation
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             futures = {}
@@ -442,18 +446,18 @@ class CorrectionApplicator:
                     action = result.get("action", "keep")
                     if action == "remove":
                         to_remove.add((fn_info["block_id"], fn_info["key"]))
-                    elif action == "trim" and result.get("trimmed"):
-                        to_trim[(fn_info["block_id"], fn_info["key"])] = result["trimmed"]
+                    # TRIM disabled — LLM hallucinates new content instead of trimming.
+                    # Only KEEP or REMOVE. Footnote explanations are never modified
+                    # after generation.
                 except Exception as e:
                     logger.debug(f"  Footnote eval failed for {fn_info['block_id']}: {e}")
 
-        if not to_remove and not to_trim:
+        if not to_remove:
             logger.info("  Bad footnote sweep: all footnotes clean")
             return data
 
-        # Apply trims and removals
+        # Apply removals
         removed = 0
-        trimmed = 0
         for chapter in chapters:
             for block in chapter.get("content_blocks", []):
                 bid = block.get("id", "")
@@ -461,14 +465,6 @@ class CorrectionApplicator:
                 if not footnotes:
                     continue
 
-                # Trim first
-                for fn in footnotes:
-                    trim_key = (bid, fn.get("key"))
-                    if trim_key in to_trim:
-                        fn["explanation"] = to_trim[trim_key]
-                        trimmed += 1
-
-                # Then remove
                 surviving = [fn for fn in footnotes if (bid, fn.get("key")) not in to_remove]
                 if len(surviving) != len(footnotes):
                     removed += len(footnotes) - len(surviving)
@@ -489,7 +485,7 @@ class CorrectionApplicator:
                         text = re.sub(r'\[\d+\]', _renum, text)
                     block["translated_content"] = re.sub(r'  +', ' ', text)
 
-        logger.info(f"  Bad footnote sweep: {removed} removed, {trimmed} trimmed")
+        logger.info(f"  Bad footnote sweep: {removed} removed")
         return data
 
     _FOOTNOTE_EVAL_PROMPT = """You are a footnote quality editor. Given a footnote's ideogram and explanation, plus a snippet of the surrounding English text, decide: KEEP, TRIM, or REMOVE.
@@ -500,12 +496,12 @@ class CorrectionApplicator:
 - Explains a self-explanatory epithet (Golden-Faced Buddha, Flying Fox) with no added cultural knowledge
 - Is completely redundant with the surrounding text
 
-**TRIM** if the footnote has valid content mixed with junk. Strip:
+**TRIM** if the footnote has valid content mixed with junk. You must ONLY DELETE phrases from the existing text — never add new content, never rewrite, never paraphrase. Strip:
 - Meta-commentary about translation conventions ("rendered in pinyin," "honorifics are rendered...")
 - Narrative commentary ("illustrates," "underscores the gravity," "signifies narratively")
 - Redundant restatement of what the English already says
 - Filler phrases ("in the context of wuxia fiction," "a common term in Chinese literature")
-Keep only the genuine cultural/historical content. The trimmed version should be concise scholarly annotation.
+The trimmed version must be a SUBSET of the original text — every word in your output must appear in the original. You are deleting junk, not rewriting.
 
 **KEEP** as-is if the footnote:
 - Provides genuine historical context with dates and significance
@@ -745,6 +741,41 @@ Return ONLY the corrected text, nothing else."""
             logger.info(f"  Finalize: {punct_fixed} punctuation fixes, {renumbered} blocks renumbered")
 
         return data
+
+    @staticmethod
+    def _merge_footnotes(originals: list, corrected: list) -> list:
+        """Merge corrector output with original footnotes.
+
+        Rules:
+        - Existing footnotes: keep original ideogram + explanation (corrector can't rewrite)
+        - Removed footnotes: if corrector dropped an ideogram, it stays dropped
+        - New footnotes: if corrector added a new ideogram, accept it
+        - Key numbering: from corrected output (corrector may have renumbered for marker placement)
+        """
+        # Build lookup of original explanations by ideogram
+        orig_by_ideogram = {}
+        for fn in originals:
+            ig = fn.get("ideogram", "")
+            if ig:
+                orig_by_ideogram[ig] = fn
+
+        merged = []
+        for fn in corrected:
+            ig = fn.get("ideogram", "")
+            if ig in orig_by_ideogram:
+                # Existing footnote — preserve original explanation, use corrected key
+                orig = orig_by_ideogram[ig]
+                merged.append({
+                    "key": fn.get("key", orig.get("key")),
+                    "ideogram": orig.get("ideogram", ""),
+                    "pinyin": orig.get("pinyin", ""),
+                    "explanation": orig.get("explanation", ""),
+                })
+            else:
+                # New footnote from corrector — accept as-is
+                merged.append(fn)
+
+        return merged
 
     def _correct_one(self, block: dict) -> Optional[tuple]:
         """Correct a single block. Returns (corrected_text, corrected_footnotes, changes) or None."""

@@ -4,6 +4,11 @@ import re
 
 from ebooklib import epub
 
+# Pattern matching chapter headings in TOC leaf titles
+_CHAPTER_TITLE_RE = re.compile(
+    r"^(第[一二三四五六七八九十百零\d]+[回章節节]|楔子|尾聲|尾声|引子|序[章曲])"
+)
+
 
 def detect_toc_type(book: epub.EpubBook) -> str:
     """Detect the TOC structure type.
@@ -11,6 +16,7 @@ def detect_toc_type(book: epub.EpubBook) -> str:
     Returns one of:
       'hierarchical_works'  — top sections are works (Huang Yi, Guzhengxia)
       'section_per_book'    — sections are books, children are chapters (Liang Yusheng, Wolong Sheng)
+      'flat_chapters'       — all leaves are chapters of a single work (one chapter per file)
       'flat_single_doc'     — each leaf is an entire book in one HTML file (Xiao Yi, Wen Ruian)
       'flat_interleaved'    — flat leaves mixing book titles and chapters (Sima Ling, Liu Canyang)
     """
@@ -50,6 +56,16 @@ def detect_toc_type(book: epub.EpubBook) -> str:
 
         if len(unique_base_hrefs) < len(leaves) * 0.5:
             return "flat_interleaved"
+
+        # Check if most leaves have chapter-like titles (第N回, 第N章, etc.)
+        # If so, this is a single work with one chapter per file, not a collection
+        chapter_count = sum(
+            1 for leaf in leaves
+            if leaf.title and _CHAPTER_TITLE_RE.match(leaf.title.strip())
+        )
+        if chapter_count >= len(leaves) * 0.6 and len(leaves) >= 3:
+            return "flat_chapters"
+
         return "flat_single_doc"
 
     # Mixed sections and leaves

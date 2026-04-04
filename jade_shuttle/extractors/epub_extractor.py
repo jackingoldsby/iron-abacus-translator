@@ -9,6 +9,7 @@ from ebooklib import epub
 
 from detectors.toc_detector import detect_toc_type
 from detectors.work_detector import (
+    extract_works_flat_chapters,
     extract_works_flat_interleaved,
     extract_works_flat_single_doc,
     extract_works_hierarchical,
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 STRATEGY_MAP = {
     "hierarchical_works": extract_works_hierarchical,
     "section_per_book": extract_works_section_per_book,
+    "flat_chapters": extract_works_flat_chapters,
     "flat_single_doc": extract_works_flat_single_doc,
     "flat_interleaved": extract_works_flat_interleaved,
 }

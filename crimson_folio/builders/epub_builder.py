@@ -369,7 +369,14 @@ class EpubBuilder:
         edition = catalog.get("edition", "")
         edition_suffix = f" [{edition}]" if edition else ""
 
-        raw_name = f"{author_en} - {title_en}{series_suffix}{edition_suffix}"
+        # Add volume marker if multi-volume work
+        volume = meta.get("volume", "")
+        volume_suffix = ""
+        if volume:
+            vol_num = int(volume) if volume.isdigit() else volume
+            volume_suffix = f" Vol. {vol_num}"
+
+        raw_name = f"{author_en} - {title_en}{volume_suffix}{series_suffix}{edition_suffix}"
         safe_name = _sanitize_filename(raw_name)
         return output_dir / f"{safe_name}.epub"
 
