@@ -247,7 +247,7 @@ class EpubBuilder:
             book.set_cover("cover.jpg", cover_data, create_page=True)
 
         # Add publisher logo
-        logo_path = Path(__file__).parent.parent / "assets" / "iron_abacus_logo.png"
+        logo_path = Path(__file__).parent.parent / "assets" / "iron_abacus_core_logo_bw.png"
         if logo_path.exists():
             from PIL import Image as PILImage
             # Resize to reasonable EPUB size (400px wide)
