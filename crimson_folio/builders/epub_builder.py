@@ -253,9 +253,9 @@ class EpubBuilder:
             # Resize to small EPUB size (200px wide)
             with PILImage.open(logo_path) as logo_img:
                 ratio = 200 / logo_img.width
-                logo_resized = logo_img.resize(
-                    (400, int(logo_img.height * ratio)), PILImage.LANCZOS
-                )
+                new_w = int(logo_img.width * ratio)
+                new_h = int(logo_img.height * ratio)
+                logo_resized = logo_img.resize((new_w, new_h), PILImage.LANCZOS)
                 import io
                 buf = io.BytesIO()
                 logo_resized.save(buf, format="PNG")
