@@ -306,6 +306,11 @@ class EpubBuilder:
             chapter_items.append(ch_item)
             spine.append(ch_item)
 
+        # Build credits/colophon page
+        credits_page = self._build_credits(css_item)
+        book.add_item(credits_page)
+        spine.append(credits_page)
+
         # Build glossary if entries provided
         glossary_item = None
         if glossary_entries:
@@ -314,11 +319,15 @@ class EpubBuilder:
             spine.append(glossary_item)
 
         # Build TOC
-        toc_entries = [
+        # Front matter (not numbered)
+        front_matter_links = [
             epub.Link(title_page.file_name, "Title Page", "title"),
             epub.Link(preface_page.file_name, "Translator\u2019s Preface", "preface"),
             epub.Link(intro_page.file_name, "Introduction", "introduction"),
         ]
+
+        # Chapter entries
+        chapter_links = []
         for ch_idx, ch_item in enumerate(chapter_items):
             ch = chapters[ch_idx]
             ch_title = (ch.get("title_english")
@@ -330,20 +339,90 @@ class EpubBuilder:
                     ch_title_zh or ch.get("title", ""), ch_idx + 1
                 )
             ch_title_clean = re.sub(r'\[\d+\]', '', ch_title).strip().replace("*", "")
-            toc_entries.append(
-                epub.Link(ch_item.file_name, ch_title_clean, ch_item.id)
+
+            # Reformat for TOC: "1. Title" instead of "Chapter One: Title"
+            # Strip "Chapter N:" or "Chapter Word:" prefix
+            toc_title = re.sub(
+                r'^Chapter\s+(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten'
+                r'|Eleven|Twelve|Thirteen|Fourteen|Fifteen|Sixteen|Seventeen'
+                r'|Eighteen|Nineteen|Twenty|\d+)\s*[:\.\-—]\s*',
+                '', ch_title_clean, flags=re.IGNORECASE
             )
-        if glossary_item:
-            toc_entries.append(
-                epub.Link(glossary_item.file_name, "Glossary of Terms", "glossary")
+            if toc_title == ch_title_clean:
+                # Didn't match — try Chinese format
+                toc_title = re.sub(r'^第[一二三四五六七八九十百零○廿卅]+[回章]\s*', '', toc_title)
+
+            # Truncate if still too long
+            if len(toc_title) > 50:
+                for sep in ['；', ';', '—', '，', ',']:
+                    pos = toc_title.find(sep)
+                    if 15 < pos < 50:
+                        toc_title = toc_title[:pos].rstrip()
+                        break
+                else:
+                    toc_title = toc_title[:47].rstrip() + "…"
+
+            # Just the title — the TOC list handles numbering
+            toc_entry = toc_title if toc_title else f"Chapter {ch_idx + 1}"
+
+            chapter_links.append(
+                epub.Link(ch_item.file_name, toc_entry, ch_item.id)
             )
 
-        book.toc = toc_entries
+        # Back matter
+        back_matter_links = []
+        if glossary_item:
+            back_matter_links.append(
+                epub.Link(glossary_item.file_name, "Glossary of Terms", "glossary")
+            )
+        back_matter_links.append(
+            epub.Link(credits_page.file_name, "Credits", "credits")
+        )
+
+        # Combine TOC — front matter as flat links, chapters as section
+        book.toc = front_matter_links + chapter_links + back_matter_links
 
         # Add navigation files
         book.add_item(epub.EpubNcx())
+
+        # Build custom nav page with inline styling
+        nav_items = []
+        for link in front_matter_links:
+            nav_items.append(
+                f'        <li style="list-style: none; margin-bottom: 0.5em;">'
+                f'<a href="{link.href}" style="color: #333; text-decoration: none; '
+                f'font-style: italic; font-size: 0.9em;">{_escape(link.title)}</a></li>'
+            )
+        for link in chapter_links:
+            nav_items.append(
+                f'        <li style="list-style: none; margin-bottom: 0.6em;">'
+                f'<a href="{link.href}" style="color: #222; text-decoration: none; '
+                f'font-size: 0.95em;">{_escape(link.title)}</a></li>'
+            )
+        for link in back_matter_links:
+            nav_items.append(
+                f'        <li style="list-style: none; margin-bottom: 0.5em;">'
+                f'<a href="{link.href}" style="color: #333; text-decoration: none; '
+                f'font-style: italic; font-size: 0.9em;">{_escape(link.title)}</a></li>'
+            )
+
+        nav_html = f"""<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head><title>Contents</title></head>
+<body style="font-family: Georgia, 'Palatino Linotype', Palatino, serif;">
+  <nav epub:type="toc" id="toc" role="doc-toc">
+    <h2 style="text-align: center; font-size: 1.6em; font-weight: normal; letter-spacing: 0.1em; margin-bottom: 1.5em; padding-bottom: 0.5em; border-bottom: 1px solid #ccc;">Contents</h2>
+    <ol style="list-style: none; padding-left: 0; margin: 0 1em;">
+{chr(10).join(nav_items)}
+    </ol>
+  </nav>
+</body>
+</html>"""
+
         nav = epub.EpubNav()
-        nav.add_link(href=css_item.file_name, rel="stylesheet", type="text/css")
+        nav.set_content(nav_html.encode("utf-8"))
+        nav.add_item(css_item)
         book.add_item(nav)
 
         # Set spine
@@ -352,9 +431,90 @@ class EpubBuilder:
         # Write EPUB
         output_path.parent.mkdir(parents=True, exist_ok=True)
         epub.write_epub(str(output_path), book, {"epub3_pages": False})
-        logger.info(f"Generated EPUB: {output_path}")
 
+        # Post-process: replace nav.xhtml with custom styled version
+        # (ebooklib strips our inline styles during generation)
+        self._patch_nav(output_path, front_matter_links, chapter_links, back_matter_links)
+
+        logger.info(f"Generated EPUB: {output_path}")
         return output_path
+
+    @staticmethod
+    def _patch_nav(epub_path: Path, front_links, chapter_links, back_links):
+        """Replace ebooklib's auto-generated nav with custom styled version."""
+        import zipfile
+
+        with zipfile.ZipFile(str(epub_path), 'r') as zin:
+            contents = {name: zin.read(name) for name in zin.namelist()}
+
+        # Find the nav file path (usually EPUB/nav.xhtml)
+        nav_key = next((k for k in contents if k.endswith('nav.xhtml')), None)
+        if not nav_key:
+            return
+
+        # Build custom nav
+        items = []
+        for link in front_links:
+            href = link.href
+            items.append(
+                f'      <li style="margin-bottom: 0.5em; list-style: none;">'
+                f'<a href="{href}" style="color: #555; text-decoration: none; '
+                f'font-style: italic; font-size: 0.9em;">{_escape(link.title)}</a></li>'
+            )
+
+        if chapter_links:
+            items.append(
+                '      <li style="margin-top: 1.5em; list-style: none;">'
+                '<span style="font-size: 0.85em; letter-spacing: 0.1em; '
+                'color: #888; text-transform: uppercase;">Chapters</span></li>'
+            )
+            items.append(
+                '      <li style="border-top: 1px solid #ddd; margin-bottom: 0.6em; '
+                'list-style: none;"></li>'
+            )
+            for i, link in enumerate(chapter_links, 1):
+                href = link.href
+                items.append(
+                    f'      <li style="margin-bottom: 0.7em; list-style: none;">'
+                    f'<a href="{href}" style="color: #222; text-decoration: none;">'
+                    f'{i}. {_escape(link.title)}</a></li>'
+                )
+
+        if back_links:
+            items.append(
+                '      <li style="margin-top: 1em; border-top: 1px solid #eee; '
+                'padding-top: 0.8em; list-style: none;"></li>'
+            )
+            for link in back_links:
+                href = link.href
+                items.append(
+                    f'      <li style="margin-bottom: 0.5em; list-style: none;">'
+                    f'<a href="{href}" style="color: #555; text-decoration: none; '
+                    f'font-style: italic; font-size: 0.9em;">{_escape(link.title)}</a></li>'
+                )
+
+        nav_html = f"""<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head><title>Contents</title></head>
+<body style="font-family: Georgia, 'Palatino Linotype', Palatino, serif; margin: 1em 1.5em;">
+  <nav epub:type="toc" id="id" role="doc-toc">
+    <h2 style="text-align: center; font-size: 1.6em; font-weight: normal; letter-spacing: 0.1em; margin-bottom: 1.5em; padding-bottom: 0.5em; border-bottom: 1px solid #ccc;">Contents</h2>
+    <ol style="list-style: none; padding-left: 0; margin: 0;">
+{chr(10).join(items)}
+    </ol>
+  </nav>
+</body>
+</html>"""
+
+        contents[nav_key] = nav_html.encode('utf-8')
+        # Remove orphan nav at root if exists
+        if 'nav.xhtml' in contents and nav_key != 'nav.xhtml':
+            del contents['nav.xhtml']
+
+        with zipfile.ZipFile(str(epub_path), 'w', zipfile.ZIP_DEFLATED) as zout:
+            for name, data in contents.items():
+                zout.writestr(name, data)
 
     # Chinese numeral → int mapping for chapter title translation
     _CHINESE_NUMS = {
@@ -454,7 +614,14 @@ class EpubBuilder:
         return output_dir / f"{safe_name}.epub"
 
     def _load_css(self) -> str:
-        """Load CSS file content."""
+        """Load CSS — from theme.json if available, otherwise static file."""
+        theme_path = Path(__file__).parent.parent / "config" / "theme.json"
+        if theme_path.exists():
+            try:
+                from styles.theme_renderer import render_css
+                return render_css(theme_path)
+            except Exception as e:
+                logger.debug(f"Theme render failed ({e}), falling back to static CSS")
         try:
             with open(self.css_path, "r", encoding="utf-8") as f:
                 return f.read()
@@ -476,15 +643,22 @@ class EpubBuilder:
         """Build bilingual title page with series info."""
         title_zh_line = ""
         if title_zh and title_zh != title_en:
-            title_zh_line = f'    <p class="title-chinese">{_escape(title_zh)}</p>'
+            title_zh_line = (
+                f'    <p style="font-size: 1.8em; margin-bottom: 1em; color: #333; '
+                f'letter-spacing: 0.2em;">{_escape(title_zh)}</p>'
+            )
         author_zh_line = ""
         if author_zh and author_zh != author_en:
-            author_zh_line = f'    <p class="author-chinese">{_escape(author_zh)}</p>'
+            author_zh_line = (
+                f'    <p style="font-size: 1.05em; color: #555; margin-top: 0.3em;">'
+                f'{_escape(author_zh)}</p>'
+            )
 
         series_line = ""
         if series_name and series_order is not None:
             series_line = (
-                f'    <p class="series">{_escape(series_name)}'
+                f'    <p style="font-size: 0.95em; font-style: italic; color: #555; '
+                f'margin-bottom: 0.3em; letter-spacing: 0.05em;">{_escape(series_name)}'
                 f' &mdash; Book {series_order} of {series_total}</p>'
             )
 
@@ -496,15 +670,16 @@ class EpubBuilder:
   <link rel="stylesheet" type="text/css" href="styles/kindle.css"/>
 </head>
 <body>
-  <div class="title-page">
-    <h1>{_escape(title_en)}</h1>
+  <div style="text-align: center; margin-top: 20%; padding: 0 1em; font-family: Georgia, 'Palatino Linotype', Palatino, serif;">
+    <h1 style="font-size: 2.4em; font-weight: bold; letter-spacing: 0.03em; line-height: 1.25; margin-bottom: 0.3em; text-align: center;">{_escape(title_en)}</h1>
 {title_zh_line}
 {series_line}
-    <p class="author">{_escape(author_en)}</p>
+    <p style="font-size: 1em; margin-top: 1.5em; letter-spacing: 0.05em; color: #555; font-style: italic;">A Classic Chinese Novel in a New Translation</p>
+    <p style="font-size: 1.15em; margin-top: 2em; letter-spacing: 0.1em; font-weight: bold;">{_escape(author_en)}</p>
 {author_zh_line}
-    <div style="margin-top: 3em; text-align: center;">
+    <p style="margin-top: 6em; text-align: center;">
       <img src="images/iron_abacus_logo.png" alt="Iron Abacus" style="width: 80px; height: auto;"/>
-    </div>
+    </p>
   </div>
 </body>
 </html>"""
@@ -574,6 +749,45 @@ class EpubBuilder:
         except (ValueError, TypeError):
             return str(num)
 
+    def _build_credits(self, css_item: epub.EpubItem) -> epub.EpubHtml:
+        """Build credits/colophon page with image attributions."""
+        html = """<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head>
+  <title>Credits</title>
+  <link rel="stylesheet" type="text/css" href="styles/kindle.css"/>
+</head>
+<body>
+  <div style="text-align: center; margin-top: 15%; font-family: Georgia, serif;">
+    <h2 style="font-size: 1.4em; font-weight: normal; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 2em; padding-bottom: 0.5em; border-bottom: 1px solid #ccc;">Credits</h2>
+
+    <p style="font-weight: bold; margin-top: 2em; margin-bottom: 0.3em; font-size: 1em;">Cover Image</p>
+    <p style="text-indent: 0; margin-bottom: 0.2em;"><em>Portrait of Bao Zheng (998\u20131061)</em></p>
+    <p style="text-indent: 0; margin-bottom: 0.2em;">Anonymous artist, Ming dynasty (1368\u20131644)</p>
+    <p style="text-indent: 0; margin-bottom: 0.2em;">Ink and color on silk, 164.7 \u00d7 97.9 cm</p>
+    <p style="text-indent: 0; margin-bottom: 0.2em;">Freer Gallery of Art, Smithsonian Institution (F1919.181)</p>
+    <p style="text-indent: 0; margin-bottom: 0.2em; color: #666;">Public domain (CC0)</p>
+
+    <p style="font-weight: bold; margin-top: 2em; margin-bottom: 0.3em; font-size: 1em;">Publisher</p>
+    <p style="text-indent: 0; margin-bottom: 0.2em;">Iron Abacus</p>
+    <p style="text-indent: 0; margin-bottom: 0.2em; color: #666;">Brooklyn, New York</p>
+
+    <p style="font-weight: bold; margin-top: 2em; margin-bottom: 0.3em; font-size: 1em;">Translation</p>
+    <p style="text-indent: 0; margin-bottom: 0.2em; font-size: 0.9em; color: #555;">Translated with AI assistance</p>
+  </div>
+</body>
+</html>"""
+
+        item = epub.EpubHtml(
+            title="Credits",
+            file_name="credits.xhtml",
+            lang="en",
+        )
+        item.set_content(html.encode("utf-8"))
+        item.add_item(css_item)
+        return item
+
     def _build_introduction(self, css_item: epub.EpubItem) -> epub.EpubHtml:
         """Build an Introduction page with cultural and historical context."""
         paras = [
@@ -612,25 +826,6 @@ class EpubBuilder:
             " earth. This gives the genre a moral weight quite unlike the"
             " puzzle-box tradition of Western detective fiction.",
 
-            # THE REAL BAO ZHENG
-            "<h3>The Historical B\u0101o Zh\u011bng</h3>",
-            "The real B\u0101o Zh\u011bng (999\u20131062) was a civil official"
-            " of the Northern Song dynasty who served as Prefect of K\u0101if\u0113ng,"
-            " the imperial capital, from 1057 to 1058. During his twenty-five"
-            " years in civil service, he was known for his honesty and"
-            " uprightness \u2014 he impeached powerful officials, including an"
-            " uncle of the Emperor\u2019s favourite concubine, and initiated"
-            " reforms to hear the grievances of common people directly.",
-
-            "The legends far outstrip the history. In popular imagination,"
-            " B\u0101o Zh\u011bng acquired a dark complexion (symbolising"
-            " justice), a crescent-moon birthmark on his forehead, three"
-            " iron guillotines for executing criminals of different rank, and"
-            " the ability to judge cases in the underworld by night. Very"
-            " little of this is historical. But it is the legend, not the"
-            " history, that drives the novel \u2014 and the legend is"
-            " magnificent.",
-
             # WHAT MAKES THIS NOVEL DISTINCTIVE
             "<h3>The Novel</h3>",
             "Sh\u00ed Y\u00f9k\u016bn\u2019s great innovation was to fuse"
@@ -653,6 +848,25 @@ class EpubBuilder:
             " to the rough slang of the jianghu, from classical verse to"
             " marketplace comedy. This is a novel meant to be heard as much"
             " as read.",
+
+            # THE REAL BAO ZHENG
+            "<h3>The Historical B\u0101o Zh\u011bng</h3>",
+            "The real B\u0101o Zh\u011bng (999\u20131062) was a civil official"
+            " of the Northern Song dynasty who served as Prefect of K\u0101if\u0113ng,"
+            " the imperial capital, from 1057 to 1058. During his twenty-five"
+            " years in civil service, he was known for his honesty and"
+            " uprightness \u2014 he impeached powerful officials, including an"
+            " uncle of the Emperor\u2019s favourite concubine, and initiated"
+            " reforms to hear the grievances of common people directly.",
+
+            "The legends far outstrip the history. In popular imagination,"
+            " B\u0101o Zh\u011bng acquired a dark complexion (symbolising"
+            " justice), a crescent-moon birthmark on his forehead, three"
+            " iron guillotines for executing criminals of different rank, and"
+            " the ability to judge cases in the underworld by night. Very"
+            " little of this is historical. But it is the legend, not the"
+            " history, that drives the novel \u2014 and the legend is"
+            " magnificent.",
         ]
 
         body_html = "\n".join(

@@ -3,60 +3,91 @@
 
 /* === Base Typography === */
 body {
-  font-family: serif;
-  line-height: 1.6;
-  margin: 1em;
+  font-family: Georgia, "Palatino Linotype", Palatino, serif;
+  line-height: 1.7;
+  margin: 1em 1.2em;
   orphans: 2;
   widows: 2;
+  color: #1a1a1a;
 }
 
 /* === Title Page === */
 .title-page {
   text-align: center;
   page-break-after: always;
-  margin-top: 30%;
+  margin-top: 25%;
+  padding: 0 1em;
 }
 
 .title-page h1 {
-  font-size: 2em;
-  margin-bottom: 0.3em;
-  font-weight: bold;
+  font-size: 2.2em;
+  margin-bottom: 0.2em;
+  font-weight: normal;
   text-align: center;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
 }
 
 .title-page .title-chinese {
-  font-size: 1.4em;
-  margin-bottom: 1em;
-  color: #555;
+  font-size: 1.6em;
+  margin-bottom: 1.2em;
+  color: #444;
+  letter-spacing: 0.15em;
+}
+
+.title-page .series {
+  font-size: 0.9em;
+  font-style: italic;
+  color: #666;
+  margin-bottom: 0.3em;
+  letter-spacing: 0.05em;
 }
 
 .title-page .author {
-  font-size: 1.2em;
-  margin-top: 1.5em;
+  font-size: 1.1em;
+  margin-top: 2em;
+  letter-spacing: 0.08em;
 }
 
 .title-page .author-chinese {
   font-size: 1em;
   color: #555;
+  margin-bottom: 0.5em;
 }
 
-/* === Translator's Preface === */
+/* === Translator's Preface & Introduction === */
 .translators-preface {
   page-break-after: always;
   margin-top: 2em;
+  padding: 0 0.5em;
 }
 
 .translators-preface h2 {
   page-break-before: avoid;
   text-align: center;
-  font-size: 1.3em;
-  margin-bottom: 1.5em;
+  font-size: 1.4em;
+  font-weight: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 2em;
+  padding-bottom: 0.5em;
+  border-bottom: 1px solid #ccc;
+}
+
+.translators-preface h3 {
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-top: 1.8em;
+  margin-bottom: 0.8em;
+  letter-spacing: 0.04em;
+  color: #333;
 }
 
 .translators-preface p {
   text-indent: 1.5em;
-  margin-bottom: 0.4em;
-  line-height: 1.7;
+  margin-bottom: 0.5em;
+  line-height: 1.75;
+  font-size: 0.95em;
 }
 
 .translators-preface p.first {
@@ -65,13 +96,17 @@ body {
 
 .translators-preface .signature {
   text-indent: 0;
-  margin-top: 1.5em;
+  margin-top: 2em;
   font-style: italic;
+  font-size: 1em;
+  letter-spacing: 0.05em;
 }
 
 .translators-preface .dateline {
   text-indent: 0;
   font-style: italic;
+  color: #666;
+  font-size: 0.9em;
 }
 
 /* === Chapter Headings === */

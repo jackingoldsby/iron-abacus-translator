@@ -252,65 +252,72 @@ class CoverComposer:
         self, draw: ImageDraw.Draw, title_en: str, title_zh: str,
         subtitle: str = ""
     ) -> None:
-        """Draw title text in the upper portion of the cover."""
-        # English title — large serif font
-        en_size = self.width // 12  # ~133px at 1600w
+        """Draw title text — bold, spacious, eye-catching."""
+        # English title — BIG and bold
+        en_size = self.width // 9  # ~178px at 1600w — much bigger
         en_font = _find_font(_SERIF_FONT_PATHS, en_size)
 
-        # Word-wrap if too long
-        lines = self._wrap_text(title_en, en_font, int(self.width * 0.85), draw)
+        lines = self._wrap_text(title_en, en_font, int(self.width * 0.82), draw)
 
-        y = int(self.height * 0.05)
+        y = int(self.height * 0.04)
         for line in lines:
             bbox = draw.textbbox((0, 0), line, font=en_font)
             text_w = bbox[2] - bbox[0]
             x = (self.width - text_w) // 2
-            # Shadow for readability
-            draw.text((x + 2, y + 2), line, fill=(0, 0, 0, 180), font=en_font)
+            # Stronger shadow
+            draw.text((x + 3, y + 3), line, fill=(0, 0, 0, 200), font=en_font)
             draw.text((x, y), line, fill=(255, 255, 255), font=en_font)
-            y += int(en_size * 1.3)
+            y += int(en_size * 1.15)
 
-        # Chinese title — smaller, below English
+        # Breathing space
+        y += int(en_size * 0.3)
+
+        # Chinese title — generous size with wide spacing
         if title_zh:
-            zh_size = self.width // 18  # ~89px at 1600w
+            zh_size = self.width // 14  # ~114px at 1600w
             zh_font = _find_font(_CJK_FONT_PATHS, zh_size)
             bbox = draw.textbbox((0, 0), title_zh, font=zh_font)
             text_w = bbox[2] - bbox[0]
             x = (self.width - text_w) // 2
-            y += int(zh_size * 0.3)
             draw.text((x + 2, y + 2), title_zh, fill=(0, 0, 0, 160), font=zh_font)
-            draw.text((x, y), title_zh, fill=(220, 220, 220), font=zh_font)
-            y += int(zh_size * 1.4)
+            draw.text((x, y), title_zh, fill=(230, 225, 215), font=zh_font)
+            y += int(zh_size * 1.6)
 
-        # Subtitle — smaller, each explicit line centered separately
+        # Thin decorative line
+        line_y = y + 5
+        line_w = int(self.width * 0.25)
+        line_x = (self.width - line_w) // 2
+        draw.line([(line_x, line_y), (line_x + line_w, line_y)],
+                  fill=(255, 255, 255, 120), width=1)
+        y = line_y + 25
+
+        # Subtitle — elegant, lighter
         if subtitle:
-            sub_size = self.width // 30  # ~53px at 1600w
+            sub_size = self.width // 28  # ~57px at 1600w
             sub_font = _find_font(_SERIF_FONT_PATHS, sub_size)
-            y += int(sub_size * 0.5)
-            # Split on explicit newlines first, then word-wrap each
             for raw_line in subtitle.split('\n'):
-                wrapped = self._wrap_text(raw_line.strip(), sub_font, int(self.width * 0.75), draw)
+                wrapped = self._wrap_text(raw_line.strip(), sub_font, int(self.width * 0.78), draw)
                 for line in wrapped:
                     bbox = draw.textbbox((0, 0), line, font=sub_font)
                     text_w = bbox[2] - bbox[0]
                     x = (self.width - text_w) // 2
-                    draw.text((x + 1, y + 1), line, fill=(0, 0, 0, 140), font=sub_font)
-                    draw.text((x, y), line, fill=(200, 200, 200), font=sub_font)
-                    y += int(sub_size * 1.3)
-                y += int(sub_size * 0.2)  # extra gap between subtitle lines
+                    draw.text((x + 1, y + 1), line, fill=(0, 0, 0, 120), font=sub_font)
+                    draw.text((x, y), line, fill=(220, 215, 205), font=sub_font)
+                    y += int(sub_size * 1.4)
+                y += int(sub_size * 0.3)
 
     def _draw_author(
         self, draw: ImageDraw.Draw, author_en: str, author_zh: str,
         translator: str = ""
     ) -> None:
-        """Draw author name in the lower portion of the cover."""
+        """Draw author name — prominent, lower portion."""
         if not author_en and not author_zh and not translator:
             return
 
-        y = int(self.height * 0.68)
+        y = int(self.height * 0.65)
 
         if author_en:
-            en_size = self.width // 22  # ~73px at 1600w
+            en_size = self.width // 16  # ~100px at 1600w — bigger
             en_font = _find_font(_SERIF_FONT_PATHS, en_size)
             bbox = draw.textbbox((0, 0), author_en, font=en_font)
             text_w = bbox[2] - bbox[0]
@@ -320,7 +327,7 @@ class CoverComposer:
             y += int(en_size * 1.3)
 
         if author_zh:
-            zh_size = self.width // 28  # ~57px at 1600w
+            zh_size = self.width // 20  # ~80px at 1600w
             zh_font = _find_font(_CJK_FONT_PATHS, zh_size)
             bbox = draw.textbbox((0, 0), author_zh, font=zh_font)
             text_w = bbox[2] - bbox[0]

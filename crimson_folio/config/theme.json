@@ -1,0 +1,76 @@
+{
+  "base": {
+    "font_family": "Georgia, 'Palatino Linotype', Palatino, serif",
+    "line_height": 1.7,
+    "margin": "1em 1.2em",
+    "text_color": "#1a1a1a"
+  },
+  "title_page": {
+    "margin_top": "25%",
+    "title_font_size": "2.2em",
+    "title_font_weight": "normal",
+    "title_letter_spacing": "0.02em",
+    "title_line_height": 1.2,
+    "chinese_title_font_size": "1.6em",
+    "chinese_title_color": "#444",
+    "chinese_title_letter_spacing": "0.15em",
+    "series_font_size": "0.9em",
+    "series_style": "italic",
+    "series_color": "#666",
+    "author_font_size": "1.1em",
+    "author_letter_spacing": "0.08em",
+    "author_margin_top": "2em",
+    "chinese_author_color": "#555"
+  },
+  "front_matter": {
+    "heading_font_size": "1.4em",
+    "heading_font_weight": "normal",
+    "heading_letter_spacing": "0.12em",
+    "heading_text_transform": "uppercase",
+    "heading_border_bottom": "1px solid #ccc",
+    "subheading_font_size": "1.1em",
+    "subheading_color": "#333",
+    "body_font_size": "0.95em",
+    "body_line_height": 1.75,
+    "body_text_indent": "1.5em",
+    "signature_style": "italic",
+    "dateline_color": "#666",
+    "dateline_font_size": "0.9em"
+  },
+  "chapter": {
+    "heading_font_size": "1.5em",
+    "heading_margin_top": "2em",
+    "heading_margin_bottom": "1em",
+    "heading_page_break": "always",
+    "body_text_indent": "1.5em",
+    "body_margin_bottom": "0.3em"
+  },
+  "footnotes": {
+    "marker_color": "#8b0000",
+    "popup_font_size": "0.85em",
+    "popup_background": "#f9f6f0",
+    "popup_border": "1px solid #ddd",
+    "popup_padding": "0.8em",
+    "ideogram_weight": "bold",
+    "pinyin_style": "italic"
+  },
+  "toc": {
+    "heading_font_size": "1.4em",
+    "heading_letter_spacing": "0.12em",
+    "heading_text_transform": "uppercase",
+    "heading_border_bottom": "1px solid #ccc",
+    "entry_font_size": "0.95em",
+    "entry_line_height": 1.8,
+    "entry_color": "#333",
+    "front_matter_style": "italic",
+    "front_matter_color": "#666",
+    "chapter_number_weight": "bold"
+  },
+  "verse": {
+    "font_style": "italic",
+    "margin_left": "2em",
+    "margin_top": "0.8em",
+    "margin_bottom": "0.8em",
+    "line_height": 1.6
+  }
+}
