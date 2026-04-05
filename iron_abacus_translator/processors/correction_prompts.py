@@ -29,7 +29,21 @@ CORRECTION_CATEGORIES = {
     "idiom_curse": "Literal calques of Chinese curses/idioms that don't work in English",
     "supernatural": "European supernatural creatures substituted for Chinese ones",
     "technique_name": "Comical or inaccurate verbs in martial technique names",
+    "ideogram_leak": "Chinese ideograms (漢字) leaked into translated English text — must be replaced with English or pinyin",
+    "char_count": "Reference to number of Chinese characters/words without footnote giving the original ideograms and breakdown",
+    "formula_pinyin": "Martial formula, couplet, or mnemonic (口訣) left as pinyin instead of translated to English",
     "organ_metaphor": "Literal body-organ calques where meaning-translation + footnote needed",
+    "bare_pinyin": "Common pinyin terms missing tone diacritics (Shifu → Shīfù, Guniang → Gūniáng)",
+    "pinyin_sequence": "Repeated pinyin sound effects not italicized (peng peng peng → *pēng pēng pēng*)",
+    "suppressed_footnote": "Footnote on a term from the suppress list — should be removed",
+    "omission": "Translated text suspiciously short vs Chinese source — content likely omitted",
+    "duplicate_text": "Repeated phrases within a block — likely LLM stutter/repetition",
+    "unitalicized_honorific": "Honorific pinyin has tone marks but missing *asterisks* for italics",
+    "orphan_marker": "Footnote marker [N] with no matching entry, or entry with no marker",
+    "western_units": "Western measurement units (feet/miles/pounds) where Chinese units expected",
+    "gang_not_clan": "'Gang' used for 幫 organizations — should be 'Clan'",
+    "empty_footnote": "Footnote with blank or trivially short explanation",
+    "double_space": "Double spaces in body text (cleanup artifact)",
 }
 
 # =============================================================================
@@ -230,6 +244,8 @@ WRONG: "Yellow Dragon Spits Its Whiskers" → RIGHT: "Yellow Dragon Turns and La
 
 Same technique MUST be translated identically every time it appears.
 
+**Martial formulae and mnemonics (口訣)**: Combat couplets, rhyming mnemonics, and martial formulae must be TRANSLATED to English, not left as pinyin. These encode meaningful combat instructions or poetic imagery that the reader needs to understand. Render them as dignified English verse, and add a footnote with the pinyin and martial context.
+
 **Technique footnotes**: Do NOT footnote technique names that merely describe the image of the move — "White Rainbow Pierces the Sun" does not need a footnote saying "this technique resembles a rainbow." HOWEVER, if the technique name references a genuine classical allusion (白虹貫日 is a classical omen of assassination — a white rainbow crossing the sun portended an attempt on a ruler's life), then a footnote explaining the allusion IS valuable. The test: does the footnote add cultural knowledge beyond what the English name already conveys? If it just restates the imagery, remove it."""
 
 CORRECTION_PROMPTS["organ_metaphor"] = """**BODY-ORGAN METAPHOR CORRECTION:**
@@ -244,7 +260,107 @@ Key mappings:
 
 The reader should learn that courage lives in the gall bladder, loyalty in the liver, and grief in the intestines."""
 
+CORRECTION_PROMPTS["ideogram_leak"] = """**IDEOGRAM LEAK CORRECTION — MANDATORY:**
+Chinese characters (漢字/ideograms) have been detected in the English translation. This is a critical error — the output must contain ZERO Chinese characters.
+
+For each Chinese term found in the English text:
+1. If it is a title, rank, or institution: translate to English with a footnote giving the pinyin. Example: 侍衛班領 → "Guard Captain[N]" with footnote explaining the imperial guard rank.
+2. If it is a proper noun (name, place): render as pinyin with tone marks. Example: 商家堡 → "Shāngjiābǎo."
+3. If it is a martial formula or couplet: translate to English with a footnote giving the pinyin.
+4. If it is a parenthetical gloss like "Guard Captains (侍衛班領)": remove the ideograms entirely — the English translation is sufficient. If a footnote is warranted, move the Chinese to a footnote with pinyin.
+
+Scan the ENTIRE block. Every Chinese character must be eliminated from the body text."""
+
 # =============================================================================
+CORRECTION_PROMPTS["formula_pinyin"] = """**MARTIAL FORMULA / COUPLET CORRECTION — MANDATORY:**
+Martial formulae, combat couplets, training mnemonics, and rhyming martial instructions (口訣) must be TRANSLATED to English, not left as pinyin. The reader needs to understand the meaning — these encode combat instructions or poetic imagery.
+
+Steps:
+1. Find the pinyin formula/couplet in the text
+2. Replace it with an English translation that preserves the poetic structure and martial meaning
+3. Add a footnote with: the original Chinese ideograms, full pinyin, and a note on the martial context
+
+Example:
+WRONG: '*Lùhǎi yíng mén sān bù gù, pī quán tiāo dǎ bù róng kuān*'
+RIGHT: 'The Land and Sea greet the gate, three cares cast aside; / The splitting fist lifts and strikes, allowing no quarter.'[N]
+With footnote: 陸海迎門三不顧，劈拳挑打不容寬 (lùhǎi yíng mén sān bù gù, pī quán tiāo dǎ bù róng kuān) — A Cháquán mnemonic couplet encoding combat principles."""
+
+CORRECTION_PROMPTS["char_count"] = """**CHARACTER COUNT FOOTNOTE — MANDATORY:**
+The text references a count of Chinese characters or words (e.g. "thirteen characters," "seven words"). This is meaningless to an English reader without the original Chinese.
+
+Add a footnote that provides:
+1. The original Chinese ideograms being counted
+2. A character-by-character or word-by-word breakdown with pinyin
+
+Example: "The thirteen characters" → add footnote: "打遍天下無敵手金面佛苗人鳳 (dǎ biàn tiānxià wú díshǒu Jīnmiànfó Miáo Rénfèng) — 'Fights across the world without meeting his match, the Golden-Faced Buddha Miáo Rénfèng.' Thirteen characters in Chinese, spoken as a single breath to convey the full weight of the epithet."
+
+Look at the Chinese source to find the exact text being referenced. Place the footnote marker on or immediately after the count phrase."""
+
+CORRECTION_PROMPTS["bare_pinyin"] = """**BARE PINYIN CORRECTION — MANDATORY:**
+Common pinyin terms are missing tone diacritics. Every pinyin syllable in the output MUST carry correct tone marks. Find and fix ALL instances:
+
+Common fixes:
+- Shifu → Shīfù, Shixiong → Shīxiōng, Shimei → Shīmèi, Shige → Shīgē
+- Guniang → Gūniáng, Bangzhu → Bāngzhǔ, Zhangmen → Zhǎngmén
+- Dashi → Dàshī, Fangzhang → Fāngzhàng, Qianbei → Qiánbèi
+- Gongzi → Gōngzǐ, Dage → Dàgē, Laoye → Lǎoyé
+- Jianghu → Jiānghú, Wulin → Wǔlín, Qinggong → Qīnggōng
+
+Scan the ENTIRE block. Every pinyin term must have tone marks on every syllable."""
+
+CORRECTION_PROMPTS["pinyin_sequence"] = """**PINYIN SEQUENCE ITALICIZATION — MANDATORY:**
+Repeated pinyin sound effects (onomatopoeia) MUST be wrapped in *asterisks* for italics and must carry tone diacritics. Find every sequence of repeated syllables that represents a sound effect and fix it.
+
+WRONG: peng peng peng → RIGHT: *pēng pēng pēng*
+WRONG: sou sou sou → RIGHT: *sōu sōu sōu*
+WRONG: dang dang → RIGHT: *dāng dāng*
+WRONG: *pēng* pēng *pēng* → RIGHT: *pēng pēng pēng* (all inside one italic span)
+
+ALL terms in the sequence must be inside the same italic span with tone marks on every syllable."""
+
+CORRECTION_PROMPTS["suppressed_footnote"] = """**SUPPRESSED FOOTNOTE REMOVAL — MANDATORY:**
+This block contains a footnote on a term from the suppress list. These common terms are deliberately NOT footnoted — the reader encounters them frequently and already knows them. Remove the footnote entry and its marker from the text. Renumber remaining footnotes sequentially."""
+
+CORRECTION_PROMPTS["omission"] = """**OMISSION CORRECTION — MANDATORY:**
+The English translation appears to be missing significant content from the Chinese source. Compare the source and translation sentence by sentence. Identify what has been omitted and translate the missing content, inserting it at the correct position. Do NOT summarize — translate the missing text in full, matching the style of the surrounding translation."""
+
+CORRECTION_PROMPTS["duplicate_text"] = """**DUPLICATE TEXT REMOVAL — MANDATORY:**
+The translated text contains a repeated phrase or sentence (LLM stutter). Find the duplicated passage and remove the repetition, keeping only one instance. Ensure the text reads naturally after the removal."""
+
+CORRECTION_PROMPTS["unitalicized_honorific"] = """**UNITALICIZED HONORIFIC CORRECTION — MANDATORY:**
+Honorific pinyin terms MUST be wrapped in *asterisks* for italics. Find every honorific in the text and ensure it has asterisks. Do NOT change the pinyin itself — just add the asterisks.
+
+WRONG: Shīfù → RIGHT: *Shīfù*
+WRONG: Gūniáng → RIGHT: *Gūniáng*
+WRONG: Bāngzhǔ → RIGHT: *Bāngzhǔ*
+
+Common honorifics: Shīfù, Shīxiōng, Shījiě, Shīmèi, Shīdì, Shīgē, Gūniáng, Bāngzhǔ, Zhǎngmén, Dàshī, Fāngzhàng, Qiánbèi, Dàgē, Gōngzǐ, Lǎoyé, Gōnggōng."""
+
+CORRECTION_PROMPTS["orphan_marker"] = """**ORPHAN MARKER CORRECTION — MANDATORY:**
+There is a mismatch between footnote markers [N] in the text and footnote entries. Either:
+- A marker [N] exists in the text but no footnote entry has key=N → REMOVE the marker
+- A footnote entry exists but no marker appears in the text → REMOVE the footnote entry
+After cleanup, renumber all markers and footnotes sequentially starting from [1]."""
+
+CORRECTION_PROMPTS["western_units"] = """**WESTERN UNIT CORRECTION — MANDATORY:**
+Western measurement units have been detected. Chinese units must be rendered as italicized pinyin, not converted to Western equivalents. Footnote on first occurrence with the approximate modern equivalent.
+
+- feet/foot → *chǐ* (尺, ≈ 33cm). "three feet" for 三尺 → "three *chǐ*"
+- miles → *lǐ* (里, ≈ 500m). "thirty miles" for 六十里 → "sixty *lǐ*"
+- pounds → *jīn* (斤, ≈ 500g). "ten pounds" for 十斤 → "ten *jīn*"
+- inches → *cùn* (寸, ≈ 3.3cm). "an inch" for 一寸 → "one *cùn*"
+- yards → *zhàng* (丈, ≈ 3.3m). "ten yards" for 三丈 → "three *zhàng*"
+
+The Chinese measurement system is part of the world — converting it erases the setting."""
+
+CORRECTION_PROMPTS["gang_not_clan"] = """**GANG → CLAN CORRECTION — MANDATORY:**
+The word "Gang" has been used for a 幫 (bāng) organization. In wuxia convention, 幫 is translated as "Clan" — it denotes a structured martial organization with ranks, rules, and lineage. "Gang" implies modern criminality.
+
+WRONG: "Beggar Gang" → RIGHT: "Beggar Clan"
+WRONG: "Red Flower Gang" → RIGHT: "Red Flower Clan"
+
+Find every instance of "[Name] Gang" and change to "[Name] Clan"."""
+
 # CORRECTION SYSTEM PROMPT (wraps the specialist sections)
 # =============================================================================
 

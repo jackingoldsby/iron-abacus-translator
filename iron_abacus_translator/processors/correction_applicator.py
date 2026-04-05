@@ -76,6 +76,9 @@ class CorrectionApplicator:
         """
         chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
 
+        # Tags handled by programmatic cleanup — don't need LLM correction
+        PROGRAMMATIC_ONLY_TAGS = {"double_space", "empty_footnote", "orphan_marker"}
+
         # Collect blocks that need correction
         tasks = []
         skipped = 0
@@ -86,6 +89,11 @@ class CorrectionApplicator:
                     skipped += 1
                     continue
                 if not block.get("translated_content"):
+                    continue
+                # Skip blocks whose ONLY tags are programmatic-only
+                llm_tags = [t for t in tags if t not in PROGRAMMATIC_ONLY_TAGS]
+                if not llm_tags:
+                    skipped += 1
                     continue
                 tasks.append(block)
 
@@ -164,9 +172,9 @@ class CorrectionApplicator:
             for block in chapter.get("content_blocks", []):
                 block.pop("_correction_tags", None)
 
-        # TODO: Relocation disabled — scrambles footnote pairings on large works.
-        # Need to investigate why move between blocks corrupts explanations.
-        # data = self._relocate_footnotes(data)
+        # Relocate misplaced footnotes to correct blocks
+        # (Safe now — footnote merge guard prevents explanation corruption)
+        data = self._relocate_footnotes(data)
 
         # Dedup footnotes: keep only first occurrence of each ideogram across the work
         data = self._dedup_footnotes(data)
@@ -179,6 +187,9 @@ class CorrectionApplicator:
 
         # Single programmatic pass: fix punctuation, reorder, strip orphans
         data = self._finalize_footnotes(data)
+
+        # Final programmatic cleanup: double spaces, empty footnotes
+        data = self._programmatic_cleanup(data)
 
         return data
 
@@ -760,6 +771,81 @@ Return ONLY the corrected text, nothing else."""
 
         if punct_fixed or renumbered:
             logger.info(f"  Finalize: {punct_fixed} punctuation fixes, {renumbered} blocks renumbered")
+
+        return data
+
+    @staticmethod
+    def _programmatic_cleanup(data: dict) -> dict:
+        """Final programmatic pass: fix double spaces, remove empty footnotes, fix orphan markers.
+
+        These don't need an LLM — pure regex/data cleanup.
+        """
+        import re
+
+        chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+        double_space_fixed = 0
+        empty_fn_removed = 0
+        orphan_fixed = 0
+
+        for chapter in chapters:
+            for block in chapter.get("content_blocks", []):
+                text = block.get("translated_content", "")
+                footnotes = block.get("footnotes", [])
+
+                # 1. Double spaces
+                if text and "  " in text:
+                    new_text = re.sub(r'  +', ' ', text)
+                    if new_text != text:
+                        text = new_text
+                        double_space_fixed += 1
+
+                # 2. Empty footnotes (blank or <10 char explanation)
+                if footnotes:
+                    surviving = [
+                        fn for fn in footnotes
+                        if (fn.get("explanation") or "").strip()
+                        and len((fn.get("explanation") or "").strip()) >= 10
+                    ]
+                    if len(surviving) < len(footnotes):
+                        removed = len(footnotes) - len(surviving)
+                        empty_fn_removed += removed
+                        footnotes = surviving
+                        block["footnotes"] = footnotes
+                        # Renumber
+                        for i, fn in enumerate(surviving, 1):
+                            fn["key"] = i
+                        if not surviving:
+                            text = re.sub(r'\[\d+\]', '', text)
+                        else:
+                            marker_idx = 0
+                            def _renum(m):
+                                nonlocal marker_idx
+                                marker_idx += 1
+                                if marker_idx <= len(surviving):
+                                    return f"[{marker_idx}]"
+                                return ""
+                            text = re.sub(r'\[\d+\]', _renum, text)
+                        text = re.sub(r'  +', ' ', text)
+
+                # 3. Orphan markers (marker with no footnote)
+                if text:
+                    marker_keys = set(int(m) for m in re.findall(r'\[(\d+)\]', text))
+                    fn_keys = set(fn.get("key", 0) for fn in footnotes)
+                    orphans = marker_keys - fn_keys
+                    if orphans:
+                        for orphan_key in orphans:
+                            text = text.replace(f"[{orphan_key}]", "")
+                        text = re.sub(r'  +', ' ', text)
+                        orphan_fixed += len(orphans)
+
+                block["translated_content"] = text
+
+        if double_space_fixed or empty_fn_removed or orphan_fixed:
+            logger.info(
+                f"  Programmatic cleanup: {double_space_fixed} double-space fixes, "
+                f"{empty_fn_removed} empty footnotes removed, "
+                f"{orphan_fixed} orphan markers stripped"
+            )
 
         return data
 

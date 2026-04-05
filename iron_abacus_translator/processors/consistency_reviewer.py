@@ -39,6 +39,9 @@ REVIEW_CATEGORIES = {
     "date": "Incorrect reign year → CE conversion in footnotes (e.g. 康熙十四年 should be 1675 CE, not 1676)",
     "weapon": "Weapon translation errors: 長劍 as 'long sword', 寶劍 overriding established weapon type, 棒 as 'cudgel' in domestic context, weapon idioms translated literally (戟指 as 'halberd-like finger')",
     "idiom": "Literal calque of Chinese idiom/curse where English intent-translation needed: 短命的 as 'short-lived', 他奶奶的 as 'his grandmother's', 喝錯了醋 as 'mistake your vinegar'",
+    "name": "Character name error — personal name in English doesn't match the Chinese source ideograms (e.g. 苗人鳳 rendered as Miáo Gūniáng instead of Miáo Rénfèng)",
+    "char_count": "Reference to number of Chinese characters/words without footnote breakdown (e.g. 'thirteen characters' with no footnote giving the original ideograms)",
+    "formula_pinyin": "Martial formula, couplet, or mnemonic (口訣) left as pinyin instead of translated to English — these must convey meaning to the reader",
 }
 
 SEVERITY_LEVELS = ("error", "warning", "info")
@@ -162,6 +165,8 @@ def _build_system_prompt(genre_brief: str, suppress_ideograms: Set[str]) -> str:
      - Conditional constructions ("should X happen") can use present tense within past narrative.
    - Only flag tense issues where the shift is clearly unintentional and creates confusion.
 
+1b. **name accuracy** — Cross-check character names in the English against the Chinese source. Flag any block where a character's personal name (given name or full name) has been replaced with a different word — especially honorifics, titles, or common nouns. Example: 苗人鳳 (Miáo Rénfèng) rendered as "Miáo *Gūniáng*" is a critical error — 姑娘 means "young lady" and is NOT part of this character's name. Compare the pinyin in the English against the ideograms in the source. If a name appears correctly in other blocks but differently in this block, flag it. This is a **severity: error**.
+
 2. **gender** — {REVIEW_CATEGORIES['gender']}
    - IMPORTANT: Check the Chinese source. 他 = he/him/his, 她 = she/her, 它 = it/its.
    - Flag EVERY instance where the English pronoun contradicts the Chinese source character.
@@ -194,6 +199,11 @@ def _build_system_prompt(genre_brief: str, suppress_ideograms: Set[str]) -> str:
    - Martial-lineage terms (師兄, 師父, 前輩, 掌門, 幫主) stay pinyin even in third-person narration.
    - Social honorifics (姑娘, 大哥, 夫人) are pinyin in address, English ok in narration.
 
+3b2. **formula_pinyin** — {REVIEW_CATEGORIES['formula_pinyin']}
+   - Martial formulae, couplets, and mnemonics (口訣) must be TRANSLATED to English, not left as pinyin. These are meant to convey meaning — the reader needs to understand the combat instruction or poetic imagery. Flag any martial rhyme or mnemonic rendered as pinyin instead of English. The pinyin should go in a footnote with the original Chinese.
+   - Examples: combat couplets recited by characters, training mnemonics, rhyming martial instructions, inscription verses on weapons or scrolls.
+   - This is severity: **error**.
+
 3c. **weapon** — {REVIEW_CATEGORIES['weapon']}
    - 長劍 = "sword" not "long sword" (it's the default jiàn).
    - 寶劍 must track the actual weapon held — don't reclassify a dagger as a sword.
@@ -218,6 +228,9 @@ def _build_system_prompt(genre_brief: str, suppress_ideograms: Set[str]) -> str:
    - Martial arts technique names: do NOT add footnotes that merely restate the imagery of the name. "White Crane Spreads Wings" does not need a footnote saying it resembles a crane spreading its wings — that is tautological. Only footnote techniques when there is genuine cultural or historical significance to explain (e.g., the technique's origin in a real martial tradition, its connection to Taoist/Buddhist philosophy, or its historical context).
    - Keep footnote explanations focused on cultural/historical significance. Do NOT narrate the plot or explain what happens next.
    - {suppress_note}
+
+4b. **char_count** — {REVIEW_CATEGORIES['char_count']}
+   - When the English says "thirteen characters," "seven words," "four-line verse," or any reference to a count of Chinese characters/words/lines, there MUST be a footnote giving the original Chinese ideograms and a character-by-character breakdown. Without this, the count is meaningless to an English reader. Check the Chinese source to find the referenced text and provide it in the footnote. This is severity: **error**.
 
 5. **pinyin** — {REVIEW_CATEGORIES['pinyin']}
    - All pinyin EVERYWHERE — in the main text AND in footnotes — MUST have tone diacritics (e.g., Wǔtái Shān, not Wutai Shan).
@@ -278,7 +291,7 @@ Return EXACTLY this structure:
   "findings": [
     {{
       "block_id": "block_NNNN",
-      "category": "tense|gender|style|register|honorific|weapon|idiom|footnote|pinyin|date",
+      "category": "tense|gender|name|style|register|honorific|weapon|idiom|footnote|pinyin|date|char_count|formula_pinyin",
       "severity": "error|warning|info",
       "note": "Brief explanation of the issue",
       "original_translated_content": "The original English text from the block",
@@ -846,6 +859,9 @@ Accept changes that:
 - Fix modern register in period settings
 - Fix literal calques of Chinese idioms/curses that don't work in English
 - Fix missing or misplaced footnote markers
+- Add footnotes for character-count references (e.g. "thirteen characters" needs the Chinese breakdown)
+- Fix name errors where a character's name doesn't match the Chinese source (e.g. Rénfèng rendered as Gūniáng)
+- Fix martial formulae/couplets left as pinyin instead of translated to English
 
 Return ONLY valid JSON:
 {
