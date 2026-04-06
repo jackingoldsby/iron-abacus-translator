@@ -52,9 +52,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def get_openai_client():
-    """Get OpenAI client for cleanup (always uses OpenAI, even when translation provider differs)."""
-    return get_llm_client(component="cleanup", provider="openai")
+def get_cleanup_client():
+    """Get LLM client for cleanup (uses CLEANUP_LLM_PROVIDER env or default provider)."""
+    return get_llm_client(component="cleanup")
 
 
 # ---------------------------------------------------------------------------
@@ -366,7 +366,7 @@ Return as: {"assessments": [...]}"""
                     via get_llm_client(component="cleanup").
         """
         self.config = config
-        self.client = client or get_openai_client()
+        self.client = client or get_cleanup_client()
         self.result = TrivialityResult()
         # Ideograms whose first-occurrence footnote is protected from removal
         # because the term appears as italicized pinyin in the translated text
