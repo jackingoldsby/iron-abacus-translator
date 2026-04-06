@@ -1604,9 +1604,10 @@ def build_system_prompt(
     if already_footnoted_context:
         prompt += f"\n\n{already_footnoted_context}"
 
+    _used = author_key or effective_genre
     _logger.info(
-        f"Built system prompt: genre={effective_genre}, lang={target_lang}, "
-        f"author={author_key or 'default'}, provider={provider or 'default'}, "
+        f"Built system prompt: using={_used}, lang={target_lang}, "
+        f"provider={provider or 'default'}, "
         f"rules={'deepseek' if provider == 'deepseek' else 'gpt'}"
     )
 

@@ -913,6 +913,7 @@ class EpubBuilder:
             title_en = self._translate_chapter_title(title_zh or chapter.get("title", ""), chapter_num)
         title_en = re.sub(r'\[\d+\]', '', title_en).strip()
         blocks = chapter.get("content_blocks", [])
+        _title_zh = (chapter.get("title_chinese") or "").strip()
 
         body_parts = []
 
