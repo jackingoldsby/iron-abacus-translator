@@ -1167,6 +1167,8 @@ class BodyProcessor(StageProcessor):
             glossary_path=env.glossary_path,
             llm_client=_make_translation_client(self.config),
             target_lang=ctx.target_lang,
+            author=meta.get("author_chinese"),
+            genre=meta.get("category_english"),
         )
 
         total_blocks = 0

@@ -87,6 +87,8 @@ class ContentBlockTranslationWrapper:
         suppress_list_path: Optional[Path] = None,
         llm_client=None,
         target_lang: str = "en",
+        author: Optional[str] = None,
+        genre: Optional[str] = None,
     ):
         """Initialize the content-block translation wrapper.
 
@@ -101,6 +103,8 @@ class ContentBlockTranslationWrapper:
                 (ideograms that should never get footnotes).
             llm_client: Pre-built LLM client; created via factory if None.
             target_lang: ISO 639-1 target language code (default "en").
+            author: Author name in Chinese (for author-specific prompts).
+            genre: Genre/category from catalog (for genre-specific prompts).
         """
         self.accumulator = accumulator or FootnoteContextAccumulator()
         self.temperature = temperature
@@ -125,11 +129,21 @@ class ContentBlockTranslationWrapper:
             self.glossary = None
 
         # Build base system prompt (with suppress list + provider-specific rules)
+        # Resolve genre from catalog category if provided
+        _genre = "wuxia"  # default
+        if genre:
+            from processors.translation_prompts import get_genre_key
+            _genre = get_genre_key(genre)
+
         self._base_system_prompt = build_system_prompt(
             suppress_list_path=suppress_list_path,
             provider=self.provider,
             target_lang=self.target_lang,
+            author=author,
+            genre=_genre,
         )
+        if author or genre:
+            logger.info(f"  Prompt: author={author}, genre={_genre} (catalog: {genre})")
 
         logger.info(
             f"Initialized wrapper: model={model}, provider={self.provider}, "
