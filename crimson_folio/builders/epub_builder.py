@@ -92,12 +92,14 @@ class EpubBuilder:
         cover_image: Optional[Path] = None,
         cover_subtitle: Optional[str] = None,
         include_source: bool = False,
+        show_source: bool = False,
     ):
         self.css_path = css_path or DEFAULT_CSS_PATH
         self.catalog_db = catalog_db or DEFAULT_CATALOG_DB
         self.cover_subtitle = cover_subtitle
         self.cover_image = cover_image
         self.include_source = include_source
+        self.show_source = show_source
         self._catalog_cache: Dict[str, Dict[str, Any]] = {}
 
     def _get_catalog(self, work_number: str) -> Dict[str, Any]:
@@ -1077,10 +1079,13 @@ class EpubBuilder:
             if self.include_source:
                 source = block.get("content", "").strip()
                 if source:
+                    if self.show_source:
+                        style = ("color:#888; font-size:0.75em; line-height:1.4; "
+                                 "margin-top:0.1em; margin-bottom:1em; font-family:serif;")
+                    else:
+                        style = "display:none;"
                     body_parts.append(
-                        f'<p class="source" style="color:#888; font-size:0.75em; '
-                        f'line-height:1.4; margin-top:0.1em; margin-bottom:1em; '
-                        f'font-family:serif;">{_escape(source)}</p>'
+                        f'<p class="source" style="{style}">{_escape(source)}</p>'
                     )
 
         if chapter_footnotes:

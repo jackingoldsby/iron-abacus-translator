@@ -285,7 +285,11 @@ Examples:
     )
     parser.add_argument(
         "--include-source", action="store_true", default=False,
-        help="Include original Chinese source text in EPUB (default: off)",
+        help="Include original Chinese source text in EPUB (default: off — no Chinese in file)",
+    )
+    parser.add_argument(
+        "--show-source", action="store_true", default=False,
+        help="Make included Chinese source visible (default: hidden via CSS). Implies --include-source.",
     )
 
     # Volume splitting (for large single-file works)
@@ -418,7 +422,8 @@ Examples:
         target_lang=args.target_lang,
         dry_run=args.dry_run,
         verbose=args.verbose,
-        include_source=args.include_source,
+        include_source=args.include_source or args.show_source,
+        show_source=args.show_source,
     )
 
     # --- Series mode ---

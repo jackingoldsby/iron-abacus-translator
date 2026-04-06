@@ -87,6 +87,7 @@ class RunnerConfig:
 
     # EPUB options
     include_source: bool = False  # Include Chinese source text in EPUB
+    show_source: bool = False     # Make source visible (vs hidden CSS)
 
     verbose: bool = False
 
@@ -2068,7 +2069,8 @@ class EpubBuildProcessor(StageProcessor):
             cover_subtitle = f"A Classic Chinese Novel in a New Translation\nVolume {vol_word}"
 
         builder = EpubBuilder(cover_image=cover_image, cover_subtitle=cover_subtitle,
-                              include_source=self.config.include_source)
+                              include_source=self.config.include_source,
+                              show_source=self.config.show_source)
         output_dir = self.config.output_dir / ctx.work_id
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = builder._english_epub_path(data, output_dir)
