@@ -890,6 +890,50 @@ def split_compounds_via_llm(data: Dict[str, Any], client=None,
 
 
 # ---------------------------------------------------------------------------
+# Heading footnote stripping
+# ---------------------------------------------------------------------------
+
+def _strip_heading_footnotes(data: Dict[str, Any]) -> int:
+    """Remove footnotes from chapter heading/title blocks.
+
+    Headings should not have footnotes in the EPUB. Identifies heading
+    blocks by type="heading" or by matching the chapter's title_chinese.
+    Strips footnotes and removes inline markers from translated_content.
+
+    Returns number of footnotes removed.
+    """
+    import re as _re
+    chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+    total_removed = 0
+
+    for chapter in chapters:
+        title_zh = (chapter.get("title_chinese") or chapter.get("title") or "").strip()
+
+        for block in chapter.get("content_blocks", []):
+            btype = block.get("type", "")
+            source = (block.get("content") or "").strip()
+            is_heading = (
+                btype == "heading"
+                or (title_zh and source == title_zh)
+                or (title_zh and source and title_zh in source and len(source) < len(title_zh) + 10)
+            )
+
+            if is_heading and block.get("footnotes"):
+                removed = len(block["footnotes"])
+                block["footnotes"] = []
+                # Strip markers from translated text
+                txt = block.get("translated_content", "")
+                if txt:
+                    block["translated_content"] = _re.sub(r'\[\d+\]', '', txt)
+                total_removed += removed
+
+    if total_removed:
+        logger.info(f"  Stripped {total_removed} footnotes from chapter headings")
+
+    return total_removed
+
+
+# ---------------------------------------------------------------------------
 # Top-level convenience
 # ---------------------------------------------------------------------------
 
@@ -909,6 +953,9 @@ def standardize_work(
     Returns:
         (data, report)
     """
+    # Phase -1: Strip footnotes from chapter heading blocks
+    _strip_heading_footnotes(data)
+
     # Phase 0: Split compound footnotes (、 separated, 與 joined)
     split_count = split_compound_footnotes(data)
 

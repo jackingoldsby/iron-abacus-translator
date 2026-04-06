@@ -965,52 +965,6 @@ class EpubBuilder:
                 else:
                     break
 
-        # Collect footnotes from heading/title blocks and render them as
-        # popup notes linked from the chapter heading itself.
-        _title_zh = (chapter.get("title_chinese") or "").strip()
-        _heading_footnotes: List[Dict[str, Any]] = []
-        for block in blocks:
-            btype = block.get("type", "")
-            bsource = (block.get("content") or "").strip()
-            is_heading = (btype == "heading"
-                          or (bsource == _title_zh and _title_zh))
-            if is_heading and block.get("footnotes"):
-                _heading_footnotes.extend(block["footnotes"])
-
-        if _heading_footnotes:
-            # Add superscript markers to heading text and register footnotes
-            for fn in _heading_footnotes:
-                fn_counter += 1
-                ideogram = fn.get("ideogram", "")
-                pinyin = fn.get("pinyin", "")
-                # Try to find the term in the heading to attach the marker
-                # Look for pinyin (without tones) or the ideogram rendering
-                marker_html = (
-                    f'<a id="fnref-ch{chapter_num}-{fn_counter}" '
-                    f'epub:type="noteref" '
-                    f'href="#fn-ch{chapter_num}-{fn_counter}">'
-                    f'[{fn_counter}]</a>'
-                )
-                fn_entry = {
-                    "key": fn_counter,
-                    "epub_id": f"fn-ch{chapter_num}-{fn_counter}",
-                    "ideogram": ideogram,
-                    "pinyin": pinyin,
-                    "explanation": fn.get("explanation", ""),
-                }
-                chapter_footnotes.append(fn_entry)
-
-            # Append markers to heading
-            marker_str = "".join(
-                f'<a id="fnref-ch{chapter_num}-{fn_entry["key"]}" '
-                f'epub:type="noteref" '
-                f'href="#fn-ch{chapter_num}-{fn_entry["key"]}">'
-                f'[{fn_entry["key"]}]</a>'
-                for fn_entry in chapter_footnotes[:len(_heading_footnotes)]
-            )
-            heading = heading.replace("</h2>", f'{marker_str}</h2>')
-            body_parts[-1] = heading  # update the heading we already appended
-
         for block_idx, block in enumerate(blocks):
             translated = block.get("translated_content", "")
             content_type = block.get("content_type", "narrative")

@@ -196,8 +196,10 @@ class CorrectionApplicator:
         # LLM sweep: remove fictional/meta/trivial footnotes
         data = self._strip_bad_footnotes(data)
 
-        # Verify every marker is on the correct word
-        data = self._verify_marker_placement(data)
+        # NOTE: _verify_marker_placement disabled — the LLM moves markers
+        # to wrong positions more often than it fixes them (e.g., kàng marker
+        # moved to "divided three ways"). cleanup_6c already has its own
+        # marker verification pass which is more conservative.
 
         # Single programmatic pass: fix punctuation, reorder, strip orphans
         data = self._finalize_footnotes(data)
