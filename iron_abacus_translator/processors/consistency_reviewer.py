@@ -813,9 +813,9 @@ class ConsistencyReviewer:
         try:
             from processors.translation_prompts import resolve_prompt_key, PROMPT_REGISTRY
 
-            metadata = data.get("metadata", {})
-            author_chinese = metadata.get("author", "")
-            category = metadata.get("category", "")
+            meta = data.get("meta", {})
+            author_chinese = meta.get("author_chinese", "")
+            category = meta.get("category_english", "")
 
             key = resolve_prompt_key(author_chinese, category)
             full_brief = PROMPT_REGISTRY.get(key, "")
