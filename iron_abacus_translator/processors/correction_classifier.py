@@ -35,7 +35,7 @@ CLASSIFIER_SYSTEM_PROMPT = """You are a translation quality classifier for Class
 
 - `footnote_consolidation` — Two adjacent footnotes explain closely related or overlapping terms that should be one footnote (e.g. 吳[3]越[4] with near-identical explanations).
 
-- `footnote_missing` — Missing footnotes for: acupoints (穴), major wuxia sects on first mention (少林/武當/崑崙/峨嵋), classical literary allusions, Thirty-Six Stratagems or Art of War references, 十八般武藝, character-count references ("seven characters") without Chinese breakdown, or legendary named weapons/artifacts (e.g. famous swords listed by name without footnotes explaining their meaning and significance). ALSO tag if: a footnote describes something as "fictional" or "a fictional sect/school"; or the text mentions a reign year (e.g. "forty-fifth year of the Qiánlóng reign") but no footnote gives the CE date conversion.
+- `footnote_missing` — Missing footnotes for: acupoints (穴), major wuxia sects on first mention (少林/武當/崑崙/峨嵋), classical literary allusions, Thirty-Six Stratagems or Art of War references, 十八般武藝, character-count references ("seven characters") without Chinese breakdown, or legendary named weapons/artifacts (e.g. famous swords listed by name without footnotes explaining their meaning and significance). ALSO tag if: a footnote describes something as "fictional" or "a fictional sect/school"; or the text mentions a reign year (e.g. "forty-fifth year of the Qiánlóng reign") but no footnote gives the CE date conversion. IMPORTANT: If the block includes a "Previously removed footnotes" section listing ideograms, those terms were INTENTIONALLY removed by the cleanup pipeline — do NOT tag `footnote_missing` for those terms.
 
 - `honorific` — English translations where italicized pinyin expected: "Senior Brother" (should be *Shīxiōng*), "Clan Leader" (should be *Bāngzhǔ*), "Village Master" (should be *Zhuāngzhǔ*), "Great Monk" (should be *Dàshī*), "Abbot" (should be *Fāngzhàng*), "Elder" when used as address (should be *Qiánbèi*), "Sect Leader" (should be *Zhǎngmén*). ANY martial/social honorific rendered as English instead of italicized pinyin is a `honorific` issue. Also: honorific pinyin that is NOT italicized — shīxiōng without asterisks (should be *Shīxiōng*), gūniáng without asterisks, dàshī without asterisks, etc. **If you see any honorific pinyin in the text without *asterisks* around it, tag `honorific`.** Also: translated surnames (熊 as "Bear," 馬 as "Horse").
 
@@ -560,6 +560,17 @@ class CorrectionClassifier:
                     f"({fn.get('pinyin', '')}) — {fn.get('explanation', '')}"
                 )
             parts.append(f"\n**Footnotes:**\n" + "\n".join(fn_lines))
+
+        # Include intentionally removed footnotes so the classifier
+        # doesn't tag footnote_missing for terms cleanup already handled
+        removed = block.get("_cleanup_removed_ideograms", [])
+        if removed:
+            unique_removed = sorted(set(removed))
+            parts.append(
+                f"\n**Previously removed footnotes (intentionally removed by cleanup — "
+                f"do NOT tag footnote_missing for these):**\n"
+                + ", ".join(unique_removed)
+            )
 
         user_msg = "\n".join(parts)
 

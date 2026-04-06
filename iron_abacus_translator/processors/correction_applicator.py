@@ -151,10 +151,19 @@ class CorrectionApplicator:
                     # Apply corrected text
                     block["translated_content"] = corrected_text
 
-                    # Merge footnotes: preserve original explanations, accept adds/removes only
+                    # Merge footnotes: preserve original explanations, accept removes only
+                    # Guard: correction must NOT add new footnotes — cleanup already
+                    # decided what to keep. Only accept reductions or unchanged.
                     if corrected_footnotes is not None:
                         original_fns = block.get("footnotes", [])
-                        block["footnotes"] = self._merge_footnotes(original_fns, corrected_footnotes)
+                        merged = self._merge_footnotes(original_fns, corrected_footnotes)
+                        if len(merged) <= len(original_fns):
+                            block["footnotes"] = merged
+                        else:
+                            logger.warning(
+                                f"  {block_id}: correction tried to ADD footnotes "
+                                f"({len(original_fns)} → {len(merged)}) — rejected"
+                            )
 
                     corrected_count += 1
 
@@ -173,6 +182,7 @@ class CorrectionApplicator:
         for chapter in chapters:
             for block in chapter.get("content_blocks", []):
                 block.pop("_correction_tags", None)
+                block.pop("_cleanup_removed_ideograms", None)
 
         # Relocate misplaced footnotes to correct blocks
         # (Safe now — footnote merge guard prevents explanation corruption)
@@ -802,6 +812,12 @@ Return ONLY the corrected text, nothing else."""
             for block in chapter.get("content_blocks", []):
                 text = block.get("translated_content", "")
                 footnotes = block.get("footnotes", [])
+
+                # 0. Verse line breaks: " / " → newline
+                # Translators use " / " for caesura in verse couplets;
+                # replace with actual line break for EPUB rendering
+                if text and " / " in text:
+                    text = text.replace(" / ", "\n")
 
                 # 1. Double spaces
                 if text and "  " in text:

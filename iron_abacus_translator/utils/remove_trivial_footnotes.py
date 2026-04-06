@@ -856,6 +856,7 @@ Return as: {"assessments": [...]}"""
                             })
                             self.result.removed_count += 1
                             self.result.duplicate_count += 1
+                            block.setdefault("_cleanup_removed_ideograms", []).append(ideogram)
                             continue
 
                         # Variant match — ask DeepSeek whether to condense or remove
@@ -894,6 +895,7 @@ Return as: {"assessments": [...]}"""
                             })
                             self.result.removed_count += 1
                             self.result.duplicate_count += 1
+                            block.setdefault("_cleanup_removed_ideograms", []).append(ideogram)
                         continue
 
                     # Triviality: remove if scored trivial
@@ -908,6 +910,8 @@ Return as: {"assessments": [...]}"""
                             "block_id": block_id,
                         })
                         self.result.removed_count += 1
+                        if ideogram:
+                            block.setdefault("_cleanup_removed_ideograms", []).append(ideogram)
                     else:
                         filtered.append(fn)
                         self.result.preserved_count += 1
@@ -972,10 +976,15 @@ KEEP if the explanation:
 - Explains a Chinese idiom (chengyu), proverb, or literary allusion — these carry cultural weight even if short
 - Describes jianghu conventions, sect hierarchies, sworn brotherhood customs, or wuxia social codes
 - Alludes to classical Chinese texts, poems, or philosophical works
+- Explains imperial examination system ranks, degrees, or procedures (舉人, 進士, 狀元, 鄉魁, 秀才, 殿試, 會試, 鄉試, etc.)
+- Describes formal banquet customs, etiquette, or social rituals (酒至三巡, 抱拳, etc.)
+- Explains traditional units of measurement, time, currency, or distance (更, 刻, 兩, 錢, etc.)
+- Describes imperial court titles, official ranks, or bureaucratic terminology (吏部, 大理寺, 知縣, etc.)
 
 DEFAULT for character names: REMOVE. Fictional dramatis personae do not need footnotes.
 DEFAULT for idioms, wuxia conventions, and historical references: KEEP. These enrich the reader's understanding of the genre and culture.
-DEFAULT for everything else: When in doubt, REMOVE.
+DEFAULT for historical/institutional terms (exams, ranks, customs, measurements): KEEP. Western readers will not know these.
+DEFAULT for descriptive/emotional content: When in doubt, REMOVE.
 
 REDUNDANCY RULE: If two footnotes in this batch explain the SAME concept and one ideogram contains the other, REMOVE the one that adds less. E.g. 師兄 ("senior martial brother") and 殷師兄 ("Senior Martial Brother Yīn") — the second just prepends a surname, so REMOVE it. But 太極 and 太極拳, or 少林 and 少林寺, explain DIFFERENT things and should both be kept if culturally valuable.
 
@@ -1103,6 +1112,8 @@ Return valid JSON as: {"verdicts": [...]}"""
                         })
                         self.result.removed_count += 1
                         removed_total += 1
+                        if ideo:
+                            block.setdefault("_cleanup_removed_ideograms", []).append(ideo)
                     else:
                         filtered.append(fn)
 
@@ -1173,6 +1184,9 @@ Return valid JSON as: {"verdicts": [...]}"""
                         })
                         self.result.removed_count += 1
                         removed_total += 1
+                        # Track for correction classifier
+                        if ideogram:
+                            block.setdefault("_cleanup_removed_ideograms", []).append(ideogram)
                     else:
                         filtered.append(fn)
 
@@ -1481,6 +1495,8 @@ Return valid JSON as: {"verdicts": [...]}"""
                         })
                         self.result.removed_count += 1
                         removed_total += 1
+                        if ideogram:
+                            block.setdefault("_cleanup_removed_ideograms", []).append(ideogram)
                     else:
                         filtered.append(fn)
 
