@@ -362,7 +362,7 @@ class ConsistencyReviewer:
     # Blocks per window. Each finding is ~400-600 output tokens, and DeepSeek
     # caps at 8192 output tokens. With ~15 findings per window worst-case,
     # 25 blocks keeps output well within budget while giving enough context.
-    WINDOW_SIZE = 25
+    WINDOW_SIZE = 15
     OVERLAP = 2  # last N blocks of previous window repeated as context
 
     def __init__(self, model: str = "deepseek-chat", provider: str = "deepseek",
