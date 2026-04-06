@@ -929,13 +929,15 @@ class MetadataProcessor(StageProcessor):
     def process(self, data, filename, ctx):
         from processors.translator import TranslationService
 
+        meta = data.get('meta', {})
         translator = TranslationService(
             model=self.config.model,
             temperature=self.config.temperature,
             llm_client=_make_translation_client(self.config),
+            author=meta.get("author_chinese"),
+            genre=meta.get("category_english"),
         )
 
-        meta = data.get('meta', {})
         items = 0
 
         if 'title_chinese' in meta and not meta.get('title_english'):
@@ -981,10 +983,13 @@ class TOCProcessor(StageProcessor):
     def process(self, data, filename, ctx):
         from processors.translator import TranslationService
 
+        meta = data.get("meta", {})
         translator = TranslationService(
             model=self.config.model,
             temperature=self.config.temperature,
             llm_client=_make_translation_client(self.config),
+            author=meta.get("author_chinese"),
+            genre=meta.get("category_english"),
         )
 
         toc = data.get('structure', {}).get('front_matter', {}).get('toc', [])
@@ -1064,10 +1069,13 @@ class HeadingsProcessor(StageProcessor):
 
         # Translate remaining headings in parallel
         if needs_translation:
+            meta = data.get("meta", {})
             translator = TranslationService(
                 model=self.config.model,
                 temperature=self.config.temperature,
                 llm_client=_make_translation_client(self.config),
+                author=meta.get("author_chinese"),
+                genre=meta.get("category_english"),
             )
 
             def _translate_heading(entry):
@@ -1183,6 +1191,10 @@ class BodyProcessor(StageProcessor):
         from utils.environment_config import get_or_create_config
         env = get_or_create_config()
 
+        _author = meta.get("author_chinese")
+        _genre = meta.get("category_english")
+        logger.info(f"  Body translation: author={_author}, catalog_genre={_genre}")
+
         wrapper = ContentBlockTranslationWrapper(
             accumulator=accumulator,
             model=self.config.model,
@@ -1192,8 +1204,8 @@ class BodyProcessor(StageProcessor):
             glossary_path=env.glossary_path,
             llm_client=_make_translation_client(self.config),
             target_lang=ctx.target_lang,
-            author=meta.get("author_chinese"),
-            genre=meta.get("category_english"),
+            author=_author,
+            genre=_genre,
         )
 
         total_blocks = 0
@@ -1319,10 +1331,13 @@ class SpecialSectionsProcessor(StageProcessor):
     def process(self, data, filename, ctx):
         from processors.translator import TranslationService
 
+        meta = data.get("meta", {})
         translator = TranslationService(
             model=self.config.model,
             temperature=self.config.temperature,
             llm_client=_make_translation_client(self.config),
+            author=meta.get("author_chinese"),
+            genre=meta.get("category_english"),
         )
 
         items = 0

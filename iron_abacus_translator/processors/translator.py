@@ -230,7 +230,9 @@ class TranslationService:
         max_retries: int = 2,
         timeout: int = 120,
         glossary_path: Optional[Path] = None,
-        llm_client=None
+        llm_client=None,
+        author: Optional[str] = None,
+        genre: Optional[str] = None,
     ):
         """
         Initialize translation service.
@@ -242,10 +244,14 @@ class TranslationService:
             timeout: Request timeout in seconds (default: 120)
             glossary_path: Path to glossary.db (default: glossary.db in project root)
             llm_client: Pre-configured LLMClient (overrides provider lookup)
+            author: Author name in Chinese (for author-specific prompts)
+            genre: Genre/category from catalog (for genre-specific prompts)
         """
         self.temperature = temperature
         self.max_retries = max_retries
         self.timeout = timeout
+        self.author = author
+        self.genre = genre
 
         # Initialize LLM client — model resolved by factory if not explicit
         self.llm = llm_client or get_llm_client(component="translator", model=model)
@@ -426,7 +432,11 @@ class TranslationService:
         try:
             response = self.llm.chat(LLMRequest(
                 messages=[
-                    {"role": "system", "content": build_system_prompt(provider=self.provider)},
+                    {"role": "system", "content": build_system_prompt(
+                        provider=self.provider,
+                        author=self.author,
+                        genre=self.genre or "wuxia",
+                    )},
                     {"role": "user", "content": user_message}
                 ],
                 model=self.model,
