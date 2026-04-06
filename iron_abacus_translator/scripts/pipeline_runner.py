@@ -888,6 +888,31 @@ class SourceLoaderProcessor(StageProcessor):
         meta = data.get("meta", {})
         logger.info(f"  Source loaded: {len(chapters)} chapters, {total_blocks} blocks")
         logger.info(f"  Work: {meta.get('title_chinese', '?')} by {meta.get('author_chinese', '?')}")
+
+        # Enrich meta from DuckDB catalog (category_english, etc.)
+        work_number = meta.get("work_number", ctx.work_id)
+        if work_number and not meta.get("category_english"):
+            try:
+                import duckdb
+                from utils.environment_config import get_or_create_config
+                env = get_or_create_config()
+                conn = duckdb.connect(str(env.catalog_path), read_only=True)
+                row = conn.execute(
+                    "SELECT category_english, author_chinese, title_chinese "
+                    "FROM works WHERE work_number = ?", [work_number]
+                ).fetchone()
+                conn.close()
+                if row:
+                    if row[0]:
+                        meta["category_english"] = row[0]
+                    if row[1] and not meta.get("author_chinese"):
+                        meta["author_chinese"] = row[1]
+                    if row[2] and not meta.get("title_chinese"):
+                        meta["title_chinese"] = row[2]
+                    logger.info(f"  Catalog: category={meta.get('category_english', '?')}")
+            except Exception as e:
+                logger.debug(f"  Catalog enrichment skipped: {e}")
+
         return data
 
 
