@@ -219,6 +219,16 @@ def create_v2_pipeline_dag() -> DAGDefinition:
         },
     ))
 
+    dag.add_node(DAGNode(
+        id="term_consistency",
+        display_name="Term Consistency",
+        node_type=NodeType.TASK,
+        metadata={
+            "icon": "repeat", "color": "#00ACC1",
+            "description": "Detect and standardize inconsistent term renderings (no LLM)",
+        },
+    ))
+
     # --- Edges ---
     # Source loader fans out to parallel translation stages
     dag.add_edge("source_loader", "metadata", EdgeType.DEPENDENCY)
@@ -236,8 +246,9 @@ def create_v2_pipeline_dag() -> DAGDefinition:
     # Quality gate -> special sections
     dag.add_edge("qg_footnote_integrity", "special", EdgeType.DEPENDENCY)
 
-    # Special -> cleanup chain (sequential)
-    dag.add_edge("special", "cleanup_6a", EdgeType.DEPENDENCY)
+    # Special -> term consistency -> cleanup chain (sequential)
+    dag.add_edge("special", "term_consistency", EdgeType.DEPENDENCY)
+    dag.add_edge("term_consistency", "cleanup_6a", EdgeType.DEPENDENCY)
     dag.add_edge("cleanup_6a", "cleanup_6b", EdgeType.DEPENDENCY)
     dag.add_edge("cleanup_6b", "cleanup_6c", EdgeType.DEPENDENCY)
 

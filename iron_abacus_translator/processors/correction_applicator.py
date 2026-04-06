@@ -67,7 +67,9 @@ class CorrectionApplicator:
             )
         return self._client
 
-    def correct_work(self, data: dict) -> dict:
+    def correct_work(self, data: dict,
+                     prior_seen_ideograms: Optional[set] = None,
+                     prior_seen_pinyin: Optional[set] = None) -> dict:
         """Correct all tagged blocks in the work.
 
         Reads _correction_tags from each block. Skips blocks tagged 'clean'.
@@ -177,7 +179,9 @@ class CorrectionApplicator:
         data = self._relocate_footnotes(data)
 
         # Dedup footnotes: keep only first occurrence of each ideogram across the work
-        data = self._dedup_footnotes(data)
+        data = self._dedup_footnotes(data,
+                                     prior_seen_ideograms=prior_seen_ideograms,
+                                     prior_seen_pinyin=prior_seen_pinyin)
 
         # LLM sweep: remove fictional/meta/trivial footnotes
         data = self._strip_bad_footnotes(data)
@@ -328,12 +332,19 @@ class CorrectionApplicator:
         return applied
 
     @staticmethod
-    def _dedup_footnotes(data: dict) -> dict:
+    def _dedup_footnotes(data: dict,
+                         prior_seen_ideograms: Optional[set] = None,
+                         prior_seen_pinyin: Optional[set] = None) -> dict:
         """Remove duplicate footnotes across the work — keep first occurrence only.
 
         When the correction stage adds footnotes (e.g. *chǐ* footnotes on
         multiple blocks), only the first occurrence should have the footnote.
         Subsequent occurrences keep the marker text but lose the footnote entry.
+
+        Args:
+            data: Full work JSON
+            prior_seen_ideograms: Ideograms from prior volumes (cross-volume dedup)
+            prior_seen_pinyin: Pinyin from prior volumes (cross-volume dedup)
         """
         # Load suppress list — any footnote on a suppressed term gets stripped
         try:
@@ -342,8 +353,8 @@ class CorrectionApplicator:
         except Exception:
             suppressed = set()
 
-        seen_ideograms = set()
-        seen_pinyin = set()
+        seen_ideograms = set(prior_seen_ideograms) if prior_seen_ideograms else set()
+        seen_pinyin = set(prior_seen_pinyin) if prior_seen_pinyin else set()
         removed = 0
 
         chapters = data.get("structure", {}).get("body", {}).get("chapters", [])

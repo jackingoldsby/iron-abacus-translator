@@ -127,6 +127,44 @@ class TrivialityResult(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Cross-volume footnote manifest
+# ---------------------------------------------------------------------------
+
+def extract_footnote_manifest(data: Dict[str, Any], work_id: str, volume: str) -> Dict[str, Any]:
+    """Extract surviving ideograms/pinyin from processed data for cross-volume dedup.
+
+    After footnote cleanup finishes for a volume, call this to build a manifest
+    of all surviving footnote terms.  When processing the next volume, pass this
+    manifest to seed the dedup sets so terms explained in earlier volumes are
+    not re-footnoted.
+
+    Returns:
+        Manifest dict with surviving_ideograms (ideogram→explanation) and
+        surviving_pinyin (list of pinyin strings).
+    """
+    chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+    surviving_ideograms: Dict[str, str] = {}
+    surviving_pinyin: List[str] = []
+
+    for chapter in chapters:
+        for block in chapter.get("content_blocks", []):
+            for fn in block.get("footnotes", []):
+                ideo = fn.get("ideogram", "")
+                if ideo and ideo not in surviving_ideograms:
+                    surviving_ideograms[ideo] = fn.get("explanation", "")[:200]
+                pinyin = fn.get("pinyin", "").lower().strip()
+                if pinyin and pinyin not in surviving_pinyin:
+                    surviving_pinyin.append(pinyin)
+
+    return {
+        "work_id": work_id,
+        "volume": volume,
+        "surviving_ideograms": surviving_ideograms,
+        "surviving_pinyin": surviving_pinyin,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
 
@@ -580,6 +618,7 @@ Return as: {"assessments": [...]}"""
         self,
         data: Dict[str, Any],
         scores: Dict[str, TrivialityScore],
+        prior_seen_ideograms: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """
         Remove scored-trivial footnotes, deduplicate by ideogram across
@@ -592,6 +631,9 @@ Return as: {"assessments": [...]}"""
         Args:
             data: Full work JSON
             scores: Triviality scores keyed by "block_id:key"
+            prior_seen_ideograms: Ideogram→explanation dict from prior volumes.
+                When set, these ideograms are treated as already-seen so they
+                won't be re-footnoted in this volume.
 
         Returns:
             Modified JSON data
@@ -599,7 +641,12 @@ Return as: {"assessments": [...]}"""
         chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
 
         # Track ideograms across the entire work for deduplication
+        # Seed from prior volumes if doing cross-volume dedup
         seen_ideograms: Dict[str, str] = {}  # ideogram → explanation
+        if prior_seen_ideograms:
+            seen_ideograms.update(prior_seen_ideograms)
+            logger.info(f"Cross-volume dedup: seeded {len(prior_seen_ideograms)} "
+                        f"ideograms from prior volume(s)")
         # Cache LLM-confirmed variant decisions to avoid redundant API calls
         _variant_cache: Dict[Tuple[str, str], bool] = {}
         # Initialize DeepSeek client for variant condensation

@@ -81,6 +81,10 @@ class RunnerConfig:
     # Target language (ISO 639-1 code)
     target_lang: str = "en"
 
+    # Cross-volume footnote dedup: manifests from prior volumes
+    # Each manifest is a dict with "surviving_ideograms" and "surviving_pinyin"
+    prior_volume_manifests: Optional[List[Dict[str, Any]]] = None
+
     verbose: bool = False
 
     def __post_init__(self):
@@ -503,6 +507,10 @@ class PipelineRunner:
             "plan": plan,
             "skipped": skipped,
         }
+
+        # Include footnote manifest for cross-volume dedup
+        if hasattr(ctx, '_footnote_manifest'):
+            result["footnote_manifest"] = ctx._footnote_manifest
 
         # Final summary table
         self._log_final_summary(stage_results, total_duration, result["success"])
@@ -1425,7 +1433,18 @@ class TrivialityCleanupProcessor(StageProcessor):
 
         if remaining_fns:
             scores = remover.score_all_footnotes(remaining_fns)
-            data = remover.remove_trivial_footnotes(data, scores)
+
+            # Build merged prior-volume ideograms for cross-volume dedup
+            prior_seen = None
+            if self.config.prior_volume_manifests:
+                prior_seen = {}
+                for m in self.config.prior_volume_manifests:
+                    prior_seen.update(m.get("surviving_ideograms", {}))
+                logger.info(f"  Cross-volume dedup: {len(prior_seen)} ideograms from "
+                            f"{len(self.config.prior_volume_manifests)} prior volume(s)")
+
+            data = remover.remove_trivial_footnotes(data, scores,
+                                                     prior_seen_ideograms=prior_seen)
             phase2_removed = remover.result.removed_count
             logger.info(f"  Phase 2 removed {phase2_removed} via AI scoring")
 
@@ -1538,6 +1557,23 @@ class DensityValidationProcessor(StageProcessor):
         if not validation["passed"]:
             for err in validation["errors"][:5]:
                 logger.warning(f"    {err}")
+
+        # Extract cross-volume footnote manifest and stash on context
+        from utils.remove_trivial_footnotes import extract_footnote_manifest
+        manifest = extract_footnote_manifest(data, ctx.work_id, ctx.volume or "")
+        ctx._footnote_manifest = manifest
+        logger.info(f"  Footnote manifest: {len(manifest['surviving_ideograms'])} ideograms, "
+                    f"{len(manifest['surviving_pinyin'])} pinyin terms")
+
+        # Persist manifest to disk for resume across interrupted multi-volume runs
+        manifest_dir = self.config.wip_dir / "manifests"
+        manifest_dir.mkdir(parents=True, exist_ok=True)
+        vol_label = ctx.volume or "single"
+        manifest_path = manifest_dir / f"{ctx.work_id}_{vol_label}_footnote_manifest.json"
+        if not self.config.dry_run:
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                json.dump(manifest, f, ensure_ascii=False, indent=2)
+            logger.info(f"  Manifest saved: {manifest_path}")
 
         return data
 
@@ -1688,7 +1724,20 @@ class CorrectionApplyProcessor(StageProcessor):
             provider=self.config.cleanup_provider or "deepseek",
             max_workers=min(50, self.config.max_workers * 5),
         )
-        data = applicator.correct_work(data)
+
+        # Build cross-volume dedup sets from prior manifests
+        prior_ideo = None
+        prior_pinyin = None
+        if self.config.prior_volume_manifests:
+            prior_ideo = set()
+            prior_pinyin = set()
+            for m in self.config.prior_volume_manifests:
+                prior_ideo.update(m.get("surviving_ideograms", {}).keys())
+                prior_pinyin.update(m.get("surviving_pinyin", []))
+
+        data = applicator.correct_work(data,
+                                        prior_seen_ideograms=prior_ideo,
+                                        prior_seen_pinyin=prior_pinyin)
         return data
 
 
@@ -2005,6 +2054,62 @@ class SendKindleProcessor(StageProcessor):
         return data
 
 
+class TermConsistencyProcessor(StageProcessor):
+    """Detect and fix inconsistent term renderings across the work.
+
+    Phase 0: Programmatic split of compound footnotes (、 and 與 separators)
+    Phase 0.5: DeepSeek split of ambiguous compounds (6+ char ideograms)
+    Phase 1: Footnote-based inconsistency detection
+    Phase 2: Glossary-driven variant standardization
+    """
+
+    def __init__(self, config: RunnerConfig):
+        self.config = config
+
+    @property
+    def stage_id(self):
+        return "term_consistency"
+
+    def process(self, data, filename, ctx):
+        from utils.term_consistency import standardize_work
+
+        # Load glossary for authoritative renderings
+        glossary = None
+        try:
+            from utils.glossary import TranslationGlossary
+            glossary = TranslationGlossary()
+        except Exception as e:
+            logger.warning(f"  Could not load glossary (proceeding without): {e}")
+
+        # DeepSeek client for compound footnote splitting
+        deepseek_client = None
+        try:
+            from utils.clients.llm_config import get_llm_client
+            deepseek_client = get_llm_client(provider="deepseek")
+        except Exception as e:
+            logger.warning(f"  Could not initialize DeepSeek for compound splitting: {e}")
+
+        data, report = standardize_work(data, glossary=glossary, llm_client=deepseek_client)
+
+        logger.info(f"  Term consistency: {report['inconsistencies_found']} inconsistencies, "
+                    f"{report['replacements_made']} replacements")
+
+        if report["glossary_candidates"]:
+            logger.info(f"  Glossary candidates (not yet in DB):")
+            for cand in report["glossary_candidates"]:
+                logger.info(f"    {cand['ideogram']} → \"{cand['recommended_form']}\"")
+
+        # Save report to WIP
+        wip_dir = self.config.get_node_wip_dir("term_consistency")
+        report_path = wip_dir / f"{filename}_consistency_report.json"
+        if not self.config.dry_run:
+            with open(report_path, 'w', encoding='utf-8') as f:
+                json.dump(report, f, ensure_ascii=False, indent=2)
+            logger.info(f"  Report saved: {report_path}")
+
+        return data
+
+
 # ---------------------------------------------------------------------------
 # Factory: build_pipeline
 # ---------------------------------------------------------------------------
@@ -2054,6 +2159,7 @@ def build_pipeline(config: RunnerConfig,
     runner.register_processor("qg_post_cleanup", PostCleanupGate())
     runner.register_processor("correction_classify", CorrectionClassifyProcessor(config))
     runner.register_processor("correction_apply", CorrectionApplyProcessor(config))
+    runner.register_processor("term_consistency", TermConsistencyProcessor(config))
     runner.register_processor("wiki_enrich", WikiEnrichmentProcessor(config))
     runner.register_processor("validation", ValidationProcessor(config))
     runner.register_processor("review", ConsistencyReviewProcessor(config))
