@@ -283,6 +283,10 @@ Examples:
         "--kindle", action="store_true", default=False,
         help="Send EPUB to Kindle after build (default: off)",
     )
+    parser.add_argument(
+        "--include-source", action="store_true", default=False,
+        help="Include original Chinese source text in EPUB (default: off)",
+    )
 
     # Volume splitting (for large single-file works)
     split_group = parser.add_mutually_exclusive_group()
@@ -414,6 +418,7 @@ Examples:
         target_lang=args.target_lang,
         dry_run=args.dry_run,
         verbose=args.verbose,
+        include_source=args.include_source,
     )
 
     # --- Series mode ---

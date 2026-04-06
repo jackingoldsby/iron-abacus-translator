@@ -85,6 +85,9 @@ class RunnerConfig:
     # Each manifest is a dict with "surviving_ideograms" and "surviving_pinyin"
     prior_volume_manifests: Optional[List[Dict[str, Any]]] = None
 
+    # EPUB options
+    include_source: bool = False  # Include Chinese source text in EPUB
+
     verbose: bool = False
 
     def __post_init__(self):
@@ -2064,7 +2067,8 @@ class EpubBuildProcessor(StageProcessor):
                 int(volume) if str(volume).isdigit() else 0, str(volume))
             cover_subtitle = f"A Classic Chinese Novel in a New Translation\nVolume {vol_word}"
 
-        builder = EpubBuilder(cover_image=cover_image, cover_subtitle=cover_subtitle)
+        builder = EpubBuilder(cover_image=cover_image, cover_subtitle=cover_subtitle,
+                              include_source=self.config.include_source)
         output_dir = self.config.output_dir / ctx.work_id
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = builder._english_epub_path(data, output_dir)
