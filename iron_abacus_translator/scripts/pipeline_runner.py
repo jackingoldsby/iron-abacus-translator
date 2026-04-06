@@ -395,6 +395,28 @@ class PipelineRunner:
             kept = len(data["structure"]["body"]["chapters"])
             logger.info(f"  Chapter range [{cs}-{ce or 'end'}]: kept {kept} of {total_ch}")
 
+            # Slice TOC to match chapter range
+            toc = data.get("structure", {}).get("front_matter", {}).get("table_of_contents", {})
+            if toc:
+                toc_chapters = toc.get("chapters", [])
+                if toc_chapters:
+                    ce_final = ce if ce > 0 else total_ch
+                    filtered_toc = [
+                        entry for entry in toc_chapters
+                        if cs <= entry.get("chapter_number", 0) <= ce_final
+                    ]
+                    if filtered_toc:
+                        toc["chapters"] = filtered_toc
+                        logger.info(f"  TOC sliced to {len(filtered_toc)} entries")
+
+        # Inject split volume metadata (set by --split in CLI)
+        if hasattr(self.config, '_split_volume_num') and self.config._split_volume_num:
+            meta = data.setdefault("meta", {})
+            meta["volume"] = str(self.config._split_volume_num)
+            meta["total_volumes"] = self.config._split_total_volumes
+            meta["split_volume"] = True
+            logger.info(f"  Split volume: {self.config._split_volume_num} of {self.config._split_total_volumes}")
+
         # Apply block range (1-based inclusive)
         if block_range:
             bs, be = block_range
@@ -491,7 +513,14 @@ class PipelineRunner:
             if self.config.target_lang != "en":
                 output_path = output_path / self.config.target_lang
             output_path.mkdir(parents=True, exist_ok=True)
-            final_path = output_path / f"translated_{filename}.json"
+
+            # Volume-aware filename for split works
+            split_vol = data.get("meta", {}).get("split_volume")
+            vol_num = data.get("meta", {}).get("volume", "")
+            if split_vol and vol_num:
+                final_path = output_path / f"translated_{filename}_vol{vol_num}.json"
+            else:
+                final_path = output_path / f"translated_{filename}.json"
             with open(final_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             logger.info(f"\nFinal output: {final_path}")
@@ -1568,7 +1597,12 @@ class DensityValidationProcessor(StageProcessor):
         # Persist manifest to disk for resume across interrupted multi-volume runs
         manifest_dir = self.config.wip_dir / "manifests"
         manifest_dir.mkdir(parents=True, exist_ok=True)
-        vol_label = ctx.volume or "single"
+        # Use split volume label if this is a split work, otherwise volume letter
+        split_vol = data.get("meta", {}).get("split_volume")
+        if split_vol:
+            vol_label = f"split{data['meta']['volume']}"
+        else:
+            vol_label = ctx.volume or "single"
         manifest_path = manifest_dir / f"{ctx.work_id}_{vol_label}_footnote_manifest.json"
         if not self.config.dry_run:
             with open(manifest_path, "w", encoding="utf-8") as f:
