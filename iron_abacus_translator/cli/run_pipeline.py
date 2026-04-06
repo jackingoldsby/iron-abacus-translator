@@ -252,7 +252,7 @@ Examples:
     # Provider / model settings
     parser.add_argument(
         "--provider",
-        help="Translation provider (e.g. deepseek, openai)",
+        help="Translation provider (required for runs: deepseek, openai)",
     )
     parser.add_argument(
         "--model", "-m",
@@ -267,8 +267,8 @@ Examples:
         help="Provider for cleanup model (e.g. openai, deepseek). Defaults to CLEANUP_LLM_PROVIDER or LLM_PROVIDER.",
     )
     parser.add_argument(
-        "--workers", "-w", type=int, default=5,
-        help="Max parallel workers (default: 5)",
+        "--workers", "-w", type=int, default=50,
+        help="Max parallel workers (default: 50)",
     )
     parser.add_argument(
         "--target-lang", default="en",
@@ -387,6 +387,10 @@ Examples:
         show_status(args.work_id, args.detail, db)
         db.close()
         return 0
+
+    # Require --provider for actual pipeline runs
+    if not args.provider:
+        parser.error("--provider is required (e.g. --provider deepseek)")
 
     db = ProgressDB(db_path)
 

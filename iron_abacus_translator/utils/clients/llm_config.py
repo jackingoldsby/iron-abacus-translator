@@ -92,7 +92,7 @@ def get_llm_client(
         env_key = f"{component.upper()}_LLM_PROVIDER"
         resolved_provider = os.getenv(env_key)
     if resolved_provider is None:
-        resolved_provider = os.getenv("LLM_PROVIDER", "openai")
+        resolved_provider = os.getenv("LLM_PROVIDER", "deepseek")
 
     resolved_provider = resolved_provider.lower()
 
