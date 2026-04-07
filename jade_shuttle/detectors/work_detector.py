@@ -1,16 +1,17 @@
 """Work boundary detection — 4 strategies for different TOC structures."""
 
-from typing import List, Tuple
+import logging
+from typing import Dict, List, Tuple
 
 from ebooklib import epub
 
-from config.skip_patterns import is_chapter_title, is_skip_title
+from config.skip_patterns import is_chapter_title, is_separator_content, is_skip_title
 from detectors.chapter_splitter import (
     extract_chapters_from_leaves,
     split_blocks_into_chapters,
 )
 from detectors.toc_detector import get_toc_leaves, is_generic_volume_title
-from models.core import DetectedWork
+from models.core import Chapter, DetectedWork
 from transformers.encoding import S2T
 from transformers.html_to_blocks import (
     build_spine_index,
@@ -18,6 +19,139 @@ from transformers.html_to_blocks import (
     get_multi_file_content,
     html_to_blocks,
 )
+
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Spine-orphan detection and merging
+# ---------------------------------------------------------------------------
+
+def _merge_spine_orphans(
+    book: epub.EpubBook,
+    chapters: List[Chapter],
+    toc_leaves: list,
+) -> List[Chapter]:
+    """Find spine files not covered by TOC leaves and merge into preceding chapters.
+
+    After TOC-based extraction, some EPUB files may be in the spine (reading
+    order) but not in the TOC. These are typically:
+    - Section separator files (☆☆☆☆☆☆) with content after the separator
+    - Multi-part chapters split across files
+    - Orphaned content files
+
+    This function finds those gaps and appends their content blocks to the
+    preceding chapter.
+
+    Args:
+        book: The parsed EPUB book.
+        chapters: Already-extracted chapters (modified in place).
+        toc_leaves: The TOC leaf items used during extraction.
+
+    Returns:
+        The chapters list (same object, possibly with additional blocks).
+    """
+    if not chapters or not toc_leaves:
+        return chapters
+
+    spine_hrefs = build_spine_index(book)
+    if not spine_hrefs:
+        return chapters
+
+    # Build set of hrefs covered by TOC leaves
+    toc_hrefs = set()
+    for leaf in toc_leaves:
+        if hasattr(leaf, 'href') and leaf.href:
+            toc_hrefs.add(leaf.href.split('#')[0])
+
+    # Build ordered list of (toc_href, chapter_index) for mapping
+    toc_href_to_chapter: Dict[str, int] = {}
+    for i, leaf in enumerate(toc_leaves):
+        if hasattr(leaf, 'href') and leaf.href:
+            base = leaf.href.split('#')[0]
+            if base not in toc_href_to_chapter and i < len(chapters):
+                toc_href_to_chapter[base] = i
+
+    # Scan spine for orphaned files
+    total_merged = 0
+    last_chapter_idx = -1
+
+    for href in spine_hrefs:
+        if href in toc_hrefs:
+            # This spine item is covered by a TOC entry — update the "last chapter"
+            if href in toc_href_to_chapter:
+                last_chapter_idx = toc_href_to_chapter[href]
+            continue
+
+        # This spine item is NOT in the TOC — it's an orphan
+        if last_chapter_idx < 0:
+            continue  # orphan before any chapter — skip (likely cover/front matter)
+
+        # Get the orphan's content
+        content = get_item_content(book, href)
+        if not content:
+            continue
+
+        blocks = html_to_blocks(content)
+        if not blocks:
+            continue
+
+        # Strip leading separator lines (☆☆☆, ※※※, etc.)
+        while blocks and is_separator_content(blocks[0].get("content", "")):
+            blocks.pop(0)
+
+        if not blocks:
+            continue  # was only a separator, no real content
+
+        # Check if content is substantial (>100 chars)
+        total_chars = sum(len(b.get("content", "")) for b in blocks)
+        if total_chars < 100:
+            continue  # too small — probably a separator page or footer
+
+        # Merge into the preceding chapter
+        chapters[last_chapter_idx].content.extend(blocks)
+        total_merged += 1
+        logger.info(
+            f"  Merged orphaned spine file '{href}' ({total_chars} chars, "
+            f"{len(blocks)} blocks) into chapter {last_chapter_idx + 1}"
+        )
+
+    if total_merged:
+        logger.info(f"  Total spine orphans merged: {total_merged}")
+
+    return chapters
+
+
+def _merge_separator_chapters(chapters: List[Chapter]) -> List[Chapter]:
+    """Merge chapters whose title is a decorative separator into the preceding chapter.
+
+    Some EPUBs have section dividers (☆☆☆☆☆☆, ※※※, etc.) as separate
+    TOC entries. These aren't real chapters — their content belongs to
+    the preceding chapter.
+    """
+    if len(chapters) <= 1:
+        return chapters
+
+    merged = []
+    for ch in chapters:
+        title = ch.title.strip() if ch.title else ""
+        if merged and is_separator_content(title):
+            # Strip separator lines from content, merge rest into preceding chapter
+            content_blocks = [
+                b for b in ch.content
+                if not is_separator_content(b.get("content", ""))
+            ]
+            if content_blocks:
+                merged[-1].content.extend(content_blocks)
+                total_chars = sum(len(b.get("content", "")) for b in content_blocks)
+                logger.info(
+                    f"  Merged separator chapter '{title}' ({total_chars} chars, "
+                    f"{len(content_blocks)} blocks) into '{merged[-1].title}'"
+                )
+        else:
+            merged.append(ch)
+
+    return merged
 
 
 def _unwrap_single_child_sections(section_title: str, children: list) -> Tuple[str, list]:
@@ -75,6 +209,8 @@ def _extract_work_from_section(
                 all_leaves = _collect_leaves_recursive(vol_children)
                 chapters = extract_chapters_from_leaves(book, all_leaves)
                 if chapters:
+                    chapters = _merge_spine_orphans(book, chapters, all_leaves)
+                    chapters = _merge_separator_chapters(chapters)
                     title_simp = vol_title
                     title_trad = S2T.convert(title_simp)
                     detected = DetectedWork(
@@ -91,6 +227,8 @@ def _extract_work_from_section(
         chapter_leaves = [c for c in children if not isinstance(c, tuple)]
         chapters = extract_chapters_from_leaves(book, chapter_leaves)
         if chapters:
+            chapters = _merge_spine_orphans(book, chapters, chapter_leaves)
+            chapters = _merge_separator_chapters(chapters)
             title_simp = work_title
             title_trad = S2T.convert(title_simp)
             detected = DetectedWork(
@@ -162,6 +300,8 @@ def extract_works_section_per_book(book: epub.EpubBook, author_simp: str) -> Lis
 
         chapters = extract_chapters_from_leaves(book, chapter_leaves)
         if chapters:
+            chapters = _merge_spine_orphans(book, chapters, chapter_leaves)
+            chapters = _merge_separator_chapters(chapters)
             title_simp = work_title
             title_trad = S2T.convert(title_simp)
             detected = DetectedWork(
@@ -198,6 +338,10 @@ def extract_works_flat_chapters(book: epub.EpubBook, author_simp: str) -> List[D
     chapters = extract_chapters_from_leaves(book, chapter_leaves)
     if not chapters:
         return []
+
+    # Merge spine-orphaned content into preceding chapters
+    chapters = _merge_spine_orphans(book, chapters, chapter_leaves)
+    chapters = _merge_separator_chapters(chapters)
 
     title_trad = S2T.convert(work_title)
     detected = DetectedWork(
@@ -271,6 +415,8 @@ def extract_works_flat_interleaved(book: epub.EpubBook, author_simp: str) -> Lis
         if current_work_title and current_chapters:
             chapters = extract_chapters_from_leaves(book, current_chapters)
             if chapters:
+                chapters = _merge_spine_orphans(book, chapters, current_chapters)
+                chapters = _merge_separator_chapters(chapters)
                 title_simp = current_work_title
                 title_trad = S2T.convert(title_simp)
                 detected = DetectedWork(

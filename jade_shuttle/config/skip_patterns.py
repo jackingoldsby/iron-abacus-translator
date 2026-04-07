@@ -27,3 +27,15 @@ def is_chapter_title(title: str) -> bool:
 def is_skip_title(title: str) -> bool:
     """Check if title should be skipped (front/back matter)."""
     return title.strip() in SKIP_TITLES
+
+
+# Decorative section separators — these mark divisions WITHIN a chapter,
+# not chapter boundaries. Content after them belongs to the preceding chapter.
+SEPARATOR_RE = re.compile(
+    r'^[\s☆★※＊\*·•◇◆○●△▲▽▼■□▪▫─━═\-_=~.。　]+$'
+)
+
+
+def is_separator_content(text: str) -> bool:
+    """Check if text is purely a decorative separator (stars, dots, dashes, etc.)."""
+    return bool(SEPARATOR_RE.match(text.strip())) if text.strip() else False
