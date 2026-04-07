@@ -1,10 +1,38 @@
 """HTML content to block conversion for EPUB parsing."""
 
+import re
 from typing import Dict, List
 
 import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
+
+# Full-width space indent — Chinese paragraph separator in many EPUBs
+_INDENT_SPLIT_RE = re.compile(r'(?<=。|！|？|」|）|…)　　')
+# Minimum chars for a block to be considered "monolithic" and worth splitting
+_SPLIT_THRESHOLD = 2000
+
+
+def _split_monolithic_text(text: str) -> List[str]:
+    """Split a large text block into paragraphs using Chinese indent markers.
+
+    Some EPUBs (especially Haodoo) store entire chapters in a single <div>
+    with full-width space indents (　　) between paragraphs. This splits
+    them back into individual paragraphs.
+    """
+    if len(text) < _SPLIT_THRESHOLD:
+        return [text]
+
+    # Split on full-width double-space indent preceded by sentence-ending punctuation
+    parts = _INDENT_SPLIT_RE.split(text)
+    if len(parts) <= 1:
+        # Try simpler split: just on 　　 anywhere
+        parts = [p.strip() for p in text.split('　　') if p.strip()]
+
+    if len(parts) <= 1:
+        return [text]
+
+    return [p.strip() for p in parts if p.strip()]
 
 
 def html_to_blocks(html_content: bytes, strip_nav: bool = True) -> List[Dict]:
@@ -16,14 +44,24 @@ def html_to_blocks(html_content: bytes, strip_nav: bool = True) -> List[Dict]:
 
     blocks = []
     for el in body.find_all(["p", "h1", "h2", "h3", "h4", "h5", "h6", "div", "blockquote"]):
-        text = el.get_text(strip=True)
-        if not text:
+        # Use get_text without stripping to preserve full-width indent markers
+        text = el.get_text()
+        if not text or not text.strip():
             continue
         tag = el.name
         # Collapse div to p for pipeline compatibility
         if tag == "div":
             tag = "p"
-        blocks.append({"tag": tag, "content": text})
+
+        # Split monolithic text blocks into paragraphs
+        if tag == "p" and len(text) >= _SPLIT_THRESHOLD:
+            paragraphs = _split_monolithic_text(text)
+            for para in paragraphs:
+                clean = para.strip()
+                if clean:
+                    blocks.append({"tag": tag, "content": clean})
+        else:
+            blocks.append({"tag": tag, "content": text.strip()})
 
     return blocks
 
