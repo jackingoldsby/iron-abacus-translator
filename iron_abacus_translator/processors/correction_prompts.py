@@ -44,6 +44,7 @@ CORRECTION_CATEGORIES = {
     "gang_not_clan": "'Gang' used for 幫 organizations — should be 'Clan'",
     "empty_footnote": "Footnote with blank or trivially short explanation",
     "double_space": "Double spaces in body text (cleanup artifact)",
+    "gender": "Gender-neutral Chinese (眾人, 二人, 諸位, etc.) translated with masculine English (men, fellows, gentlemen)",
 }
 
 # =============================================================================
@@ -51,6 +52,24 @@ CORRECTION_CATEGORIES = {
 # =============================================================================
 
 CORRECTION_PROMPTS = {}
+
+CORRECTION_PROMPTS["gender"] = """**GENDER CORRECTION:**
+The source Chinese uses gender-neutral terms for groups of people. Check whether the English translation has unnecessarily defaulted to masculine.
+
+Common gender-neutral Chinese → correct English:
+- 二人 / 三人 / 眾人 → "the two of them", "the three", "the assembled company", "all present" (NOT "two men", "three men", "the men")
+- 諸位 → "all of you", "everyone present" (NOT "gentlemen" unless the speaker is specifically addressing men)
+- 大家 → "everyone" (NOT "all men")
+- 來人 → "the newcomer", "the arrival" (NOT "the man")
+- 旁人 → "bystanders", "onlookers" (NOT "the men nearby")
+
+DO NOT change:
+- Deliberately masculine expressions: "no true man", "be a man", "men of the jianghu"
+- Cases where context clearly establishes all parties are male (e.g., a scene with only named male characters)
+- Honorifics and forms of address that carry gendered meaning (大俠, 女俠, 夫人, etc.)
+- Pronouns (he/she) that correctly reflect the Chinese 他/她
+
+Only change the unnecessarily gendered collective nouns. Preserve the register and style of the surrounding prose."""
 
 CORRECTION_PROMPTS["measurement"] = """**MEASUREMENT CORRECTION:**
 Chinese units of measurement must be rendered as italicized pinyin with *asterisks*, NEVER converted to Western units. Footnote on first occurrence with the approximate modern equivalent.

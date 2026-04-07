@@ -183,6 +183,7 @@ class CorrectionApplicator:
             for block in chapter.get("content_blocks", []):
                 block.pop("_correction_tags", None)
                 block.pop("_cleanup_removed_ideograms", None)
+                block.pop("_gender_review_needed", None)
 
         # Relocate misplaced footnotes to correct blocks
         # (Safe now — footnote merge guard prevents explanation corruption)

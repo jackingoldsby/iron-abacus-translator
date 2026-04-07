@@ -603,4 +603,10 @@ class CorrectionClassifier:
         from processors.correction_prompts import CORRECTION_CATEGORIES
         valid_tags = [t for t in tags if t in CORRECTION_CATEGORIES or t == "clean"]
 
+        # Add gender tag if programmatically flagged by term_consistency
+        if block.get("_gender_review_needed") and "gender" not in valid_tags:
+            valid_tags.append("gender")
+            if "clean" in valid_tags:
+                valid_tags.remove("clean")
+
         return valid_tags if valid_tags else ["clean"]

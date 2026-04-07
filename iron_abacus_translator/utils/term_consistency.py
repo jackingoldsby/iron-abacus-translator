@@ -890,6 +890,102 @@ def split_compounds_via_llm(data: Dict[str, Any], client=None,
 
 
 # ---------------------------------------------------------------------------
+# Gender check: flag masculine defaults for LLM review
+# ---------------------------------------------------------------------------
+
+# Chinese terms that are gender-neutral but often mistranslated as masculine
+_GENDER_NEUTRAL_ZH = re.compile(
+    r'[二三四五六七八九十百千]人'   # N人 (N people, not N men)
+    r'|眾人'                        # the crowd / all present
+    r'|二位'                        # two persons
+    r'|三位'                        # three persons
+    r'|諸位'                        # everyone / all of you
+    r'|大家'                        # everyone
+    r'|一人'                        # one person
+    r'|來人'                        # the arrival / newcomer
+    r'|何人'                        # who / what person
+    r'|此人'                        # this person
+    r'|那人'                        # that person
+    r'|旁人'                        # bystanders
+    r'|別人'                        # others
+    r'|行人'                        # travelers / passersby
+)
+
+# English masculine terms that should be gender-neutral unless context proves otherwise
+_MASCULINE_EN = re.compile(
+    r'\b('
+    r'(?:two|three|four|five|six|seven|eight|nine|ten)\s+men'
+    r'|the men|both men|all men|these men|those men|his men'
+    r'|fellows|the fellows|these fellows'
+    r'|gentlemen'  # sometimes correct as address, but flag for review
+    r')\b',
+    re.IGNORECASE,
+)
+
+# Phrases where masculine is intentional — don't flag
+_MASCULINE_EXEMPT = re.compile(
+    r'\b('
+    r'no true man|a real man|be a man|great man|man of'
+    r'|holy man|old man|young man|dead man|blind man'
+    r'|man\'s? (heart|courage|honor|word|duty|name|life)'
+    r'|men of (valor|worth|the jianghu|the greenwood|letters)'
+    r'|good men and true'
+    r')\b',
+    re.IGNORECASE,
+)
+
+
+def flag_gendered_translations(data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Flag blocks where gender-neutral Chinese is translated with masculine English.
+
+    Returns a list of flagged blocks with context for LLM review.
+    Does NOT modify data — only reports. The correction classifier can
+    use these flags to tag blocks for gender review.
+    """
+    chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+    flags = []
+
+    for ch_idx, chapter in enumerate(chapters):
+        for block in chapter.get("content_blocks", []):
+            source = block.get("content", "")
+            translated = block.get("translated_content", "")
+            if not source or not translated:
+                continue
+
+            # Check if Chinese source has gender-neutral people terms
+            zh_matches = _GENDER_NEUTRAL_ZH.findall(source)
+            if not zh_matches:
+                continue
+
+            # Check if English uses masculine terms
+            en_matches = _MASCULINE_EN.findall(translated)
+            if not en_matches:
+                continue
+
+            # Exclude intentionally masculine phrases
+            en_filtered = [m for m in en_matches if not _MASCULINE_EXEMPT.search(m)]
+            if not en_filtered:
+                continue
+
+            flags.append({
+                "block_id": block.get("id", "unknown"),
+                "chapter": ch_idx + 1,
+                "zh_terms": zh_matches,
+                "en_masculine": en_filtered,
+                "source_snippet": source[:100],
+                "translation_snippet": translated[:150],
+            })
+
+    if flags:
+        logger.info(f"  Gender check: {len(flags)} blocks with potentially gendered translations")
+        for f in flags:
+            logger.info(f"    ch{f['chapter']} {f['block_id']}: "
+                        f"zh={f['zh_terms']} → en={f['en_masculine']}")
+
+    return flags
+
+
+# ---------------------------------------------------------------------------
 # Heading footnote stripping
 # ---------------------------------------------------------------------------
 
@@ -1002,5 +1098,16 @@ def standardize_work(
         for cand in report["glossary_candidates"]:
             logger.info(f"    {cand['ideogram']} → \"{cand['recommended_form']}\" "
                         f"({cand['occurrences']} occurrences)")
+
+    # Phase 3: Flag gendered translations for LLM review
+    gender_flags = flag_gendered_translations(data)
+    if gender_flags:
+        report["gender_flags"] = gender_flags
+        # Stamp flagged blocks so correction classifier can tag them
+        flagged_ids = {f["block_id"] for f in gender_flags}
+        for chapter in data.get("structure", {}).get("body", {}).get("chapters", []):
+            for block in chapter.get("content_blocks", []):
+                if block.get("id") in flagged_ids:
+                    block["_gender_review_needed"] = True
 
     return data, report
