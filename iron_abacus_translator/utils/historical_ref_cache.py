@@ -63,8 +63,113 @@ CATEGORIES = {
 }
 
 
+def _extract_wiki_search_term(explanation: str, pinyin: str = "") -> Optional[str]:
+    """Extract a plausible English Wikipedia search term from a footnote explanation.
+
+    Looks for patterns like:
+    - "The Kangxi Emperor (r. 1661-1722)..." → "Kangxi Emperor"
+    - "Kuíxīng, the 'Legs' constellation..." → "Kuixing constellation"
+    - "Wudang Mountains, a sacred Daoist..." → "Wudang Mountains"
+    - "A traditional Chinese unit..." → None (too generic, skip)
+
+    Returns None if no good search term can be extracted.
+    """
+    import re
+
+    # Strip markdown formatting
+    explanation = explanation.replace("*", "").replace("_", " ").strip()
+
+    # Skip clearly fictional/generic explanations
+    generic_starts = (
+        "a fictional", "a coarse", "a cryptic",
+        "an idiom meaning", "a proverb meaning",
+        "literally ", "a respectful term", "a common",
+    )
+    lower = explanation.lower().strip()
+    if any(lower.startswith(g) for g in generic_starts):
+        return None
+
+    # Skip if explanation is too short to contain a searchable term
+    if len(explanation) < 20:
+        return None
+
+    # Strip pinyin tone marks for Wikipedia search
+    def _strip_tones(s):
+        return re.sub(r'[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]', lambda c: {
+            'ā':'a','á':'a','ǎ':'a','à':'a','ē':'e','é':'e','ě':'e','è':'e',
+            'ī':'i','í':'i','ǐ':'i','ì':'i','ō':'o','ó':'o','ǒ':'o','ò':'o',
+            'ū':'u','ú':'u','ǔ':'u','ù':'u','ǖ':'u','ǘ':'u','ǚ':'u','ǜ':'u',
+        }.get(c.group(), c.group()), s)
+
+    # Pattern 1: "Name (dates/context)" or "Name, description"
+    m = re.match(r'^([A-Z\u00C0-\u024F][^(,]{2,40}?)(?:\s*\(|\s*,)', explanation)
+    if m:
+        term = _strip_tones(m.group(1).strip())
+        if len(term) >= 3:
+            return term
+
+    # Pattern 2: "The 'Name' ..." or "The Name of ..."
+    m = re.match(r'^The\s+["\u201c\']?([A-Z\u00C0-\u024F][^"\u201d\']{2,40}?)["\u201d\']?\s', explanation)
+    if m:
+        term = _strip_tones(m.group(1).strip())
+        if len(term) >= 3:
+            return term
+
+    # Pattern 3: "A/The X, a Y that..." — extract X
+    m = re.match(r'^(?:The|A)\s+([A-Z\u00C0-\u024F][^,]{2,40}),\s+(?:a |the |one of )', explanation)
+    if m:
+        term = _strip_tones(m.group(1).strip())
+        if len(term) >= 4:
+            return term
+
+    # Pattern 4: "'Name' in single quotes
+    m = re.search(r"['\u2018]([A-Z][^'\u2019]{2,30})['\u2019]", explanation)
+    if m:
+        term = _strip_tones(m.group(1).strip())
+        if len(term) >= 4:
+            return term
+
+    return None
+
+
 def _fetch_wikipedia_intro(title: str, max_chars: int = 600) -> Optional[str]:
-    """Fetch the intro extract of a Wikipedia article via MediaWiki API."""
+    """Fetch the intro extract of a Wikipedia article via MediaWiki API.
+
+    Tries exact title first, then falls back to search API.
+    """
+    headers = {
+        "User-Agent": "IronAbacusTranslator/1.0 (https://github.com/iron-abacus; bot-traffic@wikimedia.org)",
+    }
+
+    # Try exact title match first
+    result = _wiki_query_extract(title, headers, max_chars)
+    if result:
+        return result
+
+    # Fallback: search API to find the right article
+    try:
+        search_params = {
+            "action": "query",
+            "list": "search",
+            "srsearch": title,
+            "srlimit": 1,
+            "format": "json",
+        }
+        resp = httpx.get(MEDIAWIKI_API, params=search_params, headers=headers, timeout=15)
+        resp.raise_for_status()
+        results = resp.json().get("query", {}).get("search", [])
+        if results:
+            found_title = results[0].get("title", "")
+            if found_title:
+                return _wiki_query_extract(found_title, headers, max_chars)
+    except Exception as e:
+        logger.debug(f"Wikipedia search failed for '{title}': {e}")
+
+    return None
+
+
+def _wiki_query_extract(title: str, headers: dict, max_chars: int = 600) -> Optional[str]:
+    """Query Wikipedia for a specific article's intro extract."""
     params = {
         "action": "query",
         "titles": title.replace("_", " "),
@@ -72,10 +177,6 @@ def _fetch_wikipedia_intro(title: str, max_chars: int = 600) -> Optional[str]:
         "exintro": "true",
         "explaintext": "true",
         "format": "json",
-    }
-
-    headers = {
-        "User-Agent": "IronAbacusTranslator/1.0 (https://github.com/iron-abacus; bot-traffic@wikimedia.org)",
     }
 
     try:
@@ -97,7 +198,7 @@ def _fetch_wikipedia_intro(title: str, max_chars: int = 600) -> Optional[str]:
                         extract = cut + "..."
                 return extract.strip()
     except Exception as e:
-        logger.warning(f"Wikipedia fetch failed for '{title}': {e}")
+        logger.debug(f"Wikipedia query failed for '{title}': {e}")
 
     return None
 
@@ -350,31 +451,36 @@ def enrich_work_footnotes(
     """
     cache = HistoricalRefCache(db_path=db_path)
     enriched_count = 0
-    fetched_count = 0
+    skipped_count = 0
 
-    chapters = data.get("body", {}).get("chapters", [])
+    chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
     for chapter in chapters:
         for block in chapter.get("content_blocks", []):
-            tac = block.get("translated_annotated_content", {})
-            for fn in tac.get("content_footnotes", []):
-                details = fn.get("footnote_details", {})
-                wiki_title = details.get("wiki_title", "")
-                ideogram = details.get("footnote_ideogram", "")
-                explanation = details.get("footnote_explanation", "")
+            for fn in block.get("footnotes", []):
+                ideogram = fn.get("ideogram", "")
+                explanation = fn.get("explanation", "")
+                pinyin = fn.get("pinyin", "")
 
-                if not wiki_title or not ideogram:
+                if not ideogram or not explanation:
                     continue
 
-                # Check/fetch from cache
+                # Extract an English search term from the explanation
+                # Footnotes typically start with "The X" or "Name, the X"
+                wiki_search = _extract_wiki_search_term(explanation, pinyin)
+                if not wiki_search:
+                    skipped_count += 1
+                    continue
+
                 entry = cache.get_or_fetch(
                     term_zh=ideogram,
-                    wiki_title=wiki_title,
-                    term_en=wiki_title.replace("_", " "),
-                    term_py=details.get("footnote_pinyin", ""),
+                    wiki_title=wiki_search,
+                    term_en=wiki_search,
+                    term_py=pinyin,
                     work_id=work_id,
                 )
 
                 if not entry or not entry.get("summary"):
+                    skipped_count += 1
                     continue
 
                 # Only append if not already present (idempotent)
@@ -395,20 +501,17 @@ def enrich_work_footnotes(
                 if not enriched_explanation.endswith("."):
                     enriched_explanation += "."
                 enriched_explanation += f" [Wikipedia: {summary}]"
-                details["footnote_explanation"] = enriched_explanation
+                fn["explanation"] = enriched_explanation
 
                 # Attach wiki_url for source attribution
                 if entry.get("wiki_url"):
-                    details["wiki_url"] = entry["wiki_url"]
+                    fn["wiki_url"] = entry["wiki_url"]
 
                 enriched_count += 1
 
-                if not cache.get(ideogram):
-                    fetched_count += 1
-
     logger.info(
         f"Wiki enrichment: {enriched_count} footnotes enriched, "
-        f"{cache.count} total cached terms"
+        f"{skipped_count} no wiki match, {cache.count} cached terms"
     )
 
     return data
