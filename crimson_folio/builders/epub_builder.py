@@ -610,7 +610,12 @@ class EpubBuilder:
         volume = meta.get("volume", "")
         volume_suffix = ""
         if volume:
-            vol_num = int(volume) if volume.isdigit() else volume
+            if volume.isdigit():
+                vol_num = int(volume)
+            elif len(volume) == 1 and volume.isalpha():
+                vol_num = ord(volume.lower()) - ord('a') + 1  # a→1, b→2
+            else:
+                vol_num = volume
             volume_suffix = f" Vol. {vol_num}"
 
         raw_name = f"{author_en} - {title_en}{volume_suffix}{series_suffix}{edition_suffix}"

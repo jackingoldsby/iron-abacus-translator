@@ -936,6 +936,16 @@ class SourceLoaderProcessor(StageProcessor):
         except Exception as e:
             logger.debug(f"  Catalog enrichment skipped: {e}")
 
+        # Set volume from context (--volume a/b/c)
+        if ctx.volume and not meta.get("volume"):
+            meta["volume"] = ctx.volume
+
+        # Strip footnote markers from title/author (metadata translator artifacts)
+        import re as _re
+        for k in ("title_english", "author_english"):
+            if meta.get(k):
+                meta[k] = _re.sub(r'\[\d+\]', '', meta[k]).strip()
+
         return data
 
 
