@@ -288,6 +288,7 @@ class EpubBuilder:
         title_page = self._build_title_page(
             title_en, title_zh, author_en, author_zh, css_item=css_item,
             series_name=series_name, series_order=series_order, series_total=series_total,
+            volume=meta.get("volume", ""), total_volumes=meta.get("total_volumes"),
         )
         book.add_item(title_page)
 
@@ -648,6 +649,8 @@ class EpubBuilder:
         series_name: str = "",
         series_order: Optional[int] = None,
         series_total: int = 0,
+        volume: str = "",
+        total_volumes: Optional[int] = None,
     ) -> epub.EpubHtml:
         """Build bilingual title page with series info."""
         title_zh_line = ""
@@ -665,10 +668,22 @@ class EpubBuilder:
 
         series_line = ""
         if series_name and series_order is not None:
+            series_desc = f'{_escape(series_name)} &mdash; Book {series_order} of {series_total}'
+            # Add volume info if this is a multi-volume work
+            if volume:
+                if str(volume).isdigit():
+                    vol_num = int(volume)
+                elif len(str(volume)) == 1 and str(volume).isalpha():
+                    vol_num = ord(str(volume).lower()) - ord('a') + 1
+                else:
+                    vol_num = volume
+                if total_volumes:
+                    series_desc += f' &middot; Volume {vol_num} of {total_volumes}'
+                else:
+                    series_desc += f' &middot; Volume {vol_num}'
             series_line = (
                 f'    <p style="font-size: 0.95em; font-style: italic; color: #555; '
-                f'margin-bottom: 0.3em; letter-spacing: 0.05em;">{_escape(series_name)}'
-                f' &mdash; Book {series_order} of {series_total}</p>'
+                f'margin-bottom: 0.3em; letter-spacing: 0.05em;">{series_desc}</p>'
             )
 
         html = f"""<?xml version="1.0" encoding="utf-8"?>

@@ -931,6 +931,17 @@ class SourceLoaderProcessor(StageProcessor):
                     meta["title_english"] = row[3]
                 if row[4] and not meta.get("author_english"):
                     meta["author_english"] = row[4]
+                # Count volumes for this work
+                if not meta.get("total_volumes"):
+                    wn = meta.get("work_number", work_number)
+                    base_wn = _re.sub(r'[a-z]$', '', wn)
+                    vol_count = conn.execute(
+                        "SELECT COUNT(*) FROM work_files wf "
+                        "JOIN works w ON w.work_id = wf.work_id "
+                        "WHERE w.work_number = ?", [base_wn]
+                    ).fetchone()
+                    if vol_count and vol_count[0] > 1:
+                        meta["total_volumes"] = vol_count[0]
                 logger.info(f"  Catalog: {meta.get('title_english', '?')} by {meta.get('author_english', '?')} "
                             f"[{meta.get('category_english', '?')}]")
         except Exception as e:
