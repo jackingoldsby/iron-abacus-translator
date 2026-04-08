@@ -1618,10 +1618,20 @@ class DensityValidationProcessor(StageProcessor):
 
         # AI marker-position verification (parallelized, strict guards)
         remover = getattr(ctx, '_remover', None)
-        if remover and hasattr(remover, 'client'):
+        verify_client = getattr(remover, 'client', None) if remover else None
+        if verify_client is None:
+            # Create a fresh client when resuming (no remover on context)
+            verify_client = _make_cleanup_client(self.config)
+            if verify_client is None:
+                try:
+                    from utils.clients.llm_config import get_llm_client
+                    verify_client = get_llm_client(component="cleanup")
+                except Exception:
+                    pass
+        if verify_client:
             logger.info("  AI marker-position verification (parallel)...")
             ai_repos = _ai_verify_marker_positions(
-                data, remover.client, max_workers=self.config.max_workers)
+                data, verify_client, max_workers=self.config.max_workers)
             if ai_repos:
                 logger.info(f"  AI repositioned {ai_repos} misplaced markers")
                 _renumber_chapter_continuous(data)
