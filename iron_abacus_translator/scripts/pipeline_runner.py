@@ -940,6 +940,25 @@ class SourceLoaderProcessor(StageProcessor):
         if ctx.volume and not meta.get("volume"):
             meta["volume"] = ctx.volume
 
+        # Strip Haodoo/EPUB metadata from first block of each chapter
+        # (e.g., "《飛狐外傳上》金庸《二○○五年...》典藏版第一章　大雨商家堡")
+        import re as _re
+        # Strip Haodoo/EPUB metadata from first block of first chapter
+        # Matches: 《Title》Author《Date版》《Edition》典藏版 before the actual chapter heading
+        first_ch_blocks = chapters[0].get("content_blocks", []) if chapters else []
+        if first_ch_blocks:
+            first = first_ch_blocks[0]
+            content = first.get("content", "")
+            if content.startswith("《") or content.startswith("\u300a"):
+                # Strip everything up to the chapter heading or first dialogue
+                cleaned = _re.sub(
+                    r'^《.*?(?=第[一二三四五六七八九十百零\d]+[章回節节]\s|「)',
+                    '', content
+                ).strip()
+                if cleaned and cleaned != content:
+                    first["content"] = cleaned
+                    logger.info(f"  Stripped metadata prefix from {first.get('id', '?')}")
+
         # Strip footnote markers from title/author (metadata translator artifacts)
         import re as _re
         for k in ("title_english", "author_english"):
