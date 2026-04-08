@@ -425,6 +425,87 @@ class HistoricalRefCache:
         }
 
 
+_WIKI_MERGE_PROMPT = """You are editing footnotes for a translated Chinese novel. You will receive a footnote explanation and a Wikipedia summary about the same topic.
+
+Your task: integrate any useful factual details from the Wikipedia summary into the existing explanation. Produce a single, fluent paragraph.
+
+Rules:
+- Keep the existing explanation's style and register
+- Add specific dates, facts, or context from Wikipedia that the explanation lacks
+- Do NOT duplicate information already in the explanation
+- Do NOT add Wikipedia disclaimers or source attribution
+- Do NOT change the tone — it should still read as a literary footnote, not an encyclopedia entry
+- Keep the result concise (2-4 sentences max)
+- If the Wikipedia summary adds nothing useful beyond what's already there, return the original explanation unchanged
+
+Return ONLY the merged explanation text, nothing else."""
+
+
+def _llm_merge_wiki_summaries(pending: list) -> int:
+    """Use DeepSeek to cleanly merge Wikipedia summaries into footnote explanations.
+
+    Args:
+        pending: List of dicts with "fn" (footnote dict), "summary", "wiki_url".
+
+    Returns:
+        Number of footnotes successfully enriched.
+    """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    try:
+        from utils.clients.llm_config import get_llm_client
+        from utils.clients.llm_client import LLMRequest
+        client = get_llm_client(provider="deepseek")
+    except Exception as e:
+        logger.warning(f"Cannot initialize LLM for wiki merge: {e}")
+        # Fallback: simple append
+        count = 0
+        for item in pending:
+            fn = item["fn"]
+            expl = fn["explanation"].rstrip()
+            if not expl.endswith("."):
+                expl += "."
+            fn["explanation"] = expl + f" ({item['summary'][:150]})"
+            if item["wiki_url"]:
+                fn["wiki_url"] = item["wiki_url"]
+            count += 1
+        return count
+
+    def _merge_one(item):
+        fn = item["fn"]
+        try:
+            response = client.chat(LLMRequest(
+                messages=[
+                    {"role": "system", "content": _WIKI_MERGE_PROMPT},
+                    {"role": "user", "content": (
+                        f"EXISTING EXPLANATION:\n{fn['explanation']}\n\n"
+                        f"WIKIPEDIA SUMMARY:\n{item['summary']}"
+                    )},
+                ],
+                model="deepseek-chat",
+                temperature=0.2,
+                max_tokens=300,
+            ))
+            merged = response.text.strip()
+            if merged and len(merged) > 20:
+                fn["explanation"] = merged
+                if item["wiki_url"]:
+                    fn["wiki_url"] = item["wiki_url"]
+                return True
+        except Exception as e:
+            logger.debug(f"Wiki merge failed for {fn.get('ideogram', '?')}: {e}")
+        return False
+
+    enriched = 0
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        futures = {executor.submit(_merge_one, item): item for item in pending}
+        for fut in as_completed(futures):
+            if fut.result():
+                enriched += 1
+
+    return enriched
+
+
 def enrich_work_footnotes(
     data: dict,
     work_id: str = "",
@@ -450,8 +531,8 @@ def enrich_work_footnotes(
         The same data dict, modified in place.
     """
     cache = HistoricalRefCache(db_path=db_path)
-    enriched_count = 0
     skipped_count = 0
+    pending = []  # collect (fn, summary, wiki_url) for LLM merge
 
     chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
     for chapter in chapters:
@@ -496,18 +577,20 @@ def enrich_work_footnotes(
                 if summary[:40] in explanation:
                     continue  # Already enriched
 
-                # Append Wikipedia context
-                enriched_explanation = explanation.rstrip()
-                if not enriched_explanation.endswith("."):
-                    enriched_explanation += "."
-                enriched_explanation += f" [Wikipedia: {summary}]"
-                fn["explanation"] = enriched_explanation
+                # Collect for LLM merge
+                pending.append({
+                    "fn": fn,
+                    "summary": summary,
+                    "wiki_url": entry.get("wiki_url", ""),
+                })
 
-                # Attach wiki_url for source attribution
-                if entry.get("wiki_url"):
-                    fn["wiki_url"] = entry["wiki_url"]
+    if not pending:
+        logger.info(f"Wiki enrichment: 0 to enrich, {skipped_count} skipped")
+        return data
 
-                enriched_count += 1
+    # Merge Wikipedia context into explanations via LLM (parallel)
+    logger.info(f"Wiki enrichment: merging {len(pending)} footnotes via LLM...")
+    enriched_count = _llm_merge_wiki_summaries(pending)
 
     logger.info(
         f"Wiki enrichment: {enriched_count} footnotes enriched, "
