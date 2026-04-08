@@ -734,7 +734,12 @@ class EpubBuilder:
 
         body_parts = []
         for i, para in enumerate(paragraphs):
-            text = _escape(para.format(author=author_en))
+            text = para.format(author=author_en)
+            # Convert markdown italics to HTML before escaping
+            text = re.sub(r'\*([^*]+)\*', r'<em>\1</em>', text)
+            text = _escape(text)
+            # Restore <em> tags that _escape may have mangled
+            text = text.replace("&lt;em&gt;", "<em>").replace("&lt;/em&gt;", "</em>")
             css_class = ' class="first"' if i == 0 else ""
             body_parts.append(f"    <p{css_class}>{text}</p>")
 
