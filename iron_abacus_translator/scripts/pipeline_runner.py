@@ -893,29 +893,48 @@ class SourceLoaderProcessor(StageProcessor):
         logger.info(f"  Source loaded: {len(chapters)} chapters, {total_blocks} blocks")
         logger.info(f"  Work: {meta.get('title_chinese', '?')} by {meta.get('author_chinese', '?')}")
 
-        # Enrich meta from DuckDB catalog (category_english, etc.)
-        work_number = meta.get("work_number", ctx.work_id)
-        if work_number and not meta.get("category_english"):
-            try:
-                import duckdb
-                from utils.environment_config import get_or_create_config
-                env = get_or_create_config()
-                conn = duckdb.connect(str(env.catalog_path), read_only=True)
-                row = conn.execute(
-                    "SELECT category_english, author_chinese, title_chinese "
-                    "FROM works WHERE work_number = ?", [work_number]
-                ).fetchone()
-                conn.close()
-                if row:
-                    if row[0]:
-                        meta["category_english"] = row[0]
-                    if row[1] and not meta.get("author_chinese"):
-                        meta["author_chinese"] = row[1]
-                    if row[2] and not meta.get("title_chinese"):
-                        meta["title_chinese"] = row[2]
-                    logger.info(f"  Catalog: category={meta.get('category_english', '?')}")
-            except Exception as e:
-                logger.debug(f"  Catalog enrichment skipped: {e}")
+        # Enrich meta from DuckDB catalog (category, titles, author)
+        work_number = meta.get("work_number") or ctx.work_id
+        # Ensure work_number is always set in meta
+        if not meta.get("work_number"):
+            meta["work_number"] = work_number
+        try:
+            import duckdb
+            from utils.environment_config import get_or_create_config
+            env = get_or_create_config()
+            conn = duckdb.connect(str(env.catalog_path), read_only=True)
+            # Try exact match first, then strip volume letter (D61a → D61)
+            row = conn.execute(
+                "SELECT category_english, author_chinese, title_chinese, "
+                "title_english, author_english "
+                "FROM works WHERE work_number = ?", [work_number]
+            ).fetchone()
+            if not row and len(work_number) > 1:
+                # Strip trailing volume letter (D61a → D61)
+                import re as _re
+                base = _re.sub(r'[a-z]$', '', work_number)
+                if base != work_number:
+                    row = conn.execute(
+                        "SELECT category_english, author_chinese, title_chinese, "
+                        "title_english, author_english "
+                        "FROM works WHERE work_number = ?", [base]
+                    ).fetchone()
+            conn.close()
+            if row:
+                if row[0] and not meta.get("category_english"):
+                    meta["category_english"] = row[0]
+                if row[1] and not meta.get("author_chinese"):
+                    meta["author_chinese"] = row[1]
+                if row[2] and not meta.get("title_chinese"):
+                    meta["title_chinese"] = row[2]
+                if row[3] and not meta.get("title_english"):
+                    meta["title_english"] = row[3]
+                if row[4] and not meta.get("author_english"):
+                    meta["author_english"] = row[4]
+                logger.info(f"  Catalog: {meta.get('title_english', '?')} by {meta.get('author_english', '?')} "
+                            f"[{meta.get('category_english', '?')}]")
+        except Exception as e:
+            logger.debug(f"  Catalog enrichment skipped: {e}")
 
         return data
 
