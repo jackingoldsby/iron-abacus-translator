@@ -30,46 +30,46 @@ from config.defaults import DEFAULT_CSS_PATH, DEFAULT_CATALOG_DB
 
 logger = logging.getLogger(__name__)
 
-_PREFACE_PARAGRAPHS = [
-    "The Three Heroes and Five Gallants (\u4e09\u4fe0\u4e94\u7fa9,"
-    " S\u0101nxi\u00e1 W\u01d4y\u00ec) is one of the most influential"
-    " novels in the Chinese literary tradition \u2014 the book that"
-    " fused courtroom drama with martial-arts chivalry and, in doing"
-    " so, created a genre. Written by the storyteller {author} and"
-    " first published around 1879, its characters \u2014 the"
-    " incorruptible Judge B\u0101o, the Imperial Cat, the Five Mice"
-    " of the jianghu underworld \u2014 remain household names across"
-    " the Chinese-speaking world. It has never before been rendered"
-    " in full into English.",
+_PREFACE_PROMPT = """Write a translator's preface (5 short paragraphs) for an English translation of a classical Chinese novel. Use a warm, scholarly but accessible tone — like a sinologist writing for an educated general reader.
 
-    "I have had a long interest in classical Chinese fiction, and in"
-    " the g\u014dng\u2019\u00e0n and w\u01d4xi\u00e1 traditions in"
-    " particular. These are works of real literary ambition, but they"
-    " are rarely translated \u2014 the commercial case for a"
-    " 120-chapter nineteenth-century Chinese novel is, to put it"
-    " gently, modest. In full disclosure, this translation was"
-    " assisted by AI. Without that assistance, a work of this scale"
-    " and specificity would simply not be economically realistic to"
-    " produce. I hope the benefit of bringing it to a wider audience"
-    " outweighs the imperfections that inevitably follow from the"
+Work details:
+- Title (English): {title_en}
+- Title (Chinese): {title_zh}
+- Author: {author_en} ({author_zh})
+- Genre: {genre}
+- Chapters in this volume: {chapter_count}
+- Volume info: {volume_info}
+
+Structure:
+1. Introduce the work — its place in the Chinese literary tradition, when it was written, why it matters. Be specific to THIS work, not generic.
+2. Note that this is an AI-assisted translation. Be honest about the method: "In full disclosure, this translation was assisted by AI. Without that assistance, a work of this scale and specificity would simply not be economically realistic to produce." Express hope that bringing it to a wider audience outweighs imperfections.
+3. Explain the footnoting approach — cultural footnotes for Western readers, Chinese honorifics preserved as pinyin, martial/historical/institutional terminology explained on first use.
+4. If multi-volume, note what this volume covers. Mention any scholarly editions that informed the work if relevant.
+5. Close with a hope that the reader will be drawn to explore further.
+
+Return ONLY the 5 paragraphs, separated by blank lines. No headings, no labels. Use {author_en} where the author name appears."""
+
+_PREFACE_FALLBACK = [
+    "This translation brings to English readers a work from the rich tradition of"
+    " classical Chinese fiction. Written by {author}, it represents a genre and"
+    " sensibility that remains largely inaccessible to the English-speaking world.",
+
+    "In full disclosure, this translation was assisted by AI. Without that"
+    " assistance, a work of this scale and specificity would simply not be"
+    " economically realistic to produce. I hope the benefit of bringing it to a"
+    " wider audience outweighs the imperfections that inevitably follow from the"
     " method.",
 
-    "The text has been reviewed, corrected, and annotated with care."
-    " Cultural footnotes aim to give the Western reader the context"
-    " that a Chinese reader would bring to the page \u2014 the"
-    " history, the social conventions, the martial traditions. Chinese"
-    " honorifics are preserved as pinyin (each footnoted on first use)"
-    " because the social architecture of the original \u2014 who"
-    " defers to whom, and how \u2014 is half the story.",
+    "The text has been reviewed, corrected, and annotated with care. Cultural"
+    " footnotes aim to give the Western reader the context that a Chinese reader"
+    " would bring to the page \u2014 the history, the social conventions, the"
+    " martial traditions. Chinese honorifics are preserved as pinyin (each"
+    " footnoted on first use) because the social architecture of the original"
+    " \u2014 who defers to whom, and how \u2014 is half the story.",
 
-    "This volume comprises the first sixty of 120 chapters. A"
-    " scholarly edition prepared by Y\u00fa P\u00edngb\u00f3, with a"
-    " celebrated preface by H\u00fa Sh\u00ec, has informed the"
-    " annotations where possible.",
-
-    "If the reader finishes this text with a desire to know more"
-    " \u2014 to seek out the original, to explore the tradition, to"
-    " argue with my footnotes \u2014 then it has served its purpose.",
+    "If the reader finishes this text with a desire to know more \u2014 to seek"
+    " out the original, to explore the tradition, to argue with my footnotes"
+    " \u2014 then it has served its purpose.",
 ]
 
 
@@ -293,7 +293,9 @@ class EpubBuilder:
         book.add_item(title_page)
 
         # Build translator's preface
-        preface_page = self._build_preface(author_en, css_item)
+        # Add chapter count to meta for preface generation
+        meta["_chapter_count"] = len(chapters)
+        preface_page = self._build_preface(author_en, css_item, meta=meta)
         book.add_item(preface_page)
 
         # Build introduction
@@ -722,13 +724,16 @@ class EpubBuilder:
         author_en: str,
         css_item: epub.EpubItem,
         build_date: Optional[str] = None,
+        meta: Optional[Dict[str, Any]] = None,
     ) -> epub.EpubHtml:
-        """Build Translator's Preface page with author name and date."""
+        """Build Translator's Preface page, generated per-work via LLM or fallback."""
         if build_date is None:
             build_date = date.today().strftime("%B %Y")
 
+        paragraphs = self._generate_preface_paragraphs(author_en, meta or {})
+
         body_parts = []
-        for i, para in enumerate(_PREFACE_PARAGRAPHS):
+        for i, para in enumerate(paragraphs):
             text = _escape(para.format(author=author_en))
             css_class = ' class="first"' if i == 0 else ""
             body_parts.append(f"    <p{css_class}>{text}</p>")
@@ -762,6 +767,52 @@ class EpubBuilder:
         item.set_content(html.encode("utf-8"))
         item.add_item(css_item)
         return item
+
+    def _generate_preface_paragraphs(
+        self, author_en: str, meta: Dict[str, Any]
+    ) -> List[str]:
+        """Generate per-work preface via DeepSeek, falling back to template."""
+        title_en = meta.get("title_english", "")
+        title_zh = meta.get("title_chinese") or meta.get("title", "")
+        author_zh = meta.get("author_chinese") or meta.get("author", "")
+        genre = meta.get("category_english", "classical Chinese fiction")
+        chapters = meta.get("_chapter_count", "")
+        volume = meta.get("volume", "")
+        total_vols = meta.get("total_volumes")
+
+        volume_info = "single volume"
+        if volume and total_vols:
+            vol_num = ord(volume.lower()) - ord('a') + 1 if len(str(volume)) == 1 and str(volume).isalpha() else volume
+            volume_info = f"Volume {vol_num} of {total_vols}"
+
+        if not title_en:
+            return [p for p in _PREFACE_FALLBACK]
+
+        try:
+            from utils.llm_client import get_deepseek_client
+            client = get_deepseek_client()
+
+            prompt = _PREFACE_PROMPT.format(
+                title_en=title_en, title_zh=title_zh,
+                author_en=author_en, author_zh=author_zh,
+                genre=genre, chapter_count=chapters or "unknown",
+                volume_info=volume_info,
+            )
+
+            response = client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.4,
+                max_tokens=1500,
+            )
+            text = response.choices[0].message.content.strip()
+            paras = [p.strip() for p in text.split("\n\n") if p.strip()]
+            if len(paras) >= 3:
+                return paras
+        except Exception as e:
+            logger.debug(f"Preface generation failed, using fallback: {e}")
+
+        return [p for p in _PREFACE_FALLBACK]
 
     @staticmethod
     def _volume_word(num) -> str:
