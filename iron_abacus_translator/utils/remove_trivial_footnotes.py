@@ -2224,83 +2224,106 @@ def _italicize_pinyin_in_footnotes(data: Dict[str, Any]) -> int:
     return modified
 
 
-def _ai_verify_marker_positions(data: Dict[str, Any], client) -> int:
+def _ai_verify_marker_positions(data: Dict[str, Any], client,
+                                max_workers: int = 50) -> int:
     """
-    Use a cheap nano model to verify footnote marker placement.
+    Use a cheap model to verify footnote marker placement (parallelized).
 
     For each block with footnotes, sends the translated text + footnote list
     and asks the model to return corrected text with markers placed
     immediately after the term they annotate.
 
-    Only called on surviving footnotes (typically 20-30 per chapter),
-    so cost is minimal: one API call per block with footnotes.
+    Guards:
+    - Rejects if marker count changes
+    - Rejects if non-marker text changes (LLM rewrote content)
+    - Rejects if output is truncated (<80% of original length)
 
     Returns number of blocks where markers were repositioned.
     """
-    repositioned = 0
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
 
+    # Collect blocks with footnotes
+    tasks = []
     for chapter in chapters:
         for block in chapter.get("content_blocks", []):
-            footnotes = block.get("footnotes", [])
-            text = block.get("translated_content", "")
-            if not footnotes or not text:
-                continue
+            if block.get("footnotes") and block.get("translated_content"):
+                tasks.append(block)
 
-            # Build footnote reference for the model
-            fn_list = []
-            for fn in footnotes:
-                fn_list.append(
-                    f"[{fn['key']}] {fn.get('ideogram', '')} "
-                    f"({fn.get('pinyin', '')}) — {fn.get('explanation', '')[:60]}"
-                )
-            fn_ref = "\n".join(fn_list)
+    if not tasks:
+        return 0
 
-            prompt = (
-                "Below is an English translation with footnote markers [1], [2], etc. "
-                "and a list of what each marker annotates.\n\n"
-                "Your task: verify each [N] marker is placed IMMEDIATELY after the "
-                "term it annotates. If a marker is misplaced (e.g., at end of "
-                "paragraph instead of after the term), move it to the correct "
-                "position — right after the annotated term, outside any quotes.\n\n"
-                "Rules:\n"
-                "- Do NOT change the translation text itself\n"
-                "- Do NOT add or remove footnotes\n"
-                "- Do NOT change footnote numbering\n"
-                "- ONLY move misplaced markers\n"
-                "- If a marker is already correctly placed, leave it\n\n"
-                f"FOOTNOTES:\n{fn_ref}\n\n"
-                f"TEXT:\n{text}\n\n"
-                "Return ONLY the corrected text (no explanation, no JSON wrapper)."
+    def _strip_markers(text: str) -> str:
+        """Remove all [N] markers to compare base text."""
+        return re.sub(r'\[\d+\]', '', text)
+
+    def _verify_one(block):
+        footnotes = block["footnotes"]
+        text = block["translated_content"]
+
+        fn_list = []
+        for fn in footnotes:
+            fn_list.append(
+                f"[{fn['key']}] {fn.get('ideogram', '')} "
+                f"({fn.get('pinyin', '')}) — {fn.get('explanation', '')[:60]}"
             )
+        fn_ref = "\n".join(fn_list)
 
-            try:
-                response = client.chat(LLMRequest(
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.0,
-                    timeout=30,
-                ))
-                corrected = response.text.strip()
+        prompt = (
+            "Below is an English translation with footnote markers [1], [2], etc. "
+            "and a list of what each marker annotates.\n\n"
+            "Your task: verify each [N] marker is placed IMMEDIATELY after the "
+            "term it annotates. If a marker is misplaced (e.g., at end of "
+            "paragraph instead of after the term), move it to the correct "
+            "position — right after the annotated term, outside any quotes.\n\n"
+            "Rules:\n"
+            "- Do NOT change the translation text itself\n"
+            "- Do NOT add or remove markers\n"
+            "- Do NOT change marker numbering\n"
+            "- ONLY move misplaced markers\n"
+            "- If all markers are already correctly placed, return the text unchanged\n\n"
+            f"FOOTNOTES:\n{fn_ref}\n\n"
+            f"TEXT:\n{text}\n\n"
+            "Return ONLY the text with corrected marker positions."
+        )
 
-                # Sanity check: must have same number of markers
-                old_markers = sorted(re.findall(r"\[\d+\]", text))
-                new_markers = sorted(re.findall(r"\[\d+\]", corrected))
+        try:
+            response = client.chat(LLMRequest(
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+                timeout=30,
+            ))
+            corrected = response.text.strip()
 
-                if old_markers == new_markers and corrected != text:
-                    block["translated_content"] = corrected
-                    repositioned += 1
-                    logger.debug(
-                        f"AI repositioned markers in {block.get('id', '?')}"
-                    )
-                elif old_markers != new_markers:
-                    logger.warning(
-                        f"AI verification changed marker count in "
-                        f"{block.get('id', '?')}, skipping"
-                    )
+            # Guard 1: same marker set
+            old_markers = sorted(re.findall(r"\[\d+\]", text))
+            new_markers = sorted(re.findall(r"\[\d+\]", corrected))
+            if old_markers != new_markers:
+                return False
 
-            except Exception as e:
-                logger.warning(f"AI marker verification failed: {e}")
-                continue
+            # Guard 2: base text unchanged (only markers moved)
+            if _strip_markers(corrected) != _strip_markers(text):
+                return False
+
+            # Guard 3: not truncated
+            if len(corrected) < len(text) * 0.8:
+                return False
+
+            if corrected != text:
+                block["translated_content"] = corrected
+                return True
+
+        except Exception:
+            pass
+        return False
+
+    repositioned = 0
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(_verify_one, b): b for b in tasks}
+        for fut in as_completed(futures):
+            if fut.result():
+                repositioned += 1
 
     return repositioned
 
