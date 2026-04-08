@@ -788,6 +788,9 @@ class EpubBuilder:
         if not title_en:
             return [p for p in _PREFACE_FALLBACK]
 
+        # Fetch Wikipedia context for factual grounding
+        wiki_context = self._fetch_preface_context(title_en, title_zh, author_en, author_zh)
+
         try:
             from utils.llm_client import get_deepseek_client
             client = get_deepseek_client()
@@ -798,6 +801,13 @@ class EpubBuilder:
                 genre=genre, chapter_count=chapters or "unknown",
                 volume_info=volume_info,
             )
+
+            if wiki_context:
+                prompt += (
+                    "\n\nFACTUAL CONTEXT (from Wikipedia — use these facts, "
+                    "do not invent dates, publication history, or claims not "
+                    "supported here):\n\n" + wiki_context
+                )
 
             response = client.chat.completions.create(
                 model="deepseek-chat",
@@ -813,6 +823,81 @@ class EpubBuilder:
             logger.debug(f"Preface generation failed, using fallback: {e}")
 
         return [p for p in _PREFACE_FALLBACK]
+
+    @staticmethod
+    def _fetch_preface_context(
+        title_en: str, title_zh: str, author_en: str, author_zh: str
+    ) -> str:
+        """Fetch Wikipedia summaries for the work and author to ground the preface."""
+        import httpx
+
+        WIKI_API = "https://en.wikipedia.org/w/api.php"
+        headers = {
+            "User-Agent": "IronAbacusTranslator/1.0 (bot-traffic@wikimedia.org)",
+        }
+
+        def _fetch(query: str, max_chars: int = 800) -> Optional[str]:
+            """Search Wikipedia and return the intro extract."""
+            try:
+                # Try exact title
+                resp = httpx.get(WIKI_API, params={
+                    "action": "query", "titles": query,
+                    "prop": "extracts", "exintro": "true",
+                    "explaintext": "true", "format": "json",
+                }, headers=headers, timeout=15)
+                pages = resp.json().get("query", {}).get("pages", {})
+                for pid, page in pages.items():
+                    if pid != "-1" and page.get("extract"):
+                        extract = page["extract"]
+                        if len(extract) > max_chars:
+                            cut = extract[:max_chars]
+                            last = cut.rfind(". ")
+                            extract = cut[:last + 1] if last > max_chars // 3 else cut + "..."
+                        return extract.strip()
+
+                # Fallback: search API
+                resp = httpx.get(WIKI_API, params={
+                    "action": "query", "list": "search",
+                    "srsearch": query, "srlimit": 1, "format": "json",
+                }, headers=headers, timeout=15)
+                results = resp.json().get("query", {}).get("search", [])
+                if results:
+                    found = results[0]["title"]
+                    resp = httpx.get(WIKI_API, params={
+                        "action": "query", "titles": found,
+                        "prop": "extracts", "exintro": "true",
+                        "explaintext": "true", "format": "json",
+                    }, headers=headers, timeout=15)
+                    pages = resp.json().get("query", {}).get("pages", {})
+                    for pid, page in pages.items():
+                        if pid != "-1" and page.get("extract"):
+                            extract = page["extract"]
+                            if len(extract) > max_chars:
+                                cut = extract[:max_chars]
+                                last = cut.rfind(". ")
+                                extract = cut[:last + 1] if last > max_chars // 3 else cut + "..."
+                            return extract.strip()
+            except Exception:
+                pass
+            return None
+
+        parts = []
+
+        # Search for the work
+        for query in [title_en, title_zh, f"{title_en} novel", f"{title_zh} novel"]:
+            result = _fetch(query)
+            if result and len(result) > 100:
+                parts.append(f"ABOUT THE WORK:\n{result}")
+                break
+
+        # Search for the author
+        for query in [author_en, author_zh, f"{author_en} author", f"{author_en} novelist"]:
+            result = _fetch(query)
+            if result and len(result) > 100:
+                parts.append(f"ABOUT THE AUTHOR:\n{result}")
+                break
+
+        return "\n\n".join(parts)
 
     @staticmethod
     def _volume_word(num) -> str:
