@@ -1597,17 +1597,10 @@ class DensityValidationProcessor(StageProcessor):
         if orphans_fixed:
             logger.info(f"  Sanitized orphan markers in {orphans_fixed} blocks")
 
-        # AI marker-position verification
-        remover = getattr(ctx, '_remover', None)
-        if remover and hasattr(remover, 'client'):
-            logger.info("  AI marker-position verification...")
-            ai_repos = _ai_verify_marker_positions(data, remover.client)
-            if ai_repos:
-                logger.info(f"  AI repositioned {ai_repos} misplaced markers")
-                _renumber_chapter_continuous(data)
-                orphans_2 = _sanitize_orphan_markers(data)
-                if orphans_2:
-                    logger.info(f"  Post-AI: sanitized {orphans_2} orphan markers")
+        # NOTE: AI marker-position verification disabled — too slow (1 LLM call
+        # per block) and unreliable (changes marker counts, misplaces markers).
+        # Programmatic repositioning above handles placement correctly.
+        # Consistency review stage catches any remaining issues.
 
         # Italicize pinyin terms in footnote explanations
         italicized = _italicize_pinyin_in_footnotes(data)
