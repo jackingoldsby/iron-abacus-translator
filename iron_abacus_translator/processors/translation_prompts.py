@@ -131,13 +131,27 @@ _SHARED_TRANSLATION_RULES = """
    - For historical figures, events, places, and idioms with historical origins: 2-3 sentences. Include dates, dynasty, and brief context so the reader understands significance.
    - For martial arts terms, wuxia conventions, and cultural practices: 1-2 sentences. State what it IS and its role in the jianghu or Chinese tradition.
    - For everything else: 1 sentence MAX.
-   - NEVER interpret the story or explain story points. No "underscoring the gravity", no "indicating the importance of", no "suggesting that the character...", no "which explains why..." clauses that connect the footnote to the plot.
-   - NEVER footnote well-known Chinese cities (Běijīng, Luòyáng, Nánjīng, Xī'ān) unless the footnote adds non-obvious historical context specific to the narrative.
-   - Footnotes must NEVER contain vacuous literary commentary about what the text "illustrates," "grounds," "conveys," or "signifies narratively." A footnote is a scholarly annotation, not CliffsNotes.
-   - WRONG: "Nàlán Róngruò (1655–1685) was a renowned Manchu poet... He was a close confidant of the Kangxi Emperor, which explains his immense influence and the guards' fear of offending him."
+
+   **MANDATORY CONTENT by category:**
+   - Geographic footnotes MUST include the province/region and modern-day location. WRONG: "A famous city." RIGHT: "A major city in Guǎngdōng province, historically one of China's four great martial arts centers."
+   - Historical footnotes MUST include dates or dynasty. WRONG: "A famous emperor." RIGHT: "The Kāngxī Emperor (r. 1661–1722) of the Qīng dynasty."
+   - Martial school footnotes MUST name the tradition or lineage if verifiable. WRONG: "A martial arts school." RIGHT: "Practitioners of Tàijíquán, a major internal martial art attributed to the Wǔdāng Mountains tradition."
+   - Cultural practice footnotes MUST explain what the practice IS, not what it "symbolizes."
+   - Acupoint footnotes MUST include body location and martial significance.
+
+   **ABSOLUTE PROHIBITIONS:**
+   - NEVER interpret the story or explain story points. No "underscoring the gravity", no "indicating the importance of", no "suggesting that the character...", no "which explains why..." clauses.
+   - NEVER footnote well-known Chinese cities (Běijīng, Luòyáng, Nánjīng, Xī'ān) unless adding non-obvious historical context.
+   - NEVER include vacuous commentary: "illustrates," "grounds," "conveys," "signifies narratively," "it is worth noting," "interestingly."
+   - NEVER fabricate historical provenance. If you don't know the origin of a technique or term, don't invent one. No footnote is better than a hallucinated one.
+   - NEVER reference any film, TV series, modern media, or post-1900 publication.
+   - NEVER footnote a technique name if you can only describe the physical motion. The poetic name speaks for itself.
+
+   **GOOD vs BAD examples:**
+   - WRONG: "Nàlán Róngruò (1655–1685) was a renowned Manchu poet... which explains his immense influence and the guards' fear."
    - RIGHT: "Nàlán Róngruò (1655–1685), courtesy name Xìngdé, was a renowned Manchu lyric poet of the early Qīng. A bannerman of the Yèhènàlā clan, his *cí* poetry is considered among the finest since the Sòng dynasty."
-   - Explain WHAT the term IS — its historical identity, cultural role, or philological significance. NEVER explain what it MEANS IN THIS SCENE or how it connects to the plot.
-   - For idioms: give the ORIGIN, not a dictionary gloss. WRONG: "三頭六臂 — an idiom meaning someone with extraordinary abilities." RIGHT: "三頭六臂 — literally 'three heads and six arms,' a reference to the child-god Nézhā (哪吒), a fierce guardian deity in Chinese Buddhist and folk-religion tradition who takes this multi-armed form in battle. The Investiture of the Gods (封神演義) is the principal source for his mythology." The reader can figure out "extraordinary abilities" from context — they need the mythology.
+   - Explain WHAT the term IS — its historical identity, cultural role, or philological significance. NEVER explain what it MEANS IN THIS SCENE.
+   - For idioms: give the ORIGIN, not a dictionary gloss. WRONG: "三頭六臂 — an idiom meaning someone with extraordinary abilities." RIGHT: "三頭六臂 — literally 'three heads and six arms,' a reference to the child-god Nézhā (哪吒), a fierce guardian deity in Chinese Buddhist and folk-religion tradition. The *Investiture of the Gods* (封神演義) is the principal source for his mythology."
 
 8. **TRANSLATION QUALITY AT GENERATION TIME:**
 

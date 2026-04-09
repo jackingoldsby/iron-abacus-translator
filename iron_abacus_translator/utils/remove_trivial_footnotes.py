@@ -954,52 +954,97 @@ Return as: {"assessments": [...]}"""
 
         return data
 
-    PHASE3_PROMPT = """You are a footnote editor for a translated Chinese wuxia novel. You will receive a list of footnotes (Chinese term + English explanation). For EACH one, decide: REMOVE or KEEP.
+    PHASE3_PROMPT = """You are a scholarly footnote editor for a translated Classical Chinese novel. You will receive footnotes (Chinese term + English explanation). For EACH, decide REMOVE or KEEP.
 
-REMOVE if the explanation:
-- Just translates the Chinese into English (e.g., 駿馬 = "a fine steed" — the reader already sees "horse" in the English text)
-- Describes a fictional character (e.g., "A palace guard", "a young woman skilled in martial arts")
-- Explains a universal emotion, action, or body language (e.g., "sighing deeply", "shaking one's head", "cry of pain")
-- Describes something obvious (e.g., "a mountain", "pine branches", "the sleeve of a garment")
-- Is meta-narrative (e.g., "next chapter to be unfolded", "what happens next")
+A footnote exists to give a Western reader knowledge they CANNOT get from the translated text itself. If the English translation already conveys the meaning, the footnote is redundant.
 
-KEEP if the explanation:
-- Names a REAL historical person with dates or context
-- Explains a specific martial arts technique, form, school, or named move
-- Names or describes acupoints, pressure points, or meridian concepts
-- Describes a real Buddhist/Taoist/Confucian concept
-- Identifies a real geographic location with historical significance
-- Explains a genuine cultural practice unfamiliar to Western readers
-- Provides specific historical context (dynasty names, political events, reign periods)
-- Explains traditional medicine, qi cultivation, internal energy, or acupuncture concepts
-- Describes a named weapon, lightness skill, grappling technique, or martial style
-- Explains a Chinese idiom (chengyu), proverb, or literary allusion — these carry cultural weight even if short
-- Describes jianghu conventions, sect hierarchies, sworn brotherhood customs, or wuxia social codes
-- Alludes to classical Chinese texts, poems, or philosophical works
-- Explains imperial examination system ranks, degrees, or procedures (舉人, 進士, 狀元, 鄉魁, 秀才, 殿試, 會試, 鄉試, etc.)
-- Describes formal banquet customs, etiquette, or social rituals (酒至三巡, 抱拳, etc.)
-- Explains traditional units of measurement, time, currency, or distance (更, 刻, 兩, 錢, etc.)
-- Describes imperial court titles, official ranks, or bureaucratic terminology (吏部, 大理寺, 知縣, etc.)
+═══════════════════════════════════════════════
+REMOVE — with examples of BAD footnotes:
+═══════════════════════════════════════════════
 
-REMOVE if the explanation contains:
-- References to modern pop culture (Game of Thrones, Lord of the Rings, Harry Potter, Star Wars, Marvel, anime, manga, video games, etc.)
-- References to ANY film, TV series, drama, or modern media (Hong Kong action films, wuxia dramas, Netflix, etc.)
-- Comparisons to Western OR modern Chinese/Asian fiction, media, or entertainment of any kind
-- Any content that is anachronistic to the historical period of the novel
-- References with specific years from the 20th or 21st century (e.g., "popularized by the 1986 film...")
-- Inane, banal, or vacuous observations that add no cultural knowledge (e.g., "this shows his bravery", "a common greeting", "used to address someone")
-- Footnotes that merely restate what is obvious from the translated text itself
-- Martial technique names where the explanation merely describes the physical motion or imagery (e.g., "a kicking technique that hooks like a crutch", "a punch that rises like a wave"). The poetic name is self-evident — only footnote a technique if the explanation provides VERIFIABLE martial-school lineage, historical origin, or cultural significance beyond the literal image
-- Footnotes for named martial forms, routines, or techniques (套路) that fabricate plausible-sounding but unverifiable historical claims. If you cannot verify the cultural claim from established knowledge, REMOVE the footnote. It is far better to have NO footnote than a hallucinated one
+1. JUST TRANSLATES the Chinese (reader already has the English):
+   BAD: 鉤 — "A hook sword, a weapon with a hooked tip"
+   BAD: 駿馬 — "A fine steed"
 
-DEFAULT for character names: REMOVE. Fictional dramatis personae do not need footnotes.
-DEFAULT for idioms, wuxia conventions, and historical references: KEEP. These enrich the reader's understanding of the genre and culture.
-DEFAULT for historical/institutional terms (exams, ranks, customs, measurements): KEEP. Western readers will not know these.
-DEFAULT for descriptive/emotional content: When in doubt, REMOVE.
+2. DESCRIBES A FICTIONAL CHARACTER (dramatis personae, not cultural knowledge):
+   BAD: 苗人鳳 — "A martial arts master known for his formidable swordsmanship"
+   BAD: 閻基 — "A cunning bandit leader from the north"
 
-REDUNDANCY RULE: If two footnotes in this batch explain the SAME concept and one ideogram contains the other, REMOVE the one that adds less. E.g. 師兄 ("senior martial brother") and 殷師兄 ("Senior Martial Brother Yīn") — the second just prepends a surname, so REMOVE it. But 太極 and 太極拳, or 少林 and 少林寺, explain DIFFERENT things and should both be kept if culturally valuable.
+3. DESCRIBES PHYSICAL MOTION of a technique (the poetic name is self-evident):
+   BAD: 拐子腳 — "A kicking technique that hooks like a crutch"
+   BAD: 十二趟犀牛望月轉回還 — "A named routine evoking a rhinoceros performing a graceful turn"
+   BAD: 弓步劈打 — "A splitting strike executed from a bow stance"
 
-For each footnote, return a JSON object: {"index": N, "verdict": "REMOVE" or "KEEP", "reason": "brief"}
+4. FABRICATES plausible-sounding but UNVERIFIABLE claims:
+   BAD: 點子 — "A jiānghú slang term popularized by the 1986 Hong Kong action film A Better Tomorrow"
+   BAD: 白鶴亮翅 — "A technique from the Shaolin tradition dating back to the Tang dynasty"
+   BAD: 查拳 — "Founded by a Muslim warrior named Cha Mir during the Ming dynasty" (unverifiable provenance)
+   RULE: If you cannot verify the historical claim from established knowledge, REMOVE. No footnote is better than a fabricated one.
+
+5. VACUOUS LITERARY COMMENTARY or filler language:
+   BAD: 寨主 — "A title conveying the authority and power of the speaker"
+   BAD: 規矩 — "A concept that underscores the importance of order in the jiānghú"
+   BAD: Any footnote containing: "it is worth noting", "interestingly", "this suggests", "which highlights", "underscoring", "conveying"
+
+6. REFERENCES ANY FILM, TV, MODERN MEDIA, or post-1900 content:
+   BAD: ANY mention of films, drama series, novels published after 1900, video games, anime, manga
+
+7. OBVIOUS or UNIVERSAL concepts:
+   BAD: emotions, body language, common actions, weather, animals, furniture
+
+═══════════════════════════════════════════════
+KEEP — with examples of GOOD footnotes:
+═══════════════════════════════════════════════
+
+1. GEOGRAPHIC — must include province/region and significance:
+   GOOD: 佛山 — Fóshān, a major city in Guǎngdōng province, historically one of China's four great martial arts centers alongside Běijīng, Kāifēng, and Luòyáng.
+   GOOD: 鄂北 — Èběi, northern Húběi province, a region historically associated with the Wǔdāng mountain range.
+
+2. HISTORICAL INSTITUTION — must include dates/dynasty:
+   GOOD: 舉人 — A provincial graduate under the imperial examination system, the degree awarded to candidates who passed the triennial examinations at the provincial capital. Holders were eligible for minor official posts.
+   GOOD: 上三旗 — The Three Upper Banners of the Qīng dynasty Manchu military system, directly commanded by the emperor.
+
+3. ACUPOINT — must include body location and martial significance:
+   GOOD: 曲池 — *Qūchí*, the "Pool at the Bend" acupoint, located at the lateral end of the elbow crease. In martial arts, striking this point causes numbness and loss of grip strength.
+   GOOD: 天樞 — *Tiānshū*, the "Celestial Pivot" acupoint, located on the abdomen two finger-widths lateral to the navel. A vital point; a strike here disrupts internal energy flow.
+
+4. IDIOM/PROVERB — must give the ORIGIN, not just the meaning:
+   GOOD: 有眼不識泰山 — Literally "to have eyes but fail to recognize Mount Tai." An idiom for being blind to greatness, alluding to the reverence for Tài Shān as the most sacred of China's Five Great Mountains.
+   GOOD: 表壯不如裡壯 — A proverb meaning "a strong exterior is not as good as a strong interior," praising inner strength over outward appearance.
+
+5. CULTURAL PRACTICE — must explain WHAT the practice IS:
+   GOOD: 酒至三巡 — The formal "three rounds of wine" at a banquet, marking the transition from ceremonial toasting to relaxed conversation. A host who proceeded to business before three rounds was considered discourteous.
+   GOOD: 束脩 — Literally "bundles of dried meat," the traditional tuition gift from student to teacher, dating to the Confucian Analerta.
+
+6. MARTIAL SCHOOL/SECT — must name verifiable tradition or lineage:
+   GOOD: 太極門 — The Tàijí School, practitioners of Tàijíquán. A major internal martial art traditionally attributed to the Wǔdāng Mountains tradition, emphasizing yielding force and circular movement.
+   GOOD: 五行拳 — Five Elements Fist, a foundational Xíngyìquán form based on the Five Phases (metal, wood, water, fire, earth), each corresponding to a distinct striking method.
+
+7. REAL HISTORICAL PERSON — must include dates:
+   GOOD: 包拯 — Bāo Zhěng (999–1062), a civil official of the Northern Sòng dynasty who served as Prefect of Kāifēng. Legendary for his incorruptibility.
+
+═══════════════════════════════════════════════
+LANGUAGE QUALITY CHECK:
+═══════════════════════════════════════════════
+- Scholarly register: concise, factual, no filler words
+- NO plot commentary: never explain what the term means in this scene
+- Geographic terms MUST include province/region
+- Historical terms MUST include dates or dynasty
+- Martial terms MUST name the school/tradition if verifiable
+- If a footnote fails the language check, REMOVE it
+
+═══════════════════════════════════════════════
+DEFAULTS:
+═══════════════════════════════════════════════
+- Character names: REMOVE (fictional dramatis personae)
+- Idioms, proverbs, historical references: KEEP
+- Imperial institutions, exams, ranks, customs, measurements: KEEP
+- Technique names with only motion description: REMOVE
+- Everything else: when in doubt, REMOVE
+
+REDUNDANCY: If two footnotes explain the SAME concept, REMOVE the less informative one.
+
+For each footnote, return: {"index": N, "verdict": "REMOVE" or "KEEP", "reason": "brief"}
 Return valid JSON as: {"verdicts": [...]}"""
 
     @retry(
