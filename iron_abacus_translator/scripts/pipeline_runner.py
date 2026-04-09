@@ -996,6 +996,10 @@ class SourceLoaderProcessor(StageProcessor):
                     "content": body_text,
                 }
                 blocks.insert(1, new_block)
+                # Also fix chapter-level title fields
+                chapter["title"] = heading_text
+                chapter["title_chinese"] = heading_text
+                chapter.pop("title_english", None)  # force re-translation
                 logger.info(f"  Split chapter title from content in {first.get('id', '?')}")
 
         # Strip footnote markers from title/author (metadata translator artifacts)
