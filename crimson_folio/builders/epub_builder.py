@@ -1202,7 +1202,6 @@ Return paragraphs separated by blank lines. Include the <h3> section headings.""
         body_parts.append(heading)
 
         chapter_footnotes: List[Dict[str, Any]] = []
-        fn_counter = 0
         prev_content_type: Optional[str] = None
 
         # Pre-pass: detect couplet/inscription patterns — short blocks
@@ -1272,24 +1271,18 @@ Return paragraphs separated by blank lines. Include the <h3> section headings.""
             if not translated:
                 continue
 
-            # Remap footnote keys to chapter-level sequential numbering
+            # Use footnote keys as-is (pipeline pre-renumbers chapter-continuously)
+            # Build identity map for _render_text_with_noterefs
             old_to_new = {}
             block_footnotes = []
-            present_fns = []
             for fn in footnotes:
-                old_key = fn.get("key", 0)
-                pos = translated.find(f"[{old_key}]")
-                if pos == -1:
+                key = fn.get("key", 0)
+                if f"[{key}]" not in translated:
                     continue
-                present_fns.append((pos, fn))
-            present_fns.sort(key=lambda x: x[0])
-            for _pos, fn in present_fns:
-                old_key = fn.get("key", 0)
-                fn_counter += 1
-                old_to_new[old_key] = fn_counter
+                old_to_new[key] = key  # identity — no remapping
                 fn_entry = {
-                    "key": fn_counter,
-                    "epub_id": f"fn-ch{chapter_num}-{fn_counter}",
+                    "key": key,
+                    "epub_id": f"fn-ch{chapter_num}-{key}",
                     "ideogram": fn.get("ideogram", ""),
                     "pinyin": fn.get("pinyin", ""),
                     "explanation": fn.get("explanation", ""),
