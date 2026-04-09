@@ -161,7 +161,7 @@ _SHARED_TRANSLATION_RULES = """
 
    8c. **Four-character compound names as fixed epithets**: 胡苗范田 = "the byname 'Hú-Miáo-Fàn-Tián'" with footnote — not a plain surname list.
 
-   8d. **Established martial loanwords preserved**: 擒拿 = qínná, 氣功 = qìgōng, 太極 = tàijí, 點穴 = diǎnxué. Do NOT translate literally.
+   8d. **Established martial loanwords preserved and CAPITALIZED as proper nouns**: 擒拿 = *Qínná*, 氣功 = *Qìgōng*, 太極 = *Tàijí*, 點穴 = *Diǎnxué*. Known schools and styles are proper nouns — capitalize: *Tàijíquán*, *Shàolín*, *Wǔdāng*, *Xíngyìquán*, *Bāguà Zhǎng*, *Yǒngchūn*, *Tántùi*. Do NOT translate literally. Do NOT lowercase: "*tàijí*" is WRONG, "*Tàijí*" is RIGHT.
 
    8e. **Technique names are proper nouns — translate to English and capitalize them**: "Iron Door-Bolt" not "iron door-bolt." "White Rainbow Pierces the Sun" not "white rainbow pierces the sun." "White Crane Spreads Wings" not "*Báihè Liàngchì*". Named moves within a martial style (白鶴亮翅, 攬雀尾, 手揮琵琶, 仙人指路, etc.) should ALWAYS be rendered as their English equivalent, NEVER as pinyin. The imagery is the point — the reader must understand what the name evokes. Every word capitalized except articles and prepositions.
 
