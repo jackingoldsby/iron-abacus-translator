@@ -149,7 +149,7 @@ _SHARED_TRANSLATION_RULES = """
 
    8d. **Established martial loanwords preserved**: 擒拿 = qínná, 氣功 = qìgōng, 太極 = tàijí, 點穴 = diǎnxué. Do NOT translate literally.
 
-   8e. **Technique names are proper nouns — capitalize them**: "Iron Door-Bolt" not "iron door-bolt." "White Rainbow Pierces the Sun" not "white rainbow pierces the sun." Every word in a named technique (招式) should be capitalized except articles and prepositions.
+   8e. **Technique names are proper nouns — translate to English and capitalize them**: "Iron Door-Bolt" not "iron door-bolt." "White Rainbow Pierces the Sun" not "white rainbow pierces the sun." "White Crane Spreads Wings" not "*Báihè Liàngchì*". Named moves within a martial style (白鶴亮翅, 攬雀尾, 手揮琵琶, 仙人指路, etc.) should ALWAYS be rendered as their English equivalent, NEVER as pinyin. The imagery is the point — the reader must understand what the name evokes. Every word capitalized except articles and prepositions.
 
    8f. **Martial formulae, couplets, and mnemonics (口訣) — translate to English.** When a character recites a martial arts rhyme, mnemonic verse, or combat formula, render it as English translation — not pinyin. These are meant to be understood by the reader as meaningful instructions, not opaque sounds. Example: 「陸海迎門三不顧，劈拳挑打不容寬」→ "The Land and Sea greet the gate, three cares cast aside; / The splitting fist lifts and strikes, allowing no quarter." Use a footnote to give the pinyin and explain the martial context.
 
