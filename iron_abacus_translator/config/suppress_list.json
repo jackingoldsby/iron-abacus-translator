@@ -598,5 +598,40 @@
     "chinese": "弟弟",
     "pinyin": "dìdi",
     "english": "younger brother"
+  },
+  {
+    "chinese": "鉤",
+    "pinyin": "gōu",
+    "english": "hook (weapon/technique)"
+  },
+  {
+    "chinese": "點子",
+    "pinyin": "diǎnzi",
+    "english": "target / mark (jianghu slang)"
+  },
+  {
+    "chinese": "拐子腳",
+    "pinyin": "guǎizi jiǎo",
+    "english": "hooking kick"
+  },
+  {
+    "chinese": "拐",
+    "pinyin": "guǎi",
+    "english": "crutch / crook (weapon)"
+  },
+  {
+    "chinese": "腿法",
+    "pinyin": "tuǐfǎ",
+    "english": "kicking technique"
+  },
+  {
+    "chinese": "身法",
+    "pinyin": "shēnfǎ",
+    "english": "body movement technique"
+  },
+  {
+    "chinese": "步法",
+    "pinyin": "bùfǎ",
+    "english": "footwork"
   }
 ]

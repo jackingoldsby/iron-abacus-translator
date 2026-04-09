@@ -860,10 +860,16 @@ Return ONLY the corrected text, nothing else."""
                 # 2b. Strip pop culture / anachronistic references from footnotes
                 if footnotes:
                     _POP_CULTURE = re.compile(
-                        r',?\s*(?:such as|similar to|like|akin to|comparable to|reminiscent of)'
+                        r',?\s*(?:such as|similar to|like|akin to|comparable to|reminiscent of|'
+                        r'popularized by|featured in|seen in|as depicted in|famously in)'
                         r'[^.]*(?:Game of Thrones|Song of Ice and Fire|Lord of the Rings'
                         r'|Harry Potter|Star Wars|Marvel|Westeros|Hogwarts|anime|manga'
-                        r'|Night.s Watch|Jedi|Avengers|Tolkien)[^.]*\.?',
+                        r'|Night.s Watch|Jedi|Avengers|Tolkien'
+                        r'|film|movie|television|TV series|drama series|Netflix|HBO'
+                        r'|Hong Kong (?:action |martial arts )?film'
+                        r'|Better Tomorrow|Crouching Tiger|Kill Bill|Kung Fu Panda'
+                        r'|video game|PlayStation|Xbox|Nintendo'
+                        r'|\d{4} (?:film|movie|series|show|drama))[^.]*\.?',
                         re.IGNORECASE,
                     )
                     for fn in footnotes:

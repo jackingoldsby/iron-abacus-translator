@@ -983,8 +983,10 @@ KEEP if the explanation:
 
 REMOVE if the explanation contains:
 - References to modern pop culture (Game of Thrones, Lord of the Rings, Harry Potter, Star Wars, Marvel, anime, manga, video games, etc.)
-- Comparisons to Western fantasy fiction, media, or modern works of any kind
+- References to ANY film, TV series, drama, or modern media (Hong Kong action films, wuxia dramas, Netflix, etc.)
+- Comparisons to Western OR modern Chinese/Asian fiction, media, or entertainment of any kind
 - Any content that is anachronistic to the historical period of the novel
+- References with specific years from the 20th or 21st century (e.g., "popularized by the 1986 film...")
 - Inane, banal, or vacuous observations that add no cultural knowledge (e.g., "this shows his bravery", "a common greeting", "used to address someone")
 - Footnotes that merely restate what is obvious from the translated text itself
 
