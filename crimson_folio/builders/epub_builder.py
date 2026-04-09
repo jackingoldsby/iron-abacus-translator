@@ -1415,18 +1415,11 @@ Return paragraphs separated by blank lines. Include the <h3> section headings.""
             )
 
         result = re.sub(r'\[(\d+)\]', replace_marker, _escape(text))
-        result = re.sub(r'(?<!\*)\b(\w+)\*(?!\*)', r'*\1*', result)
-        result = re.sub(r'(?<!\*)\*(\w+)\b(?!\*)', r'*\1*', result)
+        # Convert markdown bold and italic to HTML
         result = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', result)
-
-        def _italic_if_short(m):
-            content = m.group(1)
-            if len(content.split()) <= 3:
-                return f'<em>{content}</em>'
-            return content
-
-        result = re.sub(r'\*([^*]+)\*', _italic_if_short, result)
-        result = result.replace('**', '').replace('*', '')
+        result = re.sub(r'\*([^*]+)\*', r'<em>\1</em>', result)
+        # Strip any remaining stray asterisks
+        result = result.replace('*', '')
         return result
 
     @staticmethod
