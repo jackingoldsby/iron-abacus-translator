@@ -1055,7 +1055,19 @@ Return paragraphs separated by blank lines. Include the <h3> section headings.""
                 max_tokens=3000,
             )
             text = response.choices[0].message.content.strip()
-            paras = [p.strip() for p in text.split("\n\n") if p.strip()]
+            # Split on blank lines, then further split <h3> tags onto their own lines
+            raw_paras = [p.strip() for p in text.split("\n\n") if p.strip()]
+            paras = []
+            for p in raw_paras:
+                # If paragraph contains <h3>, split it out
+                if "<h3>" in p:
+                    parts = re.split(r'(<h3>.*?</h3>)', p)
+                    for part in parts:
+                        part = part.strip()
+                        if part:
+                            paras.append(part)
+                else:
+                    paras.append(p)
             if len(paras) >= 4:
                 return paras
         except Exception as e:
