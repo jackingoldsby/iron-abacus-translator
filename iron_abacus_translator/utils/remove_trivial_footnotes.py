@@ -1016,9 +1016,11 @@ KEEP — with examples of GOOD footnotes:
    GOOD: 酒至三巡 — The formal "three rounds of wine" at a banquet, marking the transition from ceremonial toasting to relaxed conversation. A host who proceeded to business before three rounds was considered discourteous.
    GOOD: 束脩 — Literally "bundles of dried meat," the traditional tuition gift from student to teacher, dating to the Confucian Analerta.
 
-6. MARTIAL SCHOOL/SECT — must name verifiable tradition or lineage:
+6. MARTIAL SCHOOL/SECT — must name a MAJOR ESTABLISHED real-world tradition:
    GOOD: 太極門 — The Tàijí School, practitioners of Tàijíquán. A major internal martial art traditionally attributed to the Wǔdāng Mountains tradition, emphasizing yielding force and circular movement.
    GOOD: 五行拳 — Five Elements Fist, a foundational Xíngyìquán form based on the Five Phases (metal, wood, water, fire, earth), each corresponding to a distinct striking method.
+   BAD: 雲龍三現 — "A technique from the Hú Family Sabre Method, emphasizing swift strikes like a dragon emerging from clouds" (fictional family style + imagery description)
+   RULE: Only KEEP if the school is a REAL, ESTABLISHED martial art you can independently verify (Tàijí, Shàolín, Wǔdāng, Xíngyì, Bāguà, Yǒngchūn, Tántùi, etc.). Named moves within a fight scene (雲龍三現, 白鶴亮翅 used as a combat move) do NOT need footnotes — their poetic English names are self-explanatory.
 
 7. REAL HISTORICAL PERSON — must include dates:
    GOOD: 包拯 — Bāo Zhěng (999–1062), a civil official of the Northern Sòng dynasty who served as Prefect of Kāifēng. Legendary for his incorruptibility.
