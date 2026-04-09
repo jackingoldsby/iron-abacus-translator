@@ -2007,18 +2007,31 @@ def _find_term_in_text(
 
     # Strategy 2: English term from explanation
     if explanation:
-        # Try text before first separator
+        # Try text before AND after first separator
         for sep in [":", ";", ",", "—", "–"]:
             if sep in explanation:
-                candidate = explanation.split(sep)[0].strip()
-                # Clean up articles
-                for prefix in ["The ", "A ", "An "]:
-                    if candidate.startswith(prefix):
-                        candidate = candidate[len(prefix):]
-                if 3 <= len(candidate) <= 50:
-                    idx = _find_word(lower_search, candidate.lower())
-                    if idx != -1:
-                        return idx, idx + len(candidate)
+                parts = explanation.split(sep, 1)
+                for part in parts:
+                    candidate = part.strip()
+                    # Clean up articles
+                    for prefix in ["The ", "A ", "An ", "the ", "a ", "an "]:
+                        if candidate.startswith(prefix):
+                            candidate = candidate[len(prefix):]
+                    # Also try extracting hyphenated compound (e.g., "Purple-Gold Sabre")
+                    compound_match = re.match(
+                        r'([A-Z][a-z]+(?:-[A-Z][a-z]+)*(?:\s+[A-Z][a-z]+)*)',
+                        candidate
+                    )
+                    if compound_match:
+                        compound = compound_match.group(1)
+                        if len(compound) >= 5:
+                            idx = _find_word(lower_search, compound.lower())
+                            if idx != -1:
+                                return idx, idx + len(compound)
+                    if 3 <= len(candidate) <= 50:
+                        idx = _find_word(lower_search, candidate.lower())
+                        if idx != -1:
+                            return idx, idx + len(candidate)
                 break
 
         # Try capitalized words/phrases from explanation (proper nouns/terms)
