@@ -857,6 +857,21 @@ Return ONLY the corrected text, nothing else."""
                             text = re.sub(r'\[\d+\]', _renum, text)
                         text = re.sub(r'  +', ' ', text)
 
+                # 2b. Strip pop culture / anachronistic references from footnotes
+                if footnotes:
+                    _POP_CULTURE = re.compile(
+                        r',?\s*(?:such as|similar to|like|akin to|comparable to|reminiscent of)'
+                        r'[^.]*(?:Game of Thrones|Song of Ice and Fire|Lord of the Rings'
+                        r'|Harry Potter|Star Wars|Marvel|Westeros|Hogwarts|anime|manga'
+                        r'|Night.s Watch|Jedi|Avengers|Tolkien)[^.]*\.?',
+                        re.IGNORECASE,
+                    )
+                    for fn in footnotes:
+                        expl = fn.get("explanation", "")
+                        if _POP_CULTURE.search(expl):
+                            fn["explanation"] = _POP_CULTURE.sub(".", expl).strip()
+                            fn["explanation"] = re.sub(r'\.\s*\.', '.', fn["explanation"])
+
                 # 3. Orphan markers (marker with no footnote)
                 if text:
                     marker_keys = set(int(m) for m in re.findall(r'\[(\d+)\]', text))
