@@ -981,6 +981,13 @@ KEEP if the explanation:
 - Explains traditional units of measurement, time, currency, or distance (更, 刻, 兩, 錢, etc.)
 - Describes imperial court titles, official ranks, or bureaucratic terminology (吏部, 大理寺, 知縣, etc.)
 
+REMOVE if the explanation contains:
+- References to modern pop culture (Game of Thrones, Lord of the Rings, Harry Potter, Star Wars, Marvel, anime, manga, video games, etc.)
+- Comparisons to Western fantasy fiction, media, or modern works of any kind
+- Any content that is anachronistic to the historical period of the novel
+- Inane, banal, or vacuous observations that add no cultural knowledge (e.g., "this shows his bravery", "a common greeting", "used to address someone")
+- Footnotes that merely restate what is obvious from the translated text itself
+
 DEFAULT for character names: REMOVE. Fictional dramatis personae do not need footnotes.
 DEFAULT for idioms, wuxia conventions, and historical references: KEEP. These enrich the reader's understanding of the genre and culture.
 DEFAULT for historical/institutional terms (exams, ranks, customs, measurements): KEEP. Western readers will not know these.
