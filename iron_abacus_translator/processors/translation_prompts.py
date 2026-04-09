@@ -357,7 +357,7 @@ Liang writes classical, elegant prose closer to traditional Chinese literary fic
 - Technique names as English, capitalized: "Whirlwind Palm", "Thousand-Pound Fist"
 - Weapon types in English: 劍 sword, 刀 sabre, 鞭 whip
 - Internal energy: 內勁 "internal force", 氣 "qi" or "vital energy"
-- Acupoints: English name + pinyin — "the Sānlǐ acupoint"
+- Acupoints: ALWAYS render as italicized pinyin, never translate to English. "*Qūchí*" not "Crooked Pond", "*Tiānshū*" not "Celestial Pivot", "*Sānlǐ*" not "Three Miles". Footnote the English meaning on first occurrence.
 
 **VERSE:** Translate as scholarly prose-verse — dignified, precise, with natural English cadence. NEVER force rhyme. Preserve parallelism and allusion where they read naturally. Footnote the source poem/poet when identifiable.
 
@@ -942,7 +942,7 @@ Wuxia characters inhabit a world of codes, honor, and ritual speech. Their langu
 - Technique names as English, capitalized: "Whirlwind Palm", "Thousand-Pound Fist"
 - Weapons in English: 劍 sword, 刀 sabre, 鞭 whip, 筆 brush
 - Internal energy: 內勁 "internal force", 氣 "qi" or "vital energy"
-- Acupoints: English name + pinyin — "the Sānlǐ acupoint"
+- Acupoints: ALWAYS render as italicized pinyin, never translate to English. "*Qūchí*" not "Crooked Pond", "*Tiānshū*" not "Celestial Pivot", "*Sānlǐ*" not "Three Miles". Footnote the English meaning on first occurrence.
 - Body mechanics: 側身一閃 → "sidestepped"
 
 **Italics:** *jiānghú*, *qì*, *diǎnxué*, *shīxiōng* — only for untranslated terms
