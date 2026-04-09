@@ -2004,34 +2004,10 @@ def _find_term_in_text(
             if idx != -1:
                 return idx, idx + len(term)
 
-    # Strategy 5: Positional mapping from source text
-    # Find ideogram in Chinese source, map proportionally to English text,
-    # then place at nearest sentence boundary.
-    if ideogram and source_text:
-        src_idx = source_text.find(ideogram)
-        if src_idx != -1:
-            ratio = (src_idx + len(ideogram)) / max(len(source_text), 1)
-            approx_pos = int(ratio * len(search_text))
-            # Snap to word boundary if we landed mid-word
-            if (0 < approx_pos < len(search_text)
-                    and search_text[approx_pos - 1].isalpha()
-                    and search_text[approx_pos].isalpha()):
-                word_tail = re.search(r'[^a-zA-Z]', search_text[approx_pos:])
-                if word_tail:
-                    approx_pos = approx_pos + word_tail.start()
-            # Find nearest sentence-ending punctuation after approx_pos
-            sent_end = re.search(r'[.!?;"\u201d]\s', search_text[approx_pos:])
-            if sent_end:
-                end_pos = approx_pos + sent_end.start() + 1
-                return end_pos, end_pos
-            # No sentence boundary — find end of current word
-            word_end = re.search(r'(?<=[a-zA-Z])\b', search_text[approx_pos:])
-            if word_end:
-                end_pos = approx_pos + word_end.start()
-                return end_pos, end_pos
-            # At end of text
-            if approx_pos > 0:
-                return approx_pos, approx_pos
+    # Strategy 5: Positional mapping DISABLED — placing markers at proportional
+    # positions produces misplaced footnotes (marker on wrong word/sentence).
+    # Better to remove the footnote than misplace it. The AI verify pass
+    # handles the remaining cases.
 
     return -1, -1
 
