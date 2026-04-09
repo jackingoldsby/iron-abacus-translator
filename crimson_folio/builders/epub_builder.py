@@ -299,7 +299,7 @@ class EpubBuilder:
         book.add_item(preface_page)
 
         # Build introduction
-        intro_page = self._build_introduction(css_item)
+        intro_page = self._build_introduction(css_item, meta=meta)
         book.add_item(intro_page)
 
         # Build chapters
@@ -959,10 +959,115 @@ class EpubBuilder:
         item.add_item(css_item)
         return item
 
-    def _build_introduction(self, css_item: epub.EpubItem) -> epub.EpubHtml:
+    def _build_introduction(self, css_item: epub.EpubItem,
+                             meta: Optional[Dict[str, Any]] = None) -> epub.EpubHtml:
         """Build an Introduction page with cultural and historical context."""
+        paras = self._generate_introduction(meta or {})
+        body_parts = []
+        for para in paras:
+            # Convert markdown to HTML
+            para = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', para)
+            para = re.sub(r'\*([^*]+)\*', r'<em>\1</em>', para)
+            if para.startswith("<h"):
+                body_parts.append(f"    {para}")
+            else:
+                text = _escape(para)
+                text = text.replace("&lt;em&gt;", "<em>").replace("&lt;/em&gt;", "</em>")
+                text = text.replace("&lt;strong&gt;", "<strong>").replace("&lt;/strong&gt;", "</strong>")
+                body_parts.append(f"    <p>{text}</p>")
+
+        body_html = "\n".join(body_parts)
+        html = f"""<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head>
+  <title>Introduction</title>
+  <link rel="stylesheet" type="text/css" href="styles/kindle.css"/>
+</head>
+<body>
+  <div class="translators-preface">
+    <h2>Introduction</h2>
+{body_html}
+  </div>
+</body>
+</html>"""
+
+        item = epub.EpubHtml(
+            title="Introduction",
+            file_name="introduction.xhtml",
+            lang="en",
+        )
+        item.set_content(html.encode("utf-8"))
+        item.add_item(css_item)
+        return item
+
+    def _generate_introduction(self, meta: Dict[str, Any]) -> List[str]:
+        """Generate per-work introduction via DeepSeek, grounded in Wikipedia facts."""
+        title_en = meta.get("title_english", "")
+        title_zh = meta.get("title_chinese") or meta.get("title", "")
+        author_en = meta.get("author_english", "")
+        author_zh = meta.get("author_chinese") or meta.get("author", "")
+        genre = meta.get("category_english", "")
+
+        if not title_en and not title_zh:
+            return ["<h3>About This Work</h3>",
+                    "This translation presents a work from the classical Chinese literary tradition."]
+
+        wiki_context = self._fetch_preface_context(title_en, title_zh, author_en, author_zh)
+
+        prompt = f"""Write an introduction (6-8 paragraphs) for an English translation of a classical Chinese novel. This is for a reader who knows nothing about the work or its tradition.
+
+Work: {title_en} ({title_zh}) by {author_en} ({author_zh})
+Genre: {genre or 'classical Chinese fiction'}
+
+Structure with these section headings (use <h3> tags):
+
+<h3>The Author</h3>
+Brief biography — when they lived, their literary significance, other notable works.
+
+<h3>The Genre</h3>
+Explain the genre tradition this work belongs to. What makes it distinctive? How does it relate to other Chinese literary traditions?
+
+<h3>The Novel</h3>
+What is this specific work about (without spoilers beyond chapter 1-2)? What themes does it explore? What should the reader expect in terms of narrative style?
+
+<h3>Historical Context</h3>
+When is the novel set? What period of Chinese history? What should the reader know about that era to appreciate the story?
+
+Rules:
+- Use ONLY facts from the Wikipedia context below. Do NOT invent biographical details, dates, or claims.
+- If Wikipedia doesn't cover something, say "little is known" rather than fabricating.
+- Write for an educated general reader, not a specialist.
+- Use *italics* for Chinese terms and titles.
+- Keep each paragraph 3-5 sentences.
+
+{('FACTUAL CONTEXT:\\n' + wiki_context) if wiki_context else 'No Wikipedia context available — keep to well-known facts only.'}
+
+Return paragraphs separated by blank lines. Include the <h3> section headings."""
+
+        try:
+            from utils.llm_client import get_deepseek_client
+            client = get_deepseek_client()
+            response = client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.4,
+                max_tokens=3000,
+            )
+            text = response.choices[0].message.content.strip()
+            paras = [p.strip() for p in text.split("\n\n") if p.strip()]
+            if len(paras) >= 4:
+                return paras
+        except Exception as e:
+            logger.debug(f"Introduction generation failed: {e}")
+
+        return ["<h3>About This Work</h3>",
+                f"*{title_en}* ({title_zh}) by {author_en} is a work from the classical Chinese literary tradition.",
+                "This translation aims to bring this work to English-language readers for the first time."]
+
+    def _build_introduction_legacy(self, css_item: epub.EpubItem) -> epub.EpubHtml:
+        """LEGACY: Hardcoded introduction for 三俠五義. Kept for reference."""
         paras = [
-            # THE AUTHOR
             "<h3>The Author</h3>",
             "Sh\u00ed Y\u00f9k\u016bn (\u77f3\u7389\u5d11, fl. 19th century)"
             " was not a writer in the conventional sense. He was a"
