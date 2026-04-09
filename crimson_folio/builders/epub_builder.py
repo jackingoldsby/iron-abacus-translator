@@ -318,12 +318,6 @@ class EpubBuilder:
         book.add_item(credits_page)
         spine.append(credits_page)
 
-        # Auto-generate acupoint glossary from footnotes + DuckDB
-        acupoint_item = self._build_acupoint_glossary(data, css_item)
-        if acupoint_item:
-            book.add_item(acupoint_item)
-            spine.append(acupoint_item)
-
         # Build glossary if entries provided
         glossary_item = None
         if glossary_entries:
