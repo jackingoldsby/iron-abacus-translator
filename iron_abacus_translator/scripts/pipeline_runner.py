@@ -2106,8 +2106,54 @@ class EpubBuildProcessor(StageProcessor):
         return "epub_build"
 
     def process(self, data, filename, ctx):
+        import re as _re
         from builders.epub_builder import EpubBuilder
         from pathlib import Path
+
+        # Pre-EPUB renumbering: make JSON footnotes match EPUB numbering
+        # (chapter-continuous, skip heading blocks, drop orphans)
+        chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+        for chapter in chapters:
+            title_zh = (chapter.get("title_chinese") or "").strip()
+            fn_counter = 0
+            for block in chapter.get("content_blocks", []):
+                # Skip heading blocks (same as EPUB builder)
+                btype = block.get("type", "")
+                source = (block.get("content") or "").strip()
+                if btype == "heading":
+                    block["footnotes"] = []
+                    continue
+                if title_zh and source == title_zh:
+                    block["footnotes"] = []
+                    continue
+
+                translated = block.get("translated_content", "")
+                footnotes = block.get("footnotes", [])
+                if not translated or not footnotes:
+                    continue
+
+                # Keep only footnotes whose markers exist in text
+                present = []
+                for fn in footnotes:
+                    if f"[{fn.get('key')}]" in translated:
+                        present.append(fn)
+
+                # Renumber sequentially within chapter
+                old_to_new = {}
+                for fn in present:
+                    fn_counter += 1
+                    old_to_new[fn["key"]] = fn_counter
+                    fn["key"] = fn_counter
+
+                # Update markers in text
+                if old_to_new:
+                    for old_key, new_key in sorted(old_to_new.items(), reverse=True):
+                        translated = translated.replace(f"[{old_key}]", f"[__FN{new_key}__]")
+                    for new_key in old_to_new.values():
+                        translated = translated.replace(f"[__FN{new_key}__]", f"[{new_key}]")
+                    block["translated_content"] = translated
+
+                block["footnotes"] = present
 
         # Auto-detect cover from portfolio assignment
         cover_image = None
