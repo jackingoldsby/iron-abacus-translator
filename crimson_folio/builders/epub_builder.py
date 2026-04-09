@@ -318,6 +318,12 @@ class EpubBuilder:
         book.add_item(credits_page)
         spine.append(credits_page)
 
+        # Auto-generate acupoint glossary from footnotes + DuckDB
+        acupoint_item = self._build_acupoint_glossary(data, css_item)
+        if acupoint_item:
+            book.add_item(acupoint_item)
+            spine.append(acupoint_item)
+
         # Build glossary if entries provided
         glossary_item = None
         if glossary_entries:
@@ -1668,6 +1674,118 @@ class EpubBuilder:
         item = epub.EpubHtml(
             title="Glossary of Terms",
             file_name="glossary.xhtml",
+            lang="en",
+        )
+        item.set_content(html.encode("utf-8"))
+        item.add_item(css_item)
+        return item
+
+
+    def _build_acupoint_glossary(
+        self,
+        data: Dict[str, Any],
+        css_item: epub.EpubItem,
+    ) -> Optional[epub.EpubHtml]:
+        """Build acupoint glossary appendix from footnotes cross-referenced with DuckDB.
+
+        Scans all footnotes for acupoint references, looks up verified data
+        from the acupoints table, and builds a formatted appendix.
+        """
+        # Collect acupoint ideograms from footnotes
+        acupoint_ideograms = set()
+        chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+        for chapter in chapters:
+            for block in chapter.get("content_blocks", []):
+                for fn in block.get("footnotes", []):
+                    expl = fn.get("explanation", "").lower()
+                    if any(t in expl for t in (
+                        "acupoint", "acupuncture", "pressure point",
+                        "meridian point", "vital point",
+                    )):
+                        acupoint_ideograms.add(fn.get("ideogram", ""))
+
+        if not acupoint_ideograms:
+            return None
+
+        # Look up from DuckDB
+        try:
+            import duckdb
+            db_path = self.catalog_db
+            conn = duckdb.connect(str(db_path), read_only=True)
+            rows = conn.execute(
+                "SELECT chinese, pinyin, code, english_name, meridian, location "
+                "FROM acupoints ORDER BY code"
+            ).fetchall()
+            conn.close()
+        except Exception:
+            return None
+
+        if not rows:
+            return None
+
+        # Filter to acupoints that appear in this work's footnotes
+        # Match by substring (footnote ideogram may include 穴 suffix)
+        entries = []
+        for chinese, pinyin, code, english, meridian, location in rows:
+            base = chinese.replace("穴", "")
+            if any(base in ideo or ideo in chinese for ideo in acupoint_ideograms):
+                entries.append({
+                    "chinese": chinese, "pinyin": pinyin, "code": code or "",
+                    "english": english or "", "meridian": meridian or "",
+                    "location": location or "",
+                })
+
+        if not entries:
+            return None
+
+        # Build HTML
+        parts = [
+            '<section class="acupoint-glossary">',
+            '<h2 style="text-align:center; font-size:1.4em; margin-bottom:1.5em;">'
+            'Glossary of Acupoints</h2>',
+            '<p style="font-size:0.9em; color:#555; margin-bottom:1.5em;">'
+            'The following acupuncture points appear in this volume. '
+            'Codes follow WHO standard nomenclature.</p>',
+            '<table style="width:100%; border-collapse:collapse; font-size:0.85em;">',
+            '<tr style="border-bottom:1px solid #ccc; font-weight:bold;">'
+            '<td style="padding:4px;">Code</td>'
+            '<td style="padding:4px;">Chinese</td>'
+            '<td style="padding:4px;">Pinyin</td>'
+            '<td style="padding:4px;">English</td>'
+            '<td style="padding:4px;">Meridian</td>'
+            '<td style="padding:4px;">Location</td></tr>',
+        ]
+
+        for e in entries:
+            parts.append(
+                f'<tr style="border-bottom:1px solid #eee;">'
+                f'<td style="padding:4px; font-weight:bold;">{_escape(e["code"])}</td>'
+                f'<td style="padding:4px;">{_escape(e["chinese"])}</td>'
+                f'<td style="padding:4px; font-style:italic;">{_escape(e["pinyin"])}</td>'
+                f'<td style="padding:4px;">{_escape(e["english"])}</td>'
+                f'<td style="padding:4px;">{_escape(e["meridian"])}</td>'
+                f'<td style="padding:4px; font-size:0.85em;">{_escape(e["location"])}</td>'
+                f'</tr>'
+            )
+
+        parts.append('</table>')
+        parts.append('</section>')
+
+        html = f"""<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head>
+  <title>Glossary of Acupoints</title>
+  <link rel="stylesheet" type="text/css" href="styles/kindle.css"/>
+</head>
+<body>
+{chr(10).join(parts)}
+</body>
+</html>"""
+
+        item = epub.EpubHtml(
+            title="Glossary of Acupoints",
+            file_name="acupoints.xhtml",
             lang="en",
         )
         item.set_content(html.encode("utf-8"))
