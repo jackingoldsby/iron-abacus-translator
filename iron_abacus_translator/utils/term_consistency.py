@@ -1033,6 +1033,157 @@ def _strip_heading_footnotes(data: Dict[str, Any]) -> int:
 # Top-level convenience
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Acupoint footnote injection
+# ---------------------------------------------------------------------------
+
+def _inject_acupoint_footnotes(data: Dict[str, Any]) -> int:
+    """Inject footnotes for acupoints found in source text but not yet footnoted.
+
+    Scans each block's Chinese source for acupoint ideograms from the DuckDB
+    acupoints table. If the acupoint appears in the source but has no footnote
+    in that block (or any prior block in the chapter), injects a footnote with
+    the acupoint's description and martial context.
+
+    Only injects first occurrence per chapter (subsequent occurrences are left
+    for the dedup pipeline to handle).
+
+    Returns number of footnotes injected.
+    """
+    try:
+        import duckdb
+        from pathlib import Path as _P
+        from utils.environment_config import get_or_create_config
+        env = get_or_create_config()
+        glossary_db = _P(env.catalog_path).parent / "glossary.duckdb"
+        conn = duckdb.connect(str(glossary_db), read_only=True)
+        rows = conn.execute(
+            "SELECT chinese, pinyin, english_name, location, meridian, "
+            "martial_context, explanation FROM acupoints WHERE chinese != ''"
+        ).fetchall()
+        conn.close()
+    except Exception as e:
+        logger.debug(f"  Acupoint injection skipped: {e}")
+        return 0
+
+    if not rows:
+        return 0
+
+    # Build lookup: ideogram → acupoint data (longest first to avoid partial matches)
+    acupoint_map = {}
+    for chinese, pinyin, english, location, meridian, martial, explanation in rows:
+        base = chinese.replace("穴", "")
+        acupoint_map[base] = {
+            "chinese": chinese,
+            "pinyin": pinyin,
+            "english": english or "",
+            "location": location or "",
+            "meridian": meridian or "",
+            "martial": martial or "",
+            "explanation": explanation or "",
+        }
+    # Sort by length descending (match longer terms first)
+    sorted_terms = sorted(acupoint_map.keys(), key=len, reverse=True)
+
+    chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
+    injected = 0
+
+    for chapter in chapters:
+        seen_in_chapter: set = set()  # track first occurrence per chapter
+
+        # First pass: collect already-footnoted acupoint ideograms
+        for block in chapter.get("content_blocks", []):
+            for fn in block.get("footnotes", []):
+                ideo = fn.get("ideogram", "").replace("穴", "")
+                if ideo in acupoint_map:
+                    seen_in_chapter.add(ideo)
+
+        # Second pass: inject missing acupoint footnotes
+        for block in chapter.get("content_blocks", []):
+            source = block.get("content", "")
+            translated = block.get("translated_content", "")
+            if not source or not translated:
+                continue
+
+            for term in sorted_terms:
+                if term in seen_in_chapter:
+                    continue
+                if term not in source:
+                    continue
+
+                # This acupoint appears in source but isn't footnoted yet
+                ap = acupoint_map[term]
+
+                # Build explanation
+                parts = []
+                if ap["english"]:
+                    parts.append(f'{ap["pinyin"]} ({ap["chinese"]}), the "{ap["english"]}" acupoint.')
+                else:
+                    parts.append(f'{ap["pinyin"]} ({ap["chinese"]}), an acupoint.')
+                if ap["location"]:
+                    parts.append(f'Located {ap["location"].lower()}.')
+                if ap["meridian"]:
+                    parts.append(f'{ap["meridian"]} meridian.')
+                if ap["martial"]:
+                    parts.append(ap["martial"])
+                elif ap["explanation"]:
+                    # Use existing explanation if no martial context
+                    parts = [ap["explanation"]]
+
+                explanation = " ".join(parts)
+
+                # Find the pinyin in translated text to place the marker
+                pinyin = ap["pinyin"]
+                # Search for pinyin (with or without tone marks)
+                import re as _re
+                pinyin_stripped = _re.sub(
+                    r'[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]',
+                    lambda c: {
+                        'ā':'a','á':'a','ǎ':'a','à':'a','ē':'e','é':'e','ě':'e','è':'e',
+                        'ī':'i','í':'i','ǐ':'i','ì':'i','ō':'o','ó':'o','ǒ':'o','ò':'o',
+                        'ū':'u','ú':'u','ǔ':'u','ù':'u','ǖ':'u','ǘ':'u','ǚ':'u','ǜ':'u',
+                    }.get(c.group(), c.group()),
+                    pinyin.lower()
+                )
+
+                # Find position in translated text
+                pos = -1
+                for search in [pinyin, pinyin.title(), pinyin_stripped, pinyin_stripped.title()]:
+                    p = translated.find(search)
+                    if p >= 0:
+                        pos = p + len(search)
+                        break
+
+                if pos < 0:
+                    # Can't find the pinyin — skip, cleanup will handle orphans
+                    continue
+
+                # Inject footnote
+                footnotes = block.get("footnotes", [])
+                new_key = max((fn.get("key", 0) for fn in footnotes), default=0) + 1
+                footnotes.append({
+                    "key": new_key,
+                    "ideogram": ap["chinese"],
+                    "pinyin": ap["pinyin"],
+                    "explanation": explanation,
+                })
+                block["footnotes"] = footnotes
+
+                # Insert marker in translated text
+                block["translated_content"] = (
+                    translated[:pos] + f"[{new_key}]" + translated[pos:]
+                )
+                translated = block["translated_content"]  # update for subsequent searches
+
+                seen_in_chapter.add(term)
+                injected += 1
+
+    if injected:
+        logger.info(f"  Injected {injected} acupoint footnotes from DuckDB")
+
+    return injected
+
+
 def standardize_work(
     data: Dict[str, Any],
     glossary=None,
@@ -1049,6 +1200,9 @@ def standardize_work(
     Returns:
         (data, report)
     """
+    # Phase -2: Inject acupoint footnotes from DuckDB
+    _inject_acupoint_footnotes(data)
+
     # Phase -1: Strip footnotes from chapter heading blocks
     _strip_heading_footnotes(data)
 
