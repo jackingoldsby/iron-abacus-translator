@@ -1137,9 +1137,21 @@ class EpubBuilder:
                 else:
                     break
 
+        _SEPARATOR_RE = re.compile(r'^[\s※＊\*·•◇◆○●△▲▽▼■□▪▫─━═☆★\-_=~.。]+$')
+
         for block_idx, block in enumerate(blocks):
             translated = block.get("translated_content", "")
             content_type = block.get("content_type", "narrative")
+
+            # Render section separators as centered dividers with spacing
+            source = block.get("content", "").strip()
+            if source and _SEPARATOR_RE.match(source):
+                body_parts.append(
+                    '<p style="text-align:center; margin:1.5em 0; letter-spacing:0.5em; '
+                    'color:#999;">* * *</p>'
+                )
+                prev_content_type = None
+                continue
             if block_idx in _narr_override:
                 content_type = "narrative"
             footnotes = block.get("footnotes", [])
