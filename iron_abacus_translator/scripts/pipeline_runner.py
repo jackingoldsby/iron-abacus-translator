@@ -2110,6 +2110,39 @@ class EpubBuildProcessor(StageProcessor):
         from builders.epub_builder import EpubBuilder
         from pathlib import Path
 
+        # Ensure metadata is enriched (may be missing when resuming with --from)
+        meta = data.get("meta", {})
+        if not meta.get("work_number"):
+            meta["work_number"] = ctx.work_id
+        if ctx.volume and not meta.get("volume"):
+            meta["volume"] = ctx.volume
+        # Strip footnote markers from titles
+        for k in ("title_english", "author_english"):
+            if meta.get(k):
+                meta[k] = _re.sub(r'\[\d+\]', '', meta[k]).strip()
+        # Fetch catalog data if missing
+        if not meta.get("title_english") or not meta.get("author_english"):
+            try:
+                import duckdb
+                from utils.environment_config import get_or_create_config
+                env = get_or_create_config()
+                conn = duckdb.connect(str(env.catalog_path), read_only=True)
+                wn = _re.sub(r'[a-z]$', '', meta.get("work_number", ""))
+                row = conn.execute(
+                    "SELECT title_english, author_english, category_english "
+                    "FROM works WHERE work_number = ?", [wn]
+                ).fetchone()
+                conn.close()
+                if row:
+                    if row[0] and not meta.get("title_english"):
+                        meta["title_english"] = row[0]
+                    if row[1] and not meta.get("author_english"):
+                        meta["author_english"] = row[1]
+                    if row[2] and not meta.get("category_english"):
+                        meta["category_english"] = row[2]
+            except Exception:
+                pass
+
         # Pre-EPUB renumbering: make JSON footnotes match EPUB numbering
         # (chapter-continuous, skip heading blocks, drop orphans)
         chapters = data.get("structure", {}).get("body", {}).get("chapters", [])
