@@ -1873,8 +1873,7 @@ Return paragraphs separated by blank lines. Include the <h3> section headings.""
         for e in entries:
             parts.append('<div style="margin-bottom:1.2em; border-bottom:1px solid #eee; padding-bottom:0.8em;">')
             parts.append(
-                f'<p style="margin:0;"><strong>{_escape(e["code"])}</strong> '
-                f'<em>{_escape(e["pinyin"])}</em> '
+                f'<p style="margin:0;"><strong><em>{_escape(e["pinyin"])}</em></strong> '
                 f'{_escape(e["chinese"])} '
                 f'— {_escape(e["english"])}</p>'
             )
