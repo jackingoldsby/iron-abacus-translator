@@ -1031,9 +1031,6 @@ Explain the genre tradition this work belongs to. What makes it distinctive? How
 <h3>The Novel</h3>
 What is this specific work about (without spoilers beyond chapter 1-2)? What themes does it explore? What should the reader expect in terms of narrative style?
 
-<h3>Historical Context</h3>
-When is the novel set? What period of Chinese history? What should the reader know about that era to appreciate the story?
-
 Rules:
 - Use ONLY facts from the Wikipedia context below. Do NOT invent biographical details, dates, or claims.
 - If Wikipedia doesn't cover something, say "little is known" rather than fabricating.
