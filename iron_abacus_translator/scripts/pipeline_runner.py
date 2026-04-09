@@ -971,10 +971,48 @@ class SourceLoaderProcessor(StageProcessor):
                     logger.info(f"  Stripped metadata prefix from {first.get('id', '?')}")
 
         # Strip footnote markers from title/author (metadata translator artifacts)
-        import re as _re
         for k in ("title_english", "author_english"):
             if meta.get(k):
                 meta[k] = _re.sub(r'\[\d+\]', '', meta[k]).strip()
+
+        # Split blocks that have inline separators (※※※ merged with content)
+        # into a standalone separator block + content block.
+        # Handles varying separator lengths and characters.
+        _INLINE_SEP = _re.compile(r'^[※＊\*☆★·•◇◆○●]+[\s　]*')
+        split_count = 0
+        for chapter in chapters:
+            new_blocks = []
+            for block in chapter.get("content_blocks", []):
+                content = block.get("content", "")
+                translated = block.get("translated_content", "")
+
+                # Check both source and translated for inline separators
+                src_match = _INLINE_SEP.match(content) if content else None
+                en_match = _INLINE_SEP.match(translated) if translated else None
+
+                if (src_match and len(content) > 10) or (en_match and len(translated) > 10):
+                    # Create separator block
+                    sep_block = {
+                        "id": block["id"] + "_sep",
+                        "type": "text",
+                        "content": "※※※",
+                    }
+                    new_blocks.append(sep_block)
+
+                    # Strip separator from source and translated
+                    if src_match:
+                        block["content"] = content[src_match.end():].strip()
+                    if en_match:
+                        block["translated_content"] = translated[en_match.end():].strip()
+
+                    new_blocks.append(block)
+                    split_count += 1
+                    continue
+
+                new_blocks.append(block)
+            chapter["content_blocks"] = new_blocks
+        if split_count:
+            logger.info(f"  Split {split_count} inline separator blocks")
 
         return data
 
