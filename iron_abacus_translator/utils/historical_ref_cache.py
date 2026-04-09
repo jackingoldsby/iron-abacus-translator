@@ -545,6 +545,22 @@ def enrich_work_footnotes(
                 if not ideogram or not explanation:
                     continue
 
+                # Skip acupoint footnotes — they already have good martial context
+                expl_lower = explanation.lower()
+                if any(t in expl_lower for t in (
+                    'acupoint', 'acupuncture', 'pressure point', 'meridian',
+                )):
+                    skipped_count += 1
+                    continue
+
+                # Skip footnotes that already have rich martial/cultural content
+                if len(explanation) > 200 and any(t in expl_lower for t in (
+                    'martial', 'combat', 'strike', 'technique', 'wǔxiá',
+                    'jiānghú', 'dynasty', 'emperor', 'buddhist', 'daoist',
+                )):
+                    skipped_count += 1
+                    continue
+
                 # Extract an English search term from the explanation
                 # Footnotes typically start with "The X" or "Name, the X"
                 wiki_search = _extract_wiki_search_term(explanation, pinyin)
