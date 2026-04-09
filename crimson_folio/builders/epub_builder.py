@@ -1829,10 +1829,12 @@ Return paragraphs separated by blank lines. Include the <h3> section headings.""
         # Look up from DuckDB
         try:
             import duckdb
-            db_path = self.catalog_db
-            conn = duckdb.connect(str(db_path), read_only=True)
+            from pathlib import Path as _P
+            glossary_db = _P(self.catalog_db).parent / "glossary.duckdb"
+            conn = duckdb.connect(str(glossary_db), read_only=True)
             rows = conn.execute(
-                "SELECT chinese, pinyin, code, english_name, meridian, location "
+                "SELECT chinese, pinyin, code, english_name, meridian, location, "
+                "martial_context "
                 "FROM acupoints ORDER BY code"
             ).fetchall()
             conn.close()
@@ -1843,21 +1845,20 @@ Return paragraphs separated by blank lines. Include the <h3> section headings.""
             return None
 
         # Filter to acupoints that appear in this work's footnotes
-        # Match by substring (footnote ideogram may include 穴 suffix)
         entries = []
-        for chinese, pinyin, code, english, meridian, location in rows:
+        for chinese, pinyin, code, english, meridian, location, martial in rows:
             base = chinese.replace("穴", "")
             if any(base in ideo or ideo in chinese for ideo in acupoint_ideograms):
                 entries.append({
                     "chinese": chinese, "pinyin": pinyin, "code": code or "",
                     "english": english or "", "meridian": meridian or "",
-                    "location": location or "",
+                    "location": location or "", "martial": martial or "",
                 })
 
         if not entries:
             return None
 
-        # Build HTML
+        # Build HTML — list format instead of table for better Kindle rendering
         parts = [
             '<section class="acupoint-glossary">',
             '<h2 style="text-align:center; font-size:1.4em; margin-bottom:1.5em;">'
@@ -1865,29 +1866,30 @@ Return paragraphs separated by blank lines. Include the <h3> section headings.""
             '<p style="font-size:0.9em; color:#555; margin-bottom:1.5em;">'
             'The following acupuncture points appear in this volume. '
             'Codes follow WHO standard nomenclature.</p>',
-            '<table style="width:100%; border-collapse:collapse; font-size:0.85em;">',
-            '<tr style="border-bottom:1px solid #ccc; font-weight:bold;">'
             '<td style="padding:4px;">Code</td>'
             '<td style="padding:4px;">Chinese</td>'
-            '<td style="padding:4px;">Pinyin</td>'
-            '<td style="padding:4px;">English</td>'
-            '<td style="padding:4px;">Meridian</td>'
-            '<td style="padding:4px;">Location</td></tr>',
         ]
 
         for e in entries:
+            parts.append('<div style="margin-bottom:1.2em; border-bottom:1px solid #eee; padding-bottom:0.8em;">')
             parts.append(
-                f'<tr style="border-bottom:1px solid #eee;">'
-                f'<td style="padding:4px; font-weight:bold;">{_escape(e["code"])}</td>'
-                f'<td style="padding:4px;">{_escape(e["chinese"])}</td>'
-                f'<td style="padding:4px; font-style:italic;">{_escape(e["pinyin"])}</td>'
-                f'<td style="padding:4px;">{_escape(e["english"])}</td>'
-                f'<td style="padding:4px;">{_escape(e["meridian"])}</td>'
-                f'<td style="padding:4px; font-size:0.85em;">{_escape(e["location"])}</td>'
-                f'</tr>'
+                f'<p style="margin:0;"><strong>{_escape(e["code"])}</strong> '
+                f'<em>{_escape(e["pinyin"])}</em> '
+                f'{_escape(e["chinese"])} '
+                f'— {_escape(e["english"])}</p>'
             )
-
-        parts.append('</table>')
+            if e["location"]:
+                parts.append(
+                    f'<p style="margin:0.2em 0 0 0; font-size:0.85em; color:#555;">'
+                    f'<strong>Location:</strong> {_escape(e["location"])}. '
+                    f'<strong>Meridian:</strong> {_escape(e["meridian"])}.</p>'
+                )
+            if e["martial"]:
+                parts.append(
+                    f'<p style="margin:0.2em 0 0 0; font-size:0.85em; color:#555;">'
+                    f'<strong>In martial arts:</strong> {_escape(e["martial"])}</p>'
+                )
+            parts.append('</div>')
         parts.append('</section>')
 
         html = f"""<?xml version="1.0" encoding="utf-8"?>
