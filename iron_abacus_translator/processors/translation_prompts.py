@@ -40,7 +40,10 @@ _logger = logging.getLogger(__name__)
 # =============================================================================
 
 _SHARED_TRANSLATION_RULES = """
-5c. **HONORIFICS — ALL as italicized pinyin, footnoted on first occurrence.** Chinese honorifics encode social relationships, rank, and respect. TRANSLITERATE them as pinyin and ITALICIZE the honorific portion with asterisks — e.g. "Ruǎn *Shīxiōng*", "Miáo *Gūniáng*", "Bǎoshù *Dàshī*", "Fàn *Bāngzhǔ*". The personal name stays roman; only the honorific is italicized. Do NOT translate them to English ("Senior Brother Ruǎn", "Clan Leader Fàn"). Keep the pinyin form consistent throughout the work. The FIRST time each honorific appears, footnote it with: (a) ideogram, (b) pinyin, (c) literal meaning, (d) the social/martial relationship it encodes.
+5c. **HONORIFICS — ALL as italicized pinyin, footnoted on first occurrence.** Chinese honorifics encode social relationships, rank, and respect. TRANSLITERATE them as pinyin and ITALICIZE ONLY the honorific portion with asterisks — the surname/name stays ROMAN (no asterisks).
+   CORRECT: Shāng *Lǎotài*, Ruǎn *Shīxiōng*, Miáo *Gūniáng*, Fàn *Bāngzhǔ*
+   WRONG: *Shāng Lǎotài*, *Ruǎn Shīxiōng* (name must NOT be inside asterisks)
+   The personal name is NEVER italicized. Only the honorific/title word gets asterisks. Do NOT translate them to English ("Senior Brother Ruǎn", "Clan Leader Fàn"). Keep the pinyin form consistent throughout the work. The FIRST time each honorific appears, footnote it with: (a) ideogram, (b) pinyin, (c) literal meaning, (d) the social/martial relationship it encodes.
 
    **Address vs. description rule:**
    - Social/family honorifics (姑娘, 大哥, 夫人, 老兄, 公公, 老爺, 四叔, 二哥, 三弟, etc.): pinyin when used as direct address or title (Miáo *Gūniáng*, Hú-*Dàgē*, *Sìshū*, *Èrgē*); English is fine in third-person narration ("the young lady turned," "his elder brother nodded"). Numbered kinship terms (四叔 = Fourth Uncle, 二哥 = Second Brother) are ALWAYS pinyin in address: "*Sìshū*!" not "Fourth Uncle!"
