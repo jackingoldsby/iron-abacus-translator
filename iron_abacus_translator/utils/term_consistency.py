@@ -1114,23 +1114,29 @@ def _inject_acupoint_footnotes(data: Dict[str, Any]) -> int:
                 # This acupoint appears in source but isn't footnoted yet
                 ap = acupoint_map[term]
 
-                # Build explanation
+                # Build explanation matching Phase 3 GOOD examples:
+                # "Qūchí, the 'Pool at the Bend' acupoint, located at the lateral
+                #  end of the elbow crease. Large Intestine meridian. In martial
+                #  arts, striking this point causes numbness and loss of grip."
+                ap_pinyin = ap["pinyin"]
                 parts = []
                 if ap["english"]:
-                    parts.append(f'{ap["pinyin"]} ({ap["chinese"]}), the "{ap["english"]}" acupoint.')
+                    parts.append(f'*{ap_pinyin}* ({ap["chinese"]}), the "{ap["english"]}" acupoint')
                 else:
-                    parts.append(f'{ap["pinyin"]} ({ap["chinese"]}), an acupoint.')
+                    parts.append(f'*{ap_pinyin}* ({ap["chinese"]}), an acupoint')
                 if ap["location"]:
-                    parts.append(f'Located {ap["location"].lower()}.')
+                    parts.append(f'located {ap["location"].lower()}')
                 if ap["meridian"]:
-                    parts.append(f'{ap["meridian"]} meridian.')
+                    parts[-1] = parts[-1].rstrip('.') + f'. {ap["meridian"]} meridian.'
+                else:
+                    parts[-1] = parts[-1].rstrip('.') + '.'
                 if ap["martial"]:
                     parts.append(ap["martial"])
-                elif ap["explanation"]:
-                    # Use existing explanation if no martial context
-                    parts = [ap["explanation"]]
 
-                explanation = " ".join(parts)
+                explanation = ", ".join(parts[:2])
+                if len(parts) > 2:
+                    explanation += " " + " ".join(parts[2:])
+                explanation = explanation.rstrip('.') + '.'
 
                 # Find the pinyin in translated text to place the marker
                 pinyin = ap["pinyin"]

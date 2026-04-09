@@ -43,7 +43,7 @@ _SHARED_TRANSLATION_RULES = """
 5c. **HONORIFICS — ALL as italicized pinyin, footnoted on first occurrence.** Chinese honorifics encode social relationships, rank, and respect. TRANSLITERATE them as pinyin and ITALICIZE the honorific portion with asterisks — e.g. "Ruǎn *Shīxiōng*", "Miáo *Gūniáng*", "Bǎoshù *Dàshī*", "Fàn *Bāngzhǔ*". The personal name stays roman; only the honorific is italicized. Do NOT translate them to English ("Senior Brother Ruǎn", "Clan Leader Fàn"). Keep the pinyin form consistent throughout the work. The FIRST time each honorific appears, footnote it with: (a) ideogram, (b) pinyin, (c) literal meaning, (d) the social/martial relationship it encodes.
 
    **Address vs. description rule:**
-   - Social/family honorifics (姑娘, 大哥, 夫人, 老兄, 公公, 老爺): pinyin when used as direct address or title (Miáo *Gūniáng*, Hú-*Dàgē*); English is fine in third-person narration ("the young lady turned," "his elder brother nodded").
+   - Social/family honorifics (姑娘, 大哥, 夫人, 老兄, 公公, 老爺, 四叔, 二哥, 三弟, etc.): pinyin when used as direct address or title (Miáo *Gūniáng*, Hú-*Dàgē*, *Sìshū*, *Èrgē*); English is fine in third-person narration ("the young lady turned," "his elder brother nodded"). Numbered kinship terms (四叔 = Fourth Uncle, 二哥 = Second Brother) are ALWAYS pinyin in address: "*Sìshū*!" not "Fourth Uncle!"
    - Martial-lineage terms (師兄, 師姐, 師父, 前輩, 晚輩, 掌門, 幫主, 真人, 方丈): pinyin ALWAYS — even in narration ("his *Shīxiōng* stepped forward," "the *Zhǎngmén* rose from his seat") — because these encode specific relationships with no clean English equivalent.
    - Epithets (金面佛, 飛狐): English in narration ("the Golden-Faced Buddha drew his sabre"), pinyin in direct address ("*Jīnmiànfó*, your sabre technique is formidable").
 
