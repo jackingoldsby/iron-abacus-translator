@@ -989,7 +989,8 @@ REMOVE if the explanation contains:
 - References with specific years from the 20th or 21st century (e.g., "popularized by the 1986 film...")
 - Inane, banal, or vacuous observations that add no cultural knowledge (e.g., "this shows his bravery", "a common greeting", "used to address someone")
 - Footnotes that merely restate what is obvious from the translated text itself
-- Martial technique names where the explanation merely describes the physical motion or imagery (e.g., "a kicking technique that hooks like a crutch", "a punch that rises like a wave"). The poetic name is self-evident — only footnote a technique if the explanation provides genuine martial-school lineage, historical origin, or cultural significance beyond the literal image
+- Martial technique names where the explanation merely describes the physical motion or imagery (e.g., "a kicking technique that hooks like a crutch", "a punch that rises like a wave"). The poetic name is self-evident — only footnote a technique if the explanation provides VERIFIABLE martial-school lineage, historical origin, or cultural significance beyond the literal image
+- Footnotes for named martial forms, routines, or techniques (套路) that fabricate plausible-sounding but unverifiable historical claims. If you cannot verify the cultural claim from established knowledge, REMOVE the footnote. It is far better to have NO footnote than a hallucinated one
 
 DEFAULT for character names: REMOVE. Fictional dramatis personae do not need footnotes.
 DEFAULT for idioms, wuxia conventions, and historical references: KEEP. These enrich the reader's understanding of the genre and culture.
