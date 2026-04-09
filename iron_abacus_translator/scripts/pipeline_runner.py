@@ -970,6 +970,34 @@ class SourceLoaderProcessor(StageProcessor):
                     first["content"] = cleaned
                     logger.info(f"  Stripped metadata prefix from {first.get('id', '?')}")
 
+        # Split first block if chapter title is merged with content
+        # e.g., "第一章　大雨商家堡　　「胡一刀...」" → heading block + content block
+        for chapter in chapters:
+            blocks = chapter.get("content_blocks", [])
+            if not blocks:
+                continue
+            first = blocks[0]
+            content = first.get("content", "")
+            # Match: chapter heading followed by full-width indent + content
+            m = _re.match(
+                r'(第[一二三四五六七八九十百零\d]+[章回節节]\s*[^\s「」]{1,20})\s*　+(.+)',
+                content
+            )
+            if m:
+                heading_text = m.group(1).strip()
+                body_text = m.group(2).strip()
+                # Update first block to heading only
+                first["content"] = heading_text
+                first["type"] = "heading"
+                # Insert new block for the content
+                new_block = {
+                    "id": first["id"] + "_body",
+                    "type": "paragraph",
+                    "content": body_text,
+                }
+                blocks.insert(1, new_block)
+                logger.info(f"  Split chapter title from content in {first.get('id', '?')}")
+
         # Strip footnote markers from title/author (metadata translator artifacts)
         for k in ("title_english", "author_english"):
             if meta.get(k):
