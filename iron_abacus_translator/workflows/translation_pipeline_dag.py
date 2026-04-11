@@ -282,8 +282,19 @@ def create_v2_pipeline_dag() -> DAGDefinition:
     dag.add_edge("validation", "review", EdgeType.DEPENDENCY)
     dag.add_edge("review", "review_adjudicate", EdgeType.DEPENDENCY)
     dag.add_edge("review_adjudicate", "correction_classify", EdgeType.DEPENDENCY)
+    dag.add_node(DAGNode(
+        id="footnote_prune",
+        display_name="Footnote Pruner",
+        node_type=NodeType.TASK,
+        metadata={
+            "icon": "scissors", "color": "#E65100",
+            "description": "LLM-based footnote quality enforcement — remove hallucinations, trim tangents",
+        },
+    ))
+
     dag.add_edge("correction_classify", "correction_apply", EdgeType.DEPENDENCY)
-    dag.add_edge("correction_apply", "epub_build", EdgeType.DEPENDENCY)
+    dag.add_edge("correction_apply", "footnote_prune", EdgeType.DEPENDENCY)
+    dag.add_edge("footnote_prune", "epub_build", EdgeType.DEPENDENCY)
     dag.add_edge("epub_build", "send_kindle", EdgeType.DEPENDENCY)
 
     return dag

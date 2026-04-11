@@ -2165,6 +2165,48 @@ class ReviewAdjudicateProcessor(StageProcessor):
         return data
 
 
+class FootnotePruneProcessor(StageProcessor):
+    """LLM-based footnote quality enforcement.
+
+    Sends footnotes to DeepSeek in batches for evaluation against ironclad
+    quality rules. Removes hallucinations, trims cross-cultural tangents
+    and plot commentary, strips inane dramatis personae entries.
+    Renumbers footnotes by text position after pruning.
+    """
+
+    def __init__(self, config: RunnerConfig):
+        self.config = config
+
+    @property
+    def stage_id(self):
+        return "footnote_prune"
+
+    def process(self, data, filename, ctx):
+        from utils.footnote_pruner import prune_footnotes
+
+        client = None
+        try:
+            from utils.clients.llm_config import get_llm_client
+            client = get_llm_client(provider="deepseek")
+        except Exception as e:
+            logger.warning(f"  Could not init DeepSeek for pruning: {e}")
+
+        report = prune_footnotes(
+            data,
+            client=client,
+            max_workers=self.config.max_workers,
+        )
+
+        # Save report to WIP
+        wip_dir = self.config.get_node_wip_dir("footnote_prune")
+        report_path = wip_dir / f"{filename}_prune_report.json"
+        if not self.config.dry_run:
+            with open(report_path, 'w', encoding='utf-8') as f:
+                json.dump(report, f, ensure_ascii=False, indent=2)
+
+        return data
+
+
 class EpubBuildProcessor(StageProcessor):
     """Build EPUB from translated JSON."""
 
@@ -2463,6 +2505,7 @@ def build_pipeline(config: RunnerConfig,
     runner.register_processor("qg_post_cleanup", PostCleanupGate())
     runner.register_processor("correction_classify", CorrectionClassifyProcessor(config))
     runner.register_processor("correction_apply", CorrectionApplyProcessor(config))
+    runner.register_processor("footnote_prune", FootnotePruneProcessor(config))
     runner.register_processor("term_consistency", TermConsistencyProcessor(config))
     runner.register_processor("wiki_enrich", WikiEnrichmentProcessor(config))
     runner.register_processor("validation", ValidationProcessor(config))
