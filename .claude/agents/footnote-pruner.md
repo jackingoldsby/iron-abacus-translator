@@ -23,7 +23,15 @@ A translated JSON file path. The agent reads the file, processes it, and writes:
 
 ## Process
 
-For each footnote, the agent evaluates:
+The agent (Claude) reads every footnote and uses its own scholarly judgment to evaluate quality. Do NOT use regex pattern matching — read each footnote as a sinologist would and decide if it meets the quality bar.
+
+Implementation:
+1. Read the JSON file using the Read tool
+2. For each chapter, review all footnotes against the rules below
+3. Write a Python script (via Bash) that applies the REMOVE/TRIM/KEEP decisions, renumbers footnotes, and produces the output files
+4. Run the script
+
+For each footnote, evaluate:
 
 ### REMOVE entirely — with examples:
 
