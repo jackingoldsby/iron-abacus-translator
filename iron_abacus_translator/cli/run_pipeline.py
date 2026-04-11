@@ -267,8 +267,8 @@ Examples:
         help="Provider for cleanup model (e.g. openai, deepseek). Defaults to CLEANUP_LLM_PROVIDER or LLM_PROVIDER.",
     )
     parser.add_argument(
-        "--workers", "-w", type=int, default=50,
-        help="Max parallel workers (default: 50)",
+        "--workers", "-w", type=int, default=40,
+        help="Max parallel workers (default: 40)",
     )
     parser.add_argument(
         "--target-lang", default="en",
