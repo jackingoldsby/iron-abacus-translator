@@ -163,12 +163,10 @@ class KindleSender:
 
         msg.attach(MIMEText("Sent by Crimson Folio", "plain"))
 
-        part = MIMEBase("application", "epub+zip")
+        part = MIMEBase("application", "octet-stream")
         part.set_payload(epub_data)
         encoders.encode_base64(part)
-        part.add_header(
-            "Content-Disposition",
-            f'attachment; filename="{filename}"',
-        )
+        part.add_header("Content-Disposition", "attachment", filename=filename)
+        part.add_header("Content-Type", "application/epub+zip", name=filename)
         msg.attach(part)
         return msg
