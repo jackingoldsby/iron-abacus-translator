@@ -2235,15 +2235,18 @@ class EpubBuildProcessor(StageProcessor):
                 if not translated or not footnotes:
                     continue
 
-                # Keep only footnotes whose markers exist in text
+                # Keep only footnotes whose markers exist in text, sorted by position
                 present = []
                 for fn in footnotes:
-                    if f"[{fn.get('key')}]" in translated:
-                        present.append(fn)
+                    marker = f"[{fn.get('key')}]"
+                    pos = translated.find(marker)
+                    if pos >= 0:
+                        present.append((pos, fn))
+                present.sort(key=lambda x: x[0])  # sort by text position
 
-                # Renumber sequentially within chapter
+                # Renumber sequentially within chapter (by text order)
                 old_to_new = {}
-                for fn in present:
+                for _pos, fn in present:
                     fn_counter += 1
                     old_to_new[fn["key"]] = fn_counter
                     fn["key"] = fn_counter
@@ -2256,7 +2259,7 @@ class EpubBuildProcessor(StageProcessor):
                         translated = translated.replace(f"[__FN{new_key}__]", f"[{new_key}]")
                     block["translated_content"] = translated
 
-                block["footnotes"] = present
+                block["footnotes"] = [fn for _pos, fn in present]
 
         # Auto-detect cover from portfolio assignment
         cover_image = None
