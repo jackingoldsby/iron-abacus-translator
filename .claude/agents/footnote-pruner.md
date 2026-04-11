@@ -25,34 +25,83 @@ A translated JSON file path. The agent reads the file, processes it, and writes:
 
 For each footnote, the agent evaluates:
 
-### REMOVE entirely if:
-- Footnote just explains a surname ("包 — A common Chinese surname")
-- Footnote describes a fictional character's traits
-- Footnote is for a technique name and only describes the physical motion
-- Explanation is under 20 characters (too short to be useful)
+### REMOVE entirely — with examples:
 
-### TRIM (remove bad sentences, keep good core) if:
-- Good first sentence but hallucinated tangent follows
-- Cross-cultural analogue appended (Vietnam, Korea, India, Europe, etc.)
-- Pop culture reference in trailing sentences
-- Wrong dynasty/era claim for the story's setting
-- Self-referential mention of the novel being translated
-- Vague literary commentary ("this illustrates...", "it is worth noting...")
-- Rayleigh scattering, Tower of Babel, Marvel Comics, or other absurd tangents
+**Surname footnotes:**
+- BAD: `包 — A common Chinese surname. The character Bāo is also the surname of the famous Song dynasty official Bāo Zhěng.`
+- WHY: Just explains a surname. The reader doesn't need this.
 
-### KEEP unchanged if:
-- Explains a real historical institution with dates/dynasty
-- Provides geographic context with province/region
-- Explains an acupoint with body location and martial significance
-- Gives the origin of an idiom or proverb
-- Names a real verifiable martial school/tradition
-- Explains a genuine cultural practice
+**Fictional character descriptions:**
+- BAD: `苗人鳳 — A martial arts master known for his formidable swordsmanship and his title "Golden-Faced Buddha."`
+- WHY: Describes a fictional character — this is dramatis personae, not cultural knowledge.
+
+**Technique motion descriptions:**
+- BAD: `拐子腳 — A kicking technique named for its resemblance to striking with a crutch. The leg is swung in a hooking arc.`
+- BAD: `雲龍三現 — A technique from the Hú Family Sabre Method, emphasizing swift strikes like a dragon emerging from clouds.`
+- WHY: Just describes physical motion or fabricates lineage. The poetic English name is self-explanatory.
+
+**Too short to be useful:**
+- BAD: `劍 — A sword.` (under 20 chars, reader already knows)
+
+### TRIM (remove bad sentences, keep good core) — with examples:
+
+**Cross-cultural tangents:**
+- BEFORE: `知縣 — A county magistrate, the lowest level of imperial administration... In modern India, the district magistrate serves a comparable administrative function.`
+- AFTER: `知縣 — A county magistrate, the lowest level of imperial administration.`
+
+**Pop culture / film references:**
+- BEFORE: `點子 — A jiānghú slang term for a target, popularized by the 1986 Hong Kong action film A Better Tomorrow.`
+- AFTER: `點子 — A jiānghú slang term for a target or person of interest.`
+
+**Wrong dynasty/era:**
+- BEFORE: `紫禁城 — The Forbidden City (1420–1924) in Běijīng...` (story is set in Song dynasty, Forbidden City is Ming/Qing)
+- AFTER: Remove the Forbidden City dates, keep only Song-relevant content.
+
+**Self-referential:**
+- BEFORE: `龍頭鍘 — An imperial guillotine, popularized in the 1879 novel The Three Heroes and Five Gallants.`
+- AFTER: `龍頭鍘 — An imperial guillotine used by Judge Bāo, symbolizing his authority to execute even high-ranking officials.`
+
+**Absurd tangents:**
+- BEFORE: `欽天監 — The Imperial Observatory... A Belgian-Brazilian astronomer Ferdinand Verbiest later directed the observatory.`
+- AFTER: `欽天監 — The Imperial Observatory, responsible for astronomical observation, calendar computation, and interpreting celestial omens for the court.`
+
+**Vague literary filler:**
+- BEFORE: `金龍寺 — A Buddhist temple. Such places often serve as sanctuaries in Chinese fiction.`
+- AFTER: Remove — adds nothing cultural.
+
+**Marvel Comics (!!):**
+- BEFORE: `星君 — A Star Lord in the Daoist celestial hierarchy. Not to be confused with the Marvel Comics character.`
+- AFTER: `星君 — A Star Lord in the Daoist celestial hierarchy, a deity governing a particular star or constellation.`
+
+### KEEP unchanged — with examples:
+
+**Historical institution with dates:**
+- GOOD: `舉人 — A provincial graduate under the imperial examination system, the degree awarded to candidates who passed the triennial examinations. Holders were eligible for minor official posts.`
+
+**Geographic with province:**
+- GOOD: `佛山 — Fóshān, a major city in Guǎngdōng province, historically one of China's four great martial arts centers.`
+
+**Acupoint with location + martial context:**
+- GOOD: `曲池 — Qūchí, the "Pool at the Bend" acupoint, located at the lateral end of the elbow crease. Large Intestine meridian. Striking this point causes numbness and loss of grip strength.`
+
+**Idiom with origin:**
+- GOOD: `有眼不識泰山 — Literally "to have eyes but fail to recognize Mount Tai." An idiom for being blind to greatness, alluding to the reverence for Tài Shān as the most sacred of the Five Great Mountains.`
+
+**Real martial school:**
+- GOOD: `太極門 — The Tàijí School, practitioners of Tàijíquán, a major internal martial art attributed to the Wǔdāng Mountains tradition.`
+
+**Cultural practice:**
+- GOOD: `束脩 — Literally "bundles of dried meat," the traditional tuition gift from student to teacher, dating to the Confucian Analects.`
 
 ## After pruning
 
-- Renumber all footnote markers sequentially per chapter (sorted by text position)
-- Remove orphan markers from translated_content
-- Update the footnotes array to match
+After all removals and trims:
+
+1. **Sort footnotes by text position** — for each block, find each marker's position in `translated_content` and sort the footnotes array to match
+2. **Renumber sequentially per chapter** — [1], [2], [3]... continuous across blocks within a chapter, assigned by text order (leftmost marker = lowest number)
+3. **Remove orphan markers** — any `[N]` in text with no matching footnote entry gets stripped
+4. **Remove empty footnotes** — any footnote with blank or <20 char explanation after trimming gets removed along with its marker
+5. **Verify** — after renumbering, confirm no `[3]` appears before `[2]` in any block
 
 ## Output
 
