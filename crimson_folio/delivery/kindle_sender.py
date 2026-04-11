@@ -157,7 +157,7 @@ class KindleSender:
     def _build_message(self, to_email: str, filename: str, epub_data: bytes) -> MIMEMultipart:
         """Build email message with EPUB attachment."""
         msg = MIMEMultipart()
-        msg["From"] = self.smtp_user
+        msg["From"] = f"Iron Abacus <{self.smtp_user}>"
         msg["To"] = to_email
         msg["Subject"] = "convert"  # Amazon converts EPUB to Kindle format
 
