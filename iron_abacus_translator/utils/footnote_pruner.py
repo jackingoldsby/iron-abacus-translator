@@ -110,23 +110,16 @@ def prune_footnotes(
     logger.info(f"  Footnote pruner: {len(all_fns)} footnotes → DeepSeek "
                 f"({batch_size}/batch, {max_workers} workers)")
 
-    # Build batches
-    batches = []
-    for i in range(0, len(all_fns), batch_size):
-        batch = all_fns[i:i + batch_size]
-        batches.append((i, batch))
-
-    # Process batches in parallel
+    # Process each footnote individually in parallel
     decisions = {}  # global_idx → verdict dict
 
-    def _process_batch(batch_start, batch):
-        items = []
-        for j, fn_info in enumerate(batch):
-            items.append(
-                f"[{j}] {fn_info['ideogram']} ({fn_info['pinyin']}): "
-                f"{fn_info['explanation'][:200]}"
-            )
-        user_msg = "Review these footnotes:\n\n" + "\n".join(items)
+    def _evaluate_one(global_idx, fn_info):
+        user_msg = (
+            f"Ideogram: {fn_info['ideogram']}\n"
+            f"Pinyin: {fn_info['pinyin']}\n"
+            f"Explanation: {fn_info['explanation']}\n\n"
+            f"Verdict?"
+        )
 
         try:
             response = client.chat(LLMRequest(
@@ -137,33 +130,26 @@ def prune_footnotes(
                 model="deepseek-chat",
                 temperature=0.1,
                 json_mode=True,
-                timeout=60,
+                timeout=30,
             ))
 
             result = response.parsed
+            if isinstance(result, list) and result:
+                result = result[0]
             if isinstance(result, dict):
-                result = result.get("verdicts", result.get("results", []))
-            if not isinstance(result, list):
-                return {}
-
-            batch_decisions = {}
-            for item in result:
-                idx = item.get("idx")
-                if idx is not None and 0 <= idx < len(batch):
-                    batch_decisions[batch_start + idx] = item
-            return batch_decisions
-
+                return global_idx, result
         except Exception as e:
-            logger.warning(f"Prune batch failed: {e}")
-            return {}
+            logger.debug(f"Prune failed for {fn_info['ideogram']}: {e}")
+        return global_idx, {"verdict": "KEEP"}
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(_process_batch, start, batch): start
-            for start, batch in batches
+            executor.submit(_evaluate_one, i, fn): i
+            for i, fn in enumerate(all_fns)
         }
         for fut in as_completed(futures):
-            decisions.update(fut.result())
+            idx, decision = fut.result()
+            decisions[idx] = decision
 
     # Apply decisions
     removed = 0
