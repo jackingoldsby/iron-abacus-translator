@@ -42,7 +42,7 @@ Work details:
 
 Structure:
 1. Introduce the work — its place in the Chinese literary tradition, when it was written, why it matters. Be specific to THIS work, not generic.
-2. Note that this is an AI-assisted translation. Be honest about the method: "In full disclosure, this translation was assisted by AI. Without that assistance, a work of this scale and specificity would simply not be economically realistic to produce." Express hope that bringing it to a wider audience outweighs imperfections.
+2. Briefly note the translation method in one sentence only: "This translation was produced with AI assistance; full details are in the credits." Then move on to the work itself — do NOT dwell on AI, apologize for imperfections, or discuss economics. The credits page covers the methodology.
 3. Explain the footnoting approach — cultural footnotes for Western readers, Chinese honorifics preserved as pinyin, martial/historical/institutional terminology explained on first use.
 4. If multi-volume, note what this volume covers. Mention any scholarly editions that informed the work if relevant.
 5. Close with a hope that the reader will be drawn to explore further.
@@ -54,11 +54,8 @@ _PREFACE_FALLBACK = [
     " classical Chinese fiction. Written by {author}, it represents a genre and"
     " sensibility that remains largely inaccessible to the English-speaking world.",
 
-    "In full disclosure, this translation was assisted by AI. Without that"
-    " assistance, a work of this scale and specificity would simply not be"
-    " economically realistic to produce. I hope the benefit of bringing it to a"
-    " wider audience outweighs the imperfections that inevitably follow from the"
-    " method.",
+    "This translation was produced with AI assistance; full details are in the"
+    " credits.",
 
     "The text has been reviewed, corrected, and annotated with care. Cultural"
     " footnotes aim to give the Western reader the context that a Chinese reader"
