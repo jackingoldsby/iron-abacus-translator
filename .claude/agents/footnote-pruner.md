@@ -73,6 +73,11 @@ For each footnote, evaluate:
 - BEFORE: `欽天監 — The Imperial Observatory... A Belgian-Brazilian astronomer Ferdinand Verbiest later directed the observatory.`
 - AFTER: `欽天監 — The Imperial Observatory, responsible for astronomical observation, calendar computation, and interpreting celestial omens for the court.`
 
+**Plot commentary / scene-specific interpretation:**
+- BEFORE: `表壯��如裡壯 — A proverb meaning 'a strong exterior is not as good as a strong interior.' Here, Bāo Hǎi praises his wife's cleverness in devising the plan.`
+- AFTER: `表壯不如裡壯 — A proverb meaning 'a strong exterior is not as good as a strong interior,' praising inner capability over outward appearance.`
+- RULE: Trim any sentence that explains what the term means IN THIS SCENE ("Here, X does Y", "In this passage", "which explains why", "underscoring", "suggesting that the character")
+
 **Vague literary filler:**
 - BEFORE: `金龍寺 — A Buddhist temple. Such places often serve as sanctuaries in Chinese fiction.`
 - AFTER: Remove — adds nothing cultural.
